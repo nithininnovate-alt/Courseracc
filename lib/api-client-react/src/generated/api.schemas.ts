@@ -15,6 +15,7 @@ export type UserRole = typeof UserRole[keyof typeof UserRole];
 export const UserRole = {
   student: 'student',
   admin: 'admin',
+  superadmin: 'superadmin',
 } as const;
 
 export interface User {
@@ -37,10 +38,22 @@ export type UserRoleUpdateRole = typeof UserRoleUpdateRole[keyof typeof UserRole
 export const UserRoleUpdateRole = {
   student: 'student',
   admin: 'admin',
+  superadmin: 'superadmin',
 } as const;
 
 export interface UserRoleUpdate {
   role: UserRoleUpdateRole;
+}
+
+export interface LoginInput {
+  /** @minLength 1 */
+  username: string;
+  /** @minLength 1 */
+  password: string;
+}
+
+export interface AuthMessage {
+  success: boolean;
 }
 
 export type ApplicationStatus = typeof ApplicationStatus[keyof typeof ApplicationStatus];

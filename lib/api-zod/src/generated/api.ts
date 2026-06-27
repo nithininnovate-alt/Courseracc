@@ -18,6 +18,38 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * @summary Staff login with username and password
+ */
+
+
+
+
+export const StaffLoginBody = zod.object({
+  "username": zod.string().min(1),
+  "password": zod.string().min(1)
+})
+
+export const StaffLoginResponse = zod.object({
+  "id": zod.number(),
+  "clerkId": zod.string(),
+  "email": zod.string(),
+  "firstName": zod.string().nullish(),
+  "lastName": zod.string().nullish(),
+  "role": zod.enum(['student', 'admin', 'superadmin']),
+  "avatarUrl": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Staff logout
+ */
+export const StaffLogoutResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
  * @summary Get the current authenticated user
  */
 export const GetCurrentUserResponse = zod.object({
@@ -26,7 +58,7 @@ export const GetCurrentUserResponse = zod.object({
   "email": zod.string(),
   "firstName": zod.string().nullish(),
   "lastName": zod.string().nullish(),
-  "role": zod.enum(['student', 'admin']),
+  "role": zod.enum(['student', 'admin', 'superadmin']),
   "avatarUrl": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
@@ -41,7 +73,7 @@ export const ListUsersResponseItem = zod.object({
   "email": zod.string(),
   "firstName": zod.string().nullish(),
   "lastName": zod.string().nullish(),
-  "role": zod.enum(['student', 'admin']),
+  "role": zod.enum(['student', 'admin', 'superadmin']),
   "avatarUrl": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
@@ -56,7 +88,7 @@ export const UpdateUserRoleParams = zod.object({
 })
 
 export const UpdateUserRoleBody = zod.object({
-  "role": zod.enum(['student', 'admin'])
+  "role": zod.enum(['student', 'admin', 'superadmin'])
 })
 
 export const UpdateUserRoleResponse = zod.object({
@@ -65,7 +97,7 @@ export const UpdateUserRoleResponse = zod.object({
   "email": zod.string(),
   "firstName": zod.string().nullish(),
   "lastName": zod.string().nullish(),
-  "role": zod.enum(['student', 'admin']),
+  "role": zod.enum(['student', 'admin', 'superadmin']),
   "avatarUrl": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })

@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Switch, Route, Router as WouterRouter } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Switch, Route, Router as WouterRouter, useLocation, Link } from "wouter";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { ChevronRight, PlayCircle, BookOpen, Award, Globe, Users, ArrowRight, CheckCircle2, Menu, X, MonitorPlay, GraduationCap, Clock, HelpCircle, Laptop } from "lucide-react";
+import { ClerkProvider, useUser } from "@clerk/react";
+import { publishableKeyFromHost } from "@clerk/react/internal";
 
 import heroImg from "./assets/hero.png";
 import course1Img from "./assets/course1.png";
@@ -16,31 +19,55 @@ import testimonialImg from "./assets/testimonial.png";
 import faculty1Img from "./assets/faculty1.png";
 import platformImg from "./assets/platform.png";
 
-const queryClient = new QueryClient();
+import { StudentLayout } from "@/components/layout/StudentLayout";
+import { AdminLayout } from "@/components/layout/AdminLayout";
+import SignInPage from "@/pages/auth/SignIn";
+import SignUpPage from "@/pages/auth/SignUp";
+import AdminLoginPage from "@/pages/auth/AdminLogin";
+import StudentDashboard from "@/pages/student/Dashboard";
+import AdminDashboard from "@/pages/admin/Dashboard";
+import NotFound from "@/pages/not-found";
+import ApplyPage from "@/pages/Apply";
+import StudentCourses from "@/pages/student/Courses";
+import StudentLearning from "@/pages/student/Learning";
+import StudentAssignments from "@/pages/student/Assignments";
+import StudentExams from "@/pages/student/Exams";
+import StudentPayments from "@/pages/student/Payments";
+import StudentCertificates from "@/pages/student/Certificates";
+import StudentApplications from "@/pages/student/Applications";
+import AdminApplications from "@/pages/admin/Applications";
+import AdminCourses from "@/pages/admin/Courses";
+import AdminStudents from "@/pages/admin/Students";
+import AdminExams from "@/pages/admin/Exams";
+import AdminPayments from "@/pages/admin/Payments";
+import AdminCertificates from "@/pages/admin/Certificates";
+import AdminEmails from "@/pages/admin/Emails";
+import AdminCourier from "@/pages/admin/Courier";
 
-const fadeIn = {
+const clerkPubKey = publishableKeyFromHost(
+  window.location.hostname,
+  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
+);
+const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
+const basePath = import.meta.env.BASE_URL || "/";
+
+const fadeIn: Variants = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: "easeOut" } }
 };
 
-const staggerContainer = {
+const staggerContainer: Variants = {
   hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.2
-    }
-  }
+  visible: { opacity: 1, transition: { staggerChildren: 0.2 } }
 };
 
 function Home() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -65,8 +92,8 @@ function Home() {
             <a href="#faculty" className="text-sm font-semibold text-foreground/80 hover:text-primary transition-colors">Faculty</a>
             <a href="#about" className="text-sm font-semibold text-foreground/80 hover:text-primary transition-colors">About</a>
             <div className="flex items-center gap-4 ml-4">
-              <Button variant="ghost" className="font-semibold hover:bg-primary/5 hover:text-primary">Log In</Button>
-              <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-lg shadow-primary/20">Apply Now</Button>
+              <Button variant="ghost" className="font-semibold hover:bg-primary/5 hover:text-primary" onClick={() => setLocation('/sign-in')}>Log In</Button>
+              <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-lg shadow-primary/20" onClick={() => setLocation('/apply')}>Apply Now</Button>
             </div>
           </nav>
 
@@ -85,8 +112,8 @@ function Home() {
             <a href="#faculty" className="font-serif font-bold text-2xl text-primary" onClick={() => setMobileMenuOpen(false)}>Faculty</a>
             <a href="#about" className="font-serif font-bold text-2xl text-primary" onClick={() => setMobileMenuOpen(false)}>About</a>
             <hr className="my-4 border-border" />
-            <Button variant="outline" size="lg" className="w-full justify-center border-primary/20 text-primary">Log In</Button>
-            <Button size="lg" className="w-full justify-center bg-primary text-primary-foreground">Apply Now</Button>
+            <Button variant="outline" size="lg" className="w-full justify-center border-primary/20 text-primary" onClick={() => { setMobileMenuOpen(false); setLocation('/sign-in'); }}>Log In</Button>
+            <Button size="lg" className="w-full justify-center bg-primary text-primary-foreground" onClick={() => { setMobileMenuOpen(false); setLocation('/apply'); }}>Apply Now</Button>
           </div>
         </div>
       )}
@@ -94,14 +121,13 @@ function Home() {
       <main className="flex-grow pt-24">
         {/* 2. Hero Section */}
         <section className="relative pt-12 pb-24 md:pt-24 md:pb-32 overflow-hidden">
-          {/* Abstract background shapes */}
           <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-secondary/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3"></div>
           <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[80px] translate-y-1/3 -translate-x-1/3"></div>
           
           <div className="container mx-auto px-6 md:px-12 relative z-10">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer} className="max-w-2xl">
-                <motion.div variants={fadeIn} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/20 text-yellow-800 dark:text-yellow-500 text-sm font-bold mb-8 border border-secondary/30">
+                <motion.div variants={fadeIn} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent text-accent-foreground text-sm font-bold mb-8 border border-primary/15">
                   <Award className="w-4 h-4" />
                   <span>World-Class Online Education</span>
                 </motion.div>
@@ -113,7 +139,7 @@ function Home() {
                   Earn your degree from a globally recognized university. Join a community of innovators, leaders, and thinkers shaping the future.
                 </motion.p>
                 <motion.div variants={fadeIn} className="flex flex-wrap gap-4">
-                  <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 text-base h-14 px-8 shadow-xl shadow-primary/20 rounded-xl">
+                  <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 text-base h-14 px-8 shadow-xl shadow-primary/20 rounded-xl" onClick={() => setLocation('/apply')}>
                     Explore Programs <ChevronRight className="ml-2 w-5 h-5" />
                   </Button>
                   <Button size="lg" variant="outline" className="text-base h-14 px-8 border-primary/20 hover:bg-primary/5 text-primary rounded-xl backdrop-blur-sm">
@@ -145,7 +171,6 @@ function Home() {
 
         {/* 3. Stats / Trust Section */}
         <section className="py-16 bg-primary text-primary-foreground relative overflow-hidden">
-          {/* Subtle pattern overlay */}
           <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '32px 32px' }}></div>
           <div className="container mx-auto px-6 md:px-12 relative z-10">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center divide-x divide-primary-foreground/10">
@@ -243,7 +268,7 @@ function Home() {
                 <h2 className="text-4xl md:text-5xl font-serif font-bold text-primary mb-6">Featured Programs</h2>
                 <p className="text-lg text-muted-foreground leading-relaxed">Discover our most popular degree programs designed to accelerate your career in today's most demanding fields.</p>
               </div>
-              <Button variant="outline" className="h-12 px-6 border-primary/20 text-primary hover:bg-primary/5 rounded-xl">
+              <Button variant="outline" className="h-12 px-6 border-primary/20 text-primary hover:bg-primary/5 rounded-xl" onClick={() => setLocation('/portal/courses')}>
                 View All Programs <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </div>
@@ -263,7 +288,7 @@ function Home() {
                     </div>
                   </div>
                   <div className="p-8 flex-grow flex flex-col">
-                    <h3 className="text-2xl font-bold text-primary mb-4 font-serif group-hover:text-secondary transition-colors leading-snug">{program.title}</h3>
+                    <h3 className="text-2xl font-bold text-primary mb-4 font-serif group-hover:text-white transition-colors leading-snug">{program.title}</h3>
                     <div className="flex flex-col gap-2 mb-8 text-sm text-muted-foreground flex-grow">
                       <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-500" /> 100% Online</span>
                       <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary/50" /> {program.duration}</span>
@@ -342,19 +367,15 @@ function Home() {
         <section className="py-32">
           <div className="container mx-auto px-6 md:px-12">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="bg-gradient-to-br from-muted to-background rounded-[3rem] p-12 md:p-24 text-center max-w-5xl mx-auto border border-border shadow-2xl relative overflow-hidden">
-              {/* Decorative rings */}
               <div className="absolute top-0 right-0 w-64 h-64 border-[40px] border-primary/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
               <div className="absolute bottom-0 left-0 w-48 h-48 border-[20px] border-secondary/10 rounded-full translate-y-1/2 -translate-x-1/2"></div>
               
               <div className="relative z-10">
                 <h2 className="text-4xl md:text-6xl font-serif font-bold text-primary mb-6">Ready to Take the Next Step?</h2>
-                <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed">Join thousands of students worldwide who are transforming their lives through world-class education at Central Global University.</p>
-                <div className="flex flex-col sm:flex-row justify-center gap-4">
-                  <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 text-lg h-16 px-10 rounded-xl shadow-xl shadow-primary/20">
-                    Start Your Application
-                  </Button>
-                  <Button size="lg" variant="outline" className="bg-background text-primary border-primary/20 hover:bg-muted text-lg h-16 px-10 rounded-xl">
-                    Request Information
+                <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">Join thousands of students worldwide who are advancing their careers with a degree from Central Global University.</p>
+                <div className="flex flex-wrap justify-center gap-4">
+                  <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 text-lg h-16 px-10 shadow-xl shadow-primary/20 rounded-xl" onClick={() => setLocation('/apply')}>
+                    Apply Now <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </div>
               </div>
@@ -363,61 +384,44 @@ function Home() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-gray-950 text-gray-400 py-20 border-t border-gray-900">
+      <footer className="bg-primary text-primary-foreground py-16 border-t border-primary-foreground/10">
         <div className="container mx-auto px-6 md:px-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-12 mb-16">
-            <div className="col-span-2 lg:col-span-2">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-10 h-10 bg-secondary/20 rounded-xl flex items-center justify-center border border-secondary/30">
-                  <Globe className="text-secondary w-6 h-6" />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+            <div className="col-span-1 md:col-span-2">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-secondary rounded-xl flex items-center justify-center">
+                  <Globe className="text-secondary-foreground w-6 h-6" />
                 </div>
-                <span className="text-2xl font-bold font-serif text-white tracking-tight">
-                  Central Global
-                </span>
+                <span className="text-2xl font-bold font-serif text-white">Central Global</span>
               </div>
-              <p className="max-w-sm mb-8 leading-relaxed text-gray-500">Empowering global learners with accessible, high-quality education to shape the future of our world. Excellence without borders.</p>
-              <div className="flex gap-4">
-                <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center hover:bg-primary hover:text-white transition-colors cursor-pointer text-gray-400 border border-gray-800">in</div>
-                <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center hover:bg-primary hover:text-white transition-colors cursor-pointer text-gray-400 border border-gray-800">tw</div>
-                <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center hover:bg-primary hover:text-white transition-colors cursor-pointer text-gray-400 border border-gray-800">fb</div>
-              </div>
+              <p className="text-primary-foreground/70 max-w-sm mb-6 leading-relaxed">Empowering the next generation of leaders through accessible, world-class online education.</p>
             </div>
             
             <div>
-              <h4 className="text-white font-bold mb-6 tracking-wide uppercase text-sm">Academics</h4>
-              <ul className="space-y-4 text-gray-500">
-                <li><a href="#" className="hover:text-white transition-colors">Degree Programs</a></li>
+              <h4 className="font-bold text-lg mb-6 text-white">Academics</h4>
+              <ul className="space-y-3 text-primary-foreground/70">
+                <li><a href="#" className="hover:text-white transition-colors">Master's Degrees</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Bachelor's Degrees</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Certificates</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Short Courses</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Faculty Directory</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Bootcamps</a></li>
               </ul>
             </div>
             
             <div>
-              <h4 className="text-white font-bold mb-6 tracking-wide uppercase text-sm">Admissions</h4>
-              <ul className="space-y-4 text-gray-500">
-                <li><a href="#" className="hover:text-white transition-colors">Apply Now</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Tuition & Aid</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">International</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="text-white font-bold mb-6 tracking-wide uppercase text-sm">University</h4>
-              <ul className="space-y-4 text-gray-500">
-                <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">News & Events</a></li>
+              <h4 className="font-bold text-lg mb-6 text-white">University</h4>
+              <ul className="space-y-3 text-primary-foreground/70">
+                <li><a href="#about" className="hover:text-white transition-colors">About Us</a></li>
+                <li><a href="#faculty" className="hover:text-white transition-colors">Faculty</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Alumni Network</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
+                <li><Link href="/admin/login" className="hover:text-white transition-colors">Staff Login</Link></li>
               </ul>
             </div>
           </div>
           
-          <div className="pt-8 border-t border-gray-900 flex flex-col md:flex-row justify-between items-center gap-6 text-sm text-gray-600">
-            <p>&copy; {new Date().getFullYear()} Central Global University. All rights reserved.</p>
-            <div className="flex gap-8">
+          <div className="border-t border-primary-foreground/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-primary-foreground/60 text-sm">
+            <p>© {new Date().getFullYear()} Central Global University. All rights reserved.</p>
+            <div className="flex gap-6">
               <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
               <a href="#" className="hover:text-white transition-colors">Accessibility</a>
@@ -429,19 +433,88 @@ function Home() {
   );
 }
 
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Switch>
-            <Route path="/" component={Home} />
-          </Switch>
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
-  );
+function ClerkHomeRedirect() {
+  const { isLoaded, isSignedIn } = useUser();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (isLoaded) {
+      if (isSignedIn) {
+        setLocation("/portal");
+      }
+    }
+  }, [isLoaded, isSignedIn, setLocation]);
+
+  if (!isLoaded) return null;
+  if (!isSignedIn) return <Home />;
+  return null;
 }
 
-export default App;
+function RequireSignedIn({ children }: { children: React.ReactNode }) {
+  const { isLoaded, isSignedIn } = useUser();
+  if (!isLoaded) return null;
+  if (!isSignedIn) return <SignInPage />;
+  return <>{children}</>;
+}
+
+export default function App() {
+  return (
+    <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl}>
+      <QueryClientProvider client={queryClient}>
+        <WouterRouter base={basePath}>
+          <TooltipProvider>
+            <div className="min-h-screen bg-background">
+              <Switch>
+                <Route path="/" component={ClerkHomeRedirect} />
+                <Route path="/sign-in/*?" component={SignInPage} />
+                <Route path="/sign-up/*?" component={SignUpPage} />
+                <Route path="/admin/login" component={AdminLoginPage} />
+                <Route path="/apply" component={ApplyPage} />
+
+                {/* Admin Routes */}
+                <Route path="/admin*">
+                  <AdminLayout>
+                    <Switch>
+                      <Route path="/admin" component={AdminDashboard} />
+                      <Route path="/admin/applications" component={AdminApplications} />
+                      <Route path="/admin/courses" component={AdminCourses} />
+                      <Route path="/admin/students" component={AdminStudents} />
+                      <Route path="/admin/exams" component={AdminExams} />
+                      <Route path="/admin/payments" component={AdminPayments} />
+                      <Route path="/admin/certificates" component={AdminCertificates} />
+                      <Route path="/admin/emails" component={AdminEmails} />
+                      <Route path="/admin/courier" component={AdminCourier} />
+                      <Route component={NotFound} />
+                    </Switch>
+                  </AdminLayout>
+                </Route>
+
+                {/* Student Portal Routes */}
+                <Route path="/portal*">
+                  <RequireSignedIn>
+                    <StudentLayout>
+                      <Switch>
+                        <Route path="/portal" component={StudentDashboard} />
+                        <Route path="/portal/courses" component={StudentCourses} />
+                        <Route path="/portal/learning" component={StudentLearning} />
+                        <Route path="/portal/assignments" component={StudentAssignments} />
+                        <Route path="/portal/exams" component={StudentExams} />
+                        <Route path="/portal/payments" component={StudentPayments} />
+                        <Route path="/portal/certificates" component={StudentCertificates} />
+                        <Route path="/portal/applications" component={StudentApplications} />
+                        <Route component={NotFound} />
+                      </Switch>
+                    </StudentLayout>
+                  </RequireSignedIn>
+                </Route>
+
+                <Route component={NotFound} />
+              </Switch>
+            </div>
+            <Toaster />
+          </TooltipProvider>
+        </WouterRouter>
+      </QueryClientProvider>
+    </ClerkProvider>
+  );
+}

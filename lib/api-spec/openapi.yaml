@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Staff (admin/superadmin) username + password authentication
   - name: users
     description: User accounts and roles
   - name: applications
@@ -50,6 +52,38 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    post:
+      operationId: staffLogin
+      tags: [auth]
+      summary: Staff login with username and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Authenticated staff user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /auth/logout:
+    post:
+      operationId: staffLogout
+      tags: [auth]
+      summary: Staff logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthMessage"
 
   /users/me:
     get:
@@ -559,14 +593,25 @@ components:
         email: { type: string }
         firstName: { type: ["string", "null"] }
         lastName: { type: ["string", "null"] }
-        role: { type: string, enum: [student, admin] }
+        role: { type: string, enum: [student, admin, superadmin] }
         avatarUrl: { type: ["string", "null"] }
         createdAt: { type: string, format: date-time }
     UserRoleUpdate:
       type: object
       required: [role]
       properties:
-        role: { type: string, enum: [student, admin] }
+        role: { type: string, enum: [student, admin, superadmin] }
+    LoginInput:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string, minLength: 1 }
+        password: { type: string, minLength: 1 }
+    AuthMessage:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
 
     Application:
       type: object
