@@ -7,11 +7,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion, type Variants } from "framer-motion";
-import { ChevronRight, PlayCircle, BookOpen, Award, Globe, Users, ArrowRight, CheckCircle2, Menu, X, MonitorPlay, GraduationCap, Clock, HelpCircle, Laptop } from "lucide-react";
+import { ChevronRight, ChevronLeft, PlayCircle, BookOpen, Award, Globe, Users, ArrowRight, CheckCircle2, Menu, X, MonitorPlay, GraduationCap, Clock, HelpCircle, Laptop, Code2, Briefcase, LineChart, HeartPulse, Palette } from "lucide-react";
 import { ClerkProvider, useUser } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 
-import heroImg from "./assets/hero.png";
+import slide1Img from "./assets/slide1.jpg";
+import slide2Img from "./assets/slide2.jpg";
+import slide3Img from "./assets/slide3.jpg";
 import course1Img from "./assets/course1.png";
 import course2Img from "./assets/course2.png";
 import course3Img from "./assets/course3.png";
@@ -61,6 +63,129 @@ const staggerContainer: Variants = {
   visible: { opacity: 1, transition: { staggerChildren: 0.2 } }
 };
 
+const heroSlides = [
+  {
+    img: slide1Img,
+    eyebrow: "World-Class Online Education",
+    title: "Learn Without Limits",
+    text: "Start, switch, or advance your career with globally recognized online degrees and certificates.",
+    primary: { label: "Explore Programs", to: "/apply" },
+  },
+  {
+    img: slide2Img,
+    eyebrow: "Accredited & Recognized",
+    title: "Earn a Degree That Moves You Forward",
+    text: "Fully accredited online degrees with the same prestige and alumni benefits as on-campus study.",
+    primary: { label: "View Programs", to: "/apply" },
+  },
+  {
+    img: slide3Img,
+    eyebrow: "Built for Working Professionals",
+    title: "Study on Your Schedule, From Anywhere",
+    text: "Flexible, self-paced learning designed to fit around your life, your job, and your goals.",
+    primary: { label: "Get Started", to: "/apply" },
+  },
+];
+
+function HeroSlider() {
+  const [current, setCurrent] = useState(0);
+  const [, setLocation] = useLocation();
+  const count = heroSlides.length;
+
+  const go = (dir: number) => setCurrent((c) => (c + dir + count) % count);
+
+  useEffect(() => {
+    const t = setInterval(() => setCurrent((c) => (c + 1) % count), 6000);
+    return () => clearInterval(t);
+  }, [count]);
+
+  const slide = heroSlides[current];
+
+  return (
+    <section className="relative h-[88vh] min-h-[560px] max-h-[820px] w-full overflow-hidden">
+      {heroSlides.map((s, i) => (
+        <div
+          key={i}
+          className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${i === current ? "opacity-100" : "opacity-0"}`}
+          aria-hidden={i !== current}
+        >
+          <img
+            src={s.img}
+            alt=""
+            className={`h-full w-full object-cover transition-transform duration-[7000ms] ease-out ${i === current ? "scale-110" : "scale-100"}`}
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/55 to-black/20" />
+        </div>
+      ))}
+
+      <div className="relative z-10 h-full container mx-auto px-6 md:px-12 flex items-center">
+        <motion.div
+          key={current}
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="max-w-2xl pt-20"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/15 backdrop-blur-sm text-white text-xs sm:text-sm font-bold mb-6 border border-white/20">
+            <Award className="w-4 h-4" />
+            <span>{slide.eyebrow}</span>
+          </div>
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-white leading-[1.05] mb-5 drop-shadow-sm">
+            {slide.title}
+          </h1>
+          <p className="text-lg md:text-xl text-white/90 mb-8 leading-relaxed max-w-xl">
+            {slide.text}
+          </p>
+          <div className="flex flex-wrap gap-4">
+            <Button
+              size="lg"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 text-base h-14 px-8 shadow-xl rounded-xl"
+              onClick={() => setLocation(slide.primary.to)}
+            >
+              {slide.primary.label} <ChevronRight className="ml-2 w-5 h-5" />
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="text-base h-14 px-8 border-white/40 bg-white/10 text-white hover:bg-white/20 hover:text-white rounded-xl backdrop-blur-sm"
+            >
+              <PlayCircle className="mr-2 w-5 h-5" /> Watch Video
+            </Button>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Arrows */}
+      <button
+        onClick={() => go(-1)}
+        aria-label="Previous slide"
+        className="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/15 hover:bg-white/30 backdrop-blur-sm text-white hidden sm:flex items-center justify-center transition-colors border border-white/20"
+      >
+        <ChevronLeft className="w-6 h-6" />
+      </button>
+      <button
+        onClick={() => go(1)}
+        aria-label="Next slide"
+        className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/15 hover:bg-white/30 backdrop-blur-sm text-white hidden sm:flex items-center justify-center transition-colors border border-white/20"
+      >
+        <ChevronRight className="w-6 h-6" />
+      </button>
+
+      {/* Dots */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex gap-3">
+        {heroSlides.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrent(i)}
+            aria-label={`Go to slide ${i + 1}`}
+            className={`h-2.5 rounded-full transition-all duration-300 ${i === current ? "w-8 bg-white" : "w-2.5 bg-white/50 hover:bg-white/80"}`}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function Home() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -81,23 +206,23 @@ function Home() {
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
               <Globe className="text-primary-foreground w-6 h-6" />
             </div>
-            <span className={`text-2xl font-bold font-serif tracking-tight text-primary`}>
+            <span className={`text-2xl font-bold font-serif tracking-tight ${isScrolled ? 'text-primary' : 'text-white'}`}>
               Central Global
             </span>
           </div>
           
           <nav className="hidden md:flex items-center gap-8">
-            <a href="#programs" className="text-sm font-semibold text-foreground/80 hover:text-primary transition-colors">Programs</a>
-            <a href="#platform" className="text-sm font-semibold text-foreground/80 hover:text-primary transition-colors">Platform</a>
-            <a href="#faculty" className="text-sm font-semibold text-foreground/80 hover:text-primary transition-colors">Faculty</a>
-            <a href="#about" className="text-sm font-semibold text-foreground/80 hover:text-primary transition-colors">About</a>
+            <a href="#programs" className={`text-sm font-semibold transition-colors ${isScrolled ? 'text-foreground/80 hover:text-primary' : 'text-white/90 hover:text-white'}`}>Programs</a>
+            <a href="#platform" className={`text-sm font-semibold transition-colors ${isScrolled ? 'text-foreground/80 hover:text-primary' : 'text-white/90 hover:text-white'}`}>Platform</a>
+            <a href="#faculty" className={`text-sm font-semibold transition-colors ${isScrolled ? 'text-foreground/80 hover:text-primary' : 'text-white/90 hover:text-white'}`}>Faculty</a>
+            <a href="#about" className={`text-sm font-semibold transition-colors ${isScrolled ? 'text-foreground/80 hover:text-primary' : 'text-white/90 hover:text-white'}`}>About</a>
             <div className="flex items-center gap-4 ml-4">
-              <Button variant="ghost" className="font-semibold hover:bg-primary/5 hover:text-primary" onClick={() => setLocation('/sign-in')}>Log In</Button>
+              <Button variant="ghost" className={`font-semibold ${isScrolled ? 'hover:bg-primary/5 hover:text-primary' : 'text-white hover:bg-white/10 hover:text-white'}`} onClick={() => setLocation('/sign-in')}>Log In</Button>
               <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-lg shadow-primary/20" onClick={() => setLocation('/apply')}>Apply Now</Button>
             </div>
           </nav>
 
-          <button className="md:hidden text-foreground p-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+          <button className={`md:hidden p-2 ${isScrolled || mobileMenuOpen ? 'text-foreground' : 'text-white'}`} onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
             {mobileMenuOpen ? <X /> : <Menu />}
           </button>
         </div>
@@ -118,53 +243,23 @@ function Home() {
         </div>
       )}
 
-      <main className="flex-grow pt-24">
-        {/* 2. Hero Section */}
-        <section className="relative pt-12 pb-24 md:pt-24 md:pb-32 overflow-hidden">
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-secondary/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3"></div>
-          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[80px] translate-y-1/3 -translate-x-1/3"></div>
-          
-          <div className="container mx-auto px-6 md:px-12 relative z-10">
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
-              <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer} className="max-w-2xl">
-                <motion.div variants={fadeIn} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent text-accent-foreground text-sm font-bold mb-8 border border-primary/15">
-                  <Award className="w-4 h-4" />
-                  <span>World-Class Online Education</span>
-                </motion.div>
-                <motion.h1 variants={fadeIn} className="text-5xl md:text-7xl font-serif font-bold text-primary leading-[1.1] mb-6">
-                  Advance Your Career, <br/>
-                  <span className="text-foreground">From Anywhere.</span>
-                </motion.h1>
-                <motion.p variants={fadeIn} className="text-xl text-muted-foreground mb-10 leading-relaxed max-w-lg">
-                  Earn your degree from a globally recognized university. Join a community of innovators, leaders, and thinkers shaping the future.
-                </motion.p>
-                <motion.div variants={fadeIn} className="flex flex-wrap gap-4">
-                  <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 text-base h-14 px-8 shadow-xl shadow-primary/20 rounded-xl" onClick={() => setLocation('/apply')}>
-                    Explore Programs <ChevronRight className="ml-2 w-5 h-5" />
-                  </Button>
-                  <Button size="lg" variant="outline" className="text-base h-14 px-8 border-primary/20 hover:bg-primary/5 text-primary rounded-xl backdrop-blur-sm">
-                    <PlayCircle className="mr-2 w-5 h-5" /> Watch Video
-                  </Button>
-                </motion.div>
-              </motion.div>
-              
-              <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} whileInView={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }} viewport={{ once: true }} className="relative hidden lg:block">
-                <div className="absolute inset-0 bg-gradient-to-tr from-secondary/40 to-primary/20 rounded-[2.5rem] transform translate-x-6 translate-y-6"></div>
-                <img src={heroImg} alt="Student learning in library" className="relative rounded-[2.5rem] shadow-2xl object-cover w-full h-[650px] border-4 border-white/50 dark:border-gray-800/50" />
-                
-                {/* Floating stats card */}
-                <div className="absolute -bottom-8 -left-8 bg-card/95 backdrop-blur-xl p-6 rounded-2xl shadow-2xl max-w-[220px] border border-border">
-                  <div className="flex items-center gap-4 mb-2">
-                    <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                      <Users className="text-green-600 dark:text-green-400 w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-2xl text-primary">50k+</h4>
-                      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Active Students</p>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
+      <main className="flex-grow">
+        {/* 2. Hero Slider */}
+        <HeroSlider />
+
+        {/* Trusted-by strip */}
+        <section className="py-10 border-b border-border bg-muted/30">
+          <div className="container mx-auto px-6 md:px-12">
+            <p className="text-center text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-6">
+              Trusted by learners and employers in 150+ countries
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-x-8 md:gap-x-12 gap-y-4 text-lg md:text-xl font-bold text-muted-foreground/60">
+              <span>Northbridge</span>
+              <span>Veltrix</span>
+              <span>Quantum&nbsp;Labs</span>
+              <span>Meridian</span>
+              <span>Aerolink</span>
+              <span>Helios&nbsp;Group</span>
             </div>
           </div>
         </section>
@@ -257,6 +352,33 @@ function Home() {
                 </ul>
               </motion.div>
             </div>
+          </div>
+        </section>
+
+        {/* Browse Top Categories */}
+        <section className="py-24 md:py-32">
+          <div className="container mx-auto px-6 md:px-12">
+            <div className="text-center max-w-2xl mx-auto mb-14">
+              <h2 className="text-4xl md:text-5xl font-serif font-bold text-primary mb-5">Browse Top Categories</h2>
+              <p className="text-lg text-muted-foreground">Explore the fields driving tomorrow's careers and find the program that fits your ambition.</p>
+            </div>
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
+              {[
+                { icon: <Code2 className="w-7 h-7" />, label: "Computer Science" },
+                { icon: <Briefcase className="w-7 h-7" />, label: "Business" },
+                { icon: <LineChart className="w-7 h-7" />, label: "Data Science" },
+                { icon: <HeartPulse className="w-7 h-7" />, label: "Health" },
+                { icon: <Palette className="w-7 h-7" />, label: "Design" },
+                { icon: <GraduationCap className="w-7 h-7" />, label: "Education" },
+              ].map((cat, i) => (
+                <motion.button key={i} variants={fadeIn} onClick={() => setLocation('/apply')} className="group flex flex-col items-center gap-4 p-6 rounded-2xl border border-border bg-card hover:border-primary/40 hover:shadow-lg transition-all">
+                  <div className="w-14 h-14 rounded-2xl bg-accent text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    {cat.icon}
+                  </div>
+                  <span className="text-sm font-bold text-foreground text-center leading-tight">{cat.label}</span>
+                </motion.button>
+              ))}
+            </motion.div>
           </div>
         </section>
 

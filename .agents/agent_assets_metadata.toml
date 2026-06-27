@@ -53,3 +53,21 @@ id = "0B_WUNwj8cf-FNAe-nV64"
 uri = "file://screenshots/homepage-fullpage.png"
 type = "image"
 title = "Central Global University — Full Homepage"
+
+[[outputs]]
+id = "2yKYgNXCYKJXWOUN7tiyd"
+uri = "file://attached_assets/stock_images/hero_students.jpg"
+type = "image"
+title = "group of college students collaborating with laptops in library, education"
+
+[[outputs]]
+id = "ZZo7X-35zTqwRkFXmuLos"
+uri = "file://attached_assets/stock_images/hero_graduation.jpg"
+type = "image"
+title = "happy graduate student in cap and gown celebrating graduation success"
+
+[[outputs]]
+id = "KYeG4PEpa9NQ-32F6hon4"
+uri = "file://attached_assets/stock_images/hero_online.jpg"
+type = "image"
+title = "professional woman studying on laptop at home online education natural light"
