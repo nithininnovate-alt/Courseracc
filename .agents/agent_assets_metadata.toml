@@ -47,3 +47,9 @@ id = "nTlU1yqxKU1OPcUWoxZrQ"
 uri = "file://screenshots/homepage-full.jpg"
 type = "image"
 title = "Central Global University — Homepage"
+
+[[outputs]]
+id = "0B_WUNwj8cf-FNAe-nV64"
+uri = "file://screenshots/homepage-fullpage.png"
+type = "image"
+title = "Central Global University — Full Homepage"
