@@ -6,6 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface Exam {
+  id: number;
+  subjectId: number;
+  title: string;
+  scheduledAt: Date;
+  durationMinutes: number;
+  totalMarks: number;
 }

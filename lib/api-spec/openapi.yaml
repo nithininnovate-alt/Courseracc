@@ -3,13 +3,39 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Central Global University LMS/SMS API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: users
+    description: User accounts and roles
+  - name: applications
+    description: Online admission applications
+  - name: courses
+    description: Course catalog
+  - name: subjects
+    description: Course subjects/modules
+  - name: enrollments
+    description: Student enrollments
+  - name: materials
+    description: Study materials and lecture content
+  - name: assignments
+    description: Assignments and submissions
+  - name: exams
+    description: Examinations and results
+  - name: payments
+    description: Payments
+  - name: certificates
+    description: Certificates
+  - name: emails
+    description: Email automation logs
+  - name: courier
+    description: Certificate courier tracking
+  - name: dashboard
+    description: Dashboard summaries
 paths:
   /healthz:
     get:
@@ -24,6 +50,496 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /users/me:
+    get:
+      operationId: getCurrentUser
+      tags: [users]
+      summary: Get the current authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all users (admin)
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
+  /users/{id}/role:
+    patch:
+      operationId: updateUserRole
+      tags: [users]
+      summary: Update a user's role (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRoleUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /applications:
+    get:
+      operationId: listApplications
+      tags: [applications]
+      summary: List admission applications
+      responses:
+        "200":
+          description: Applications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Application"
+    post:
+      operationId: createApplication
+      tags: [applications]
+      summary: Submit an admission application
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplicationInput"
+      responses:
+        "201":
+          description: Created application
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+
+  /applications/{id}:
+    get:
+      operationId: getApplication
+      tags: [applications]
+      summary: Get an application by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Application
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+    patch:
+      operationId: updateApplication
+      tags: [applications]
+      summary: Update application status (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplicationUpdate"
+      responses:
+        "200":
+          description: Updated application
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+
+  /courses:
+    get:
+      operationId: listCourses
+      tags: [courses]
+      summary: List courses
+      responses:
+        "200":
+          description: Courses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Course"
+    post:
+      operationId: createCourse
+      tags: [courses]
+      summary: Create a course (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CourseInput"
+      responses:
+        "201":
+          description: Created course
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Course"
+
+  /courses/{id}:
+    get:
+      operationId: getCourse
+      tags: [courses]
+      summary: Get a course by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Course
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Course"
+
+  /courses/{courseId}/subjects:
+    get:
+      operationId: listSubjects
+      tags: [subjects]
+      summary: List subjects for a course
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Subjects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subject"
+
+  /subjects/{id}:
+    get:
+      operationId: getSubject
+      tags: [subjects]
+      summary: Get a subject by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Subject
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subject"
+
+  /subjects/{subjectId}/materials:
+    get:
+      operationId: listMaterials
+      tags: [materials]
+      summary: List study materials for a subject
+      parameters:
+        - name: subjectId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Study materials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StudyMaterial"
+
+  /enrollments:
+    get:
+      operationId: listEnrollments
+      tags: [enrollments]
+      summary: List the current student's enrollments
+      responses:
+        "200":
+          description: Enrollments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Enrollment"
+    post:
+      operationId: createEnrollment
+      tags: [enrollments]
+      summary: Enroll in a course
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrollmentInput"
+      responses:
+        "201":
+          description: Created enrollment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Enrollment"
+
+  /assignments:
+    get:
+      operationId: listAssignments
+      tags: [assignments]
+      summary: List assignments
+      responses:
+        "200":
+          description: Assignments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Assignment"
+
+  /assignments/{id}:
+    get:
+      operationId: getAssignment
+      tags: [assignments]
+      summary: Get an assignment by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Assignment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assignment"
+
+  /submissions:
+    get:
+      operationId: listSubmissions
+      tags: [assignments]
+      summary: List the current student's submissions
+      responses:
+        "200":
+          description: Submissions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Submission"
+    post:
+      operationId: createSubmission
+      tags: [assignments]
+      summary: Submit an assignment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmissionInput"
+      responses:
+        "201":
+          description: Created submission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Submission"
+
+  /exams:
+    get:
+      operationId: listExams
+      tags: [exams]
+      summary: List exams
+      responses:
+        "200":
+          description: Exams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Exam"
+
+  /exams/{id}:
+    get:
+      operationId: getExam
+      tags: [exams]
+      summary: Get an exam by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Exam
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Exam"
+
+  /results:
+    get:
+      operationId: listResults
+      tags: [exams]
+      summary: List the current student's results
+      responses:
+        "200":
+          description: Results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Result"
+
+  /payments:
+    get:
+      operationId: listPayments
+      tags: [payments]
+      summary: List the current student's payments
+      responses:
+        "200":
+          description: Payments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Payment"
+    post:
+      operationId: createPayment
+      tags: [payments]
+      summary: Create a payment record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentInput"
+      responses:
+        "201":
+          description: Created payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  /certificates:
+    get:
+      operationId: listCertificates
+      tags: [certificates]
+      summary: List the current student's certificates
+      responses:
+        "200":
+          description: Certificates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Certificate"
+
+  /email-logs:
+    get:
+      operationId: listEmailLogs
+      tags: [emails]
+      summary: List email automation logs (admin)
+      responses:
+        "200":
+          description: Email logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EmailLog"
+
+  /courier:
+    get:
+      operationId: listCourierTracking
+      tags: [courier]
+      summary: List certificate courier tracking records
+      responses:
+        "200":
+          description: Courier tracking
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CourierTracking"
+
+  /dashboard/student:
+    get:
+      operationId: getStudentDashboard
+      tags: [dashboard]
+      summary: Student dashboard summary
+      responses:
+        "200":
+          description: Student dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentDashboard"
+
+  /dashboard/admin:
+    get:
+      operationId: getAdminDashboard
+      tags: [dashboard]
+      summary: Admin dashboard summary
+      responses:
+        "200":
+          description: Admin dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDashboard"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +550,242 @@ components:
       required:
         - status
 
+    User:
+      type: object
+      required: [id, clerkId, email, role, createdAt]
+      properties:
+        id: { type: integer }
+        clerkId: { type: string }
+        email: { type: string }
+        firstName: { type: ["string", "null"] }
+        lastName: { type: ["string", "null"] }
+        role: { type: string, enum: [student, admin] }
+        avatarUrl: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+    UserRoleUpdate:
+      type: object
+      required: [role]
+      properties:
+        role: { type: string, enum: [student, admin] }
+
+    Application:
+      type: object
+      required: [id, userId, programName, fullName, email, status, submittedAt]
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        programName: { type: string }
+        fullName: { type: string }
+        email: { type: string }
+        phone: { type: ["string", "null"] }
+        status: { type: string, enum: [pending, under_review, approved, rejected] }
+        reviewNote: { type: ["string", "null"] }
+        documentsUrl: { type: ["string", "null"] }
+        submittedAt: { type: string, format: date-time }
+    ApplicationInput:
+      type: object
+      required: [programName, fullName, email]
+      properties:
+        programName: { type: string, minLength: 1 }
+        fullName: { type: string, minLength: 1 }
+        email: { type: string, minLength: 1 }
+        phone: { type: string }
+        documentsUrl: { type: string }
+    ApplicationUpdate:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [pending, under_review, approved, rejected] }
+        reviewNote: { type: string }
+
+    Course:
+      type: object
+      required: [id, title, slug, level, durationWeeks, price, createdAt]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        slug: { type: string }
+        description: { type: ["string", "null"] }
+        level: { type: string, enum: [undergraduate, postgraduate, diploma, certificate] }
+        durationWeeks: { type: integer }
+        price: { type: number }
+        thumbnailUrl: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+    CourseInput:
+      type: object
+      required: [title, level, durationWeeks, price]
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+        level: { type: string, enum: [undergraduate, postgraduate, diploma, certificate] }
+        durationWeeks: { type: integer }
+        price: { type: number }
+        thumbnailUrl: { type: string }
+
+    Subject:
+      type: object
+      required: [id, courseId, title, orderIndex]
+      properties:
+        id: { type: integer }
+        courseId: { type: integer }
+        title: { type: string }
+        description: { type: ["string", "null"] }
+        orderIndex: { type: integer }
+
+    Enrollment:
+      type: object
+      required: [id, userId, courseId, status, progress, enrolledAt]
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        courseId: { type: integer }
+        status: { type: string, enum: [active, completed, suspended] }
+        progress: { type: integer }
+        enrolledAt: { type: string, format: date-time }
+    EnrollmentInput:
+      type: object
+      required: [courseId]
+      properties:
+        courseId: { type: integer }
+
+    StudyMaterial:
+      type: object
+      required: [id, subjectId, title, type, createdAt]
+      properties:
+        id: { type: integer }
+        subjectId: { type: integer }
+        title: { type: string }
+        type: { type: string, enum: [video, pdf, link, text] }
+        url: { type: ["string", "null"] }
+        content: { type: ["string", "null"] }
+        durationMinutes: { type: ["integer", "null"] }
+        createdAt: { type: string, format: date-time }
+
+    Assignment:
+      type: object
+      required: [id, subjectId, title, maxScore, dueDate]
+      properties:
+        id: { type: integer }
+        subjectId: { type: integer }
+        title: { type: string }
+        description: { type: ["string", "null"] }
+        dueDate: { type: string, format: date-time }
+        maxScore: { type: integer }
+
+    Submission:
+      type: object
+      required: [id, assignmentId, userId, status, submittedAt]
+      properties:
+        id: { type: integer }
+        assignmentId: { type: integer }
+        userId: { type: integer }
+        status: { type: string, enum: [submitted, graded, late] }
+        score: { type: ["integer", "null"] }
+        fileUrl: { type: ["string", "null"] }
+        note: { type: ["string", "null"] }
+        submittedAt: { type: string, format: date-time }
+    SubmissionInput:
+      type: object
+      required: [assignmentId]
+      properties:
+        assignmentId: { type: integer }
+        fileUrl: { type: string }
+        note: { type: string }
+
+    Exam:
+      type: object
+      required: [id, subjectId, title, scheduledAt, durationMinutes, totalMarks]
+      properties:
+        id: { type: integer }
+        subjectId: { type: integer }
+        title: { type: string }
+        scheduledAt: { type: string, format: date-time }
+        durationMinutes: { type: integer }
+        totalMarks: { type: integer }
+
+    Result:
+      type: object
+      required: [id, userId, examId, score, passed, publishedAt]
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        examId: { type: integer }
+        score: { type: integer }
+        grade: { type: ["string", "null"] }
+        passed: { type: boolean }
+        publishedAt: { type: string, format: date-time }
+
+    Payment:
+      type: object
+      required: [id, userId, amount, currency, status, provider, createdAt]
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        amount: { type: number }
+        currency: { type: string }
+        status: { type: string, enum: [pending, completed, failed, refunded] }
+        provider: { type: string }
+        reference: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+    PaymentInput:
+      type: object
+      required: [amount]
+      properties:
+        amount: { type: number }
+        courseId: { type: integer }
+
+    Certificate:
+      type: object
+      required: [id, userId, courseId, certificateNumber, issuedAt]
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        courseId: { type: integer }
+        certificateNumber: { type: string }
+        issuedAt: { type: string, format: date-time }
+        fileUrl: { type: ["string", "null"] }
+
+    EmailLog:
+      type: object
+      required: [id, recipient, subject, template, status, createdAt]
+      properties:
+        id: { type: integer }
+        recipient: { type: string }
+        subject: { type: string }
+        template: { type: string }
+        status: { type: string, enum: [queued, sent, failed] }
+        sentAt: { type: ["string", "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+
+    CourierTracking:
+      type: object
+      required: [id, userId, trackingNumber, carrier, status]
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        certificateId: { type: ["integer", "null"] }
+        trackingNumber: { type: string }
+        carrier: { type: string }
+        status: { type: string, enum: [pending, shipped, in_transit, delivered, returned] }
+        shippedAt: { type: ["string", "null"], format: date-time }
+        deliveredAt: { type: ["string", "null"], format: date-time }
+
+    StudentDashboard:
+      type: object
+      required: [enrolledCourses, completedCourses, pendingAssignments, upcomingExams, certificates]
+      properties:
+        enrolledCourses: { type: integer }
+        completedCourses: { type: integer }
+        pendingAssignments: { type: integer }
+        upcomingExams: { type: integer }
+        certificates: { type: integer }
+
+    AdminDashboard:
+      type: object
+      required: [totalStudents, pendingApplications, totalCourses, activeEnrollments, totalRevenue]
+      properties:
+        totalStudents: { type: integer }
+        pendingApplications: { type: integer }
+        totalCourses: { type: integer }
+        activeEnrollments: { type: integer }
+        totalRevenue: { type: number }
