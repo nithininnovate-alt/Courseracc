@@ -114,7 +114,7 @@ function HeroSlider() {
             alt=""
             className={`h-full w-full object-cover transition-transform duration-[7000ms] ease-out ${i === current ? "scale-110" : "scale-100"}`}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/55 to-black/20" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/65 to-black/30" />
         </div>
       ))}
 
@@ -148,6 +148,7 @@ function HeroSlider() {
               size="lg"
               variant="outline"
               className="text-base h-14 px-8 border-white/40 bg-white/10 text-white hover:bg-white/20 hover:text-white rounded-xl backdrop-blur-sm"
+              onClick={() => document.getElementById("platform")?.scrollIntoView({ behavior: "smooth" })}
             >
               <PlayCircle className="mr-2 w-5 h-5" /> Watch Video
             </Button>
@@ -390,7 +391,7 @@ function Home() {
                 <h2 className="text-4xl md:text-5xl font-serif font-bold text-primary mb-6">Featured Programs</h2>
                 <p className="text-lg text-muted-foreground leading-relaxed">Discover our most popular degree programs designed to accelerate your career in today's most demanding fields.</p>
               </div>
-              <Button variant="outline" className="h-12 px-6 border-primary/20 text-primary hover:bg-primary/5 rounded-xl" onClick={() => setLocation('/portal/courses')}>
+              <Button variant="outline" className="h-12 px-6 border-primary/20 text-primary hover:bg-primary/5 rounded-xl" onClick={() => setLocation('/apply')}>
                 View All Programs <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </div>
@@ -401,7 +402,7 @@ function Home() {
                 { img: course2Img, title: "Master of Business Administration", category: "Business", duration: "12-18 Months", credits: "42 Credits" },
                 { img: course3Img, title: "B.S. in Data Analytics", category: "Data Science", duration: "3-4 Years", credits: "120 Credits" }
               ].map((program, i) => (
-                <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="group cursor-pointer rounded-2xl overflow-hidden border border-border bg-card shadow-sm hover:shadow-2xl hover:border-primary/30 transition-all duration-500 flex flex-col">
+                <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} role="button" tabIndex={0} onClick={() => setLocation('/apply')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLocation('/apply'); } }} className="group cursor-pointer rounded-2xl overflow-hidden border border-border bg-card shadow-sm hover:shadow-2xl hover:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-all duration-500 flex flex-col">
                   <div className="relative h-64 overflow-hidden">
                     <div className="absolute inset-0 bg-primary/20 group-hover:bg-transparent transition-colors z-10 duration-500"></div>
                     <img src={program.img} alt={program.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
@@ -410,7 +411,7 @@ function Home() {
                     </div>
                   </div>
                   <div className="p-8 flex-grow flex flex-col">
-                    <h3 className="text-2xl font-bold text-primary mb-4 font-serif group-hover:text-white transition-colors leading-snug">{program.title}</h3>
+                    <h3 className="text-2xl font-bold text-primary mb-4 font-serif group-hover:text-primary/80 transition-colors leading-snug">{program.title}</h3>
                     <div className="flex flex-col gap-2 mb-8 text-sm text-muted-foreground flex-grow">
                       <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-500" /> 100% Online</span>
                       <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary/50" /> {program.duration}</span>
@@ -433,7 +434,7 @@ function Home() {
               <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>
                 <h2 className="text-4xl md:text-5xl font-serif font-bold text-primary mb-6">Learn from World-Renowned Experts</h2>
                 <p className="text-lg text-muted-foreground mb-8 leading-relaxed">Our online programs are taught by the same distinguished faculty who teach on our physical campus. You'll learn directly from industry leaders, active researchers, and award-winning educators.</p>
-                <Button variant="outline" className="h-12 px-6 border-primary/20 text-primary hover:bg-primary/5 rounded-xl">
+                <Button variant="outline" className="h-12 px-6 border-primary/20 text-primary hover:bg-primary/5 rounded-xl" onClick={() => setLocation('/apply')}>
                   Meet Our Faculty
                 </Button>
               </motion.div>
