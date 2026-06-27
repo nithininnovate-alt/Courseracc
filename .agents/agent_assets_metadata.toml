@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "kulnWsHkql6faxOB7V9gr"
@@ -42,3 +41,9 @@ id = "yefPD1yjLss6K7O5zotIN"
 uri = "file://artifacts/portal/src/assets/platform.png"
 type = "image"
 title = "Online learning interface"
+
+[[outputs]]
+id = "nTlU1yqxKU1OPcUWoxZrQ"
+uri = "file://screenshots/homepage-full.jpg"
+type = "image"
+title = "Central Global University — Homepage"
