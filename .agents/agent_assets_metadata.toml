@@ -1,0 +1,44 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "kulnWsHkql6faxOB7V9gr"
+uri = "file://artifacts/portal/src/assets/hero.png"
+type = "image"
+title = "Student in library"
+
+[[generated]]
+id = "M_qUcpVNkHZzGX8yBygPq"
+uri = "file://artifacts/portal/src/assets/course1.png"
+type = "image"
+title = "Computer science course"
+
+[[generated]]
+id = "sdlNnWInSihJviNN2e9tU"
+uri = "file://artifacts/portal/src/assets/course2.png"
+type = "image"
+title = "Business meeting"
+
+[[generated]]
+id = "jCJJVcE92KDw00PPJrvGo"
+uri = "file://artifacts/portal/src/assets/course3.png"
+type = "image"
+title = "Data analytics on tablet"
+
+[[generated]]
+id = "R2ViTvZaV_SJuZ-hO2WOH"
+uri = "file://artifacts/portal/src/assets/testimonial.png"
+type = "image"
+title = "Professional student headshot"
+
+[[generated]]
+id = "lBy4RsjMtAnE1qy5cdRrd"
+uri = "file://artifacts/portal/src/assets/faculty1.png"
+type = "image"
+title = "Professor portrait"
+
+[[generated]]
+id = "yefPD1yjLss6K7O5zotIN"
+uri = "file://artifacts/portal/src/assets/platform.png"
+type = "image"
+title = "Online learning interface"
