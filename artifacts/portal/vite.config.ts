@@ -41,7 +41,7 @@ export default defineConfig({
         short_name: "Central Global",
         description:
           "Learning and student management portal for Central Global University.",
-        theme_color: "#0056D2",
+        theme_color: "#4B396A",
         background_color: "#ffffff",
         display: "standalone",
         orientation: "portrait",

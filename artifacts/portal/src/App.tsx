@@ -7,13 +7,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion, type Variants } from "framer-motion";
-import { ChevronRight, ChevronLeft, PlayCircle, BookOpen, Award, Globe, Users, ArrowRight, CheckCircle2, Menu, X, MonitorPlay, GraduationCap, Clock, HelpCircle, Laptop, Code2, Briefcase, LineChart, HeartPulse, Palette } from "lucide-react";
+import { ChevronRight, ChevronLeft, PlayCircle, BookOpen, Award, Globe, Users, ArrowRight, CheckCircle2, Menu, X, MonitorPlay, GraduationCap, Clock, HelpCircle, Laptop, Briefcase, LineChart, Megaphone, Lightbulb } from "lucide-react";
 import { ClerkProvider, useUser } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 
 import slide1Img from "./assets/slide1.jpg";
 import slide2Img from "./assets/slide2.jpg";
 import slide3Img from "./assets/slide3.jpg";
+import cguLogo from "@assets/cropped-cgu_logo-768x244_1782643160003.png";
 import course1Img from "./assets/course1.png";
 import course2Img from "./assets/course2.png";
 import course3Img from "./assets/course3.png";
@@ -66,23 +67,23 @@ const staggerContainer: Variants = {
 const heroSlides = [
   {
     img: slide1Img,
-    eyebrow: "World-Class Online Education",
-    title: "Learn Without Limits",
-    text: "Start, switch, or advance your career with globally recognized online degrees and certificates.",
-    primary: { label: "Explore Programs", to: "/apply" },
+    eyebrow: "Shape Your Tomorrow",
+    title: "Earn the Degree That Defines You",
+    text: "Discover flexible degree programs designed to fit your goals and lifestyle. Start your journey toward a future built on knowledge, confidence, and purpose.",
+    primary: { label: "Apply Now", to: "/apply" },
   },
   {
     img: slide2Img,
-    eyebrow: "Accredited & Recognized",
-    title: "Earn a Degree That Moves You Forward",
-    text: "Fully accredited online degrees with the same prestige and alumni benefits as on-campus study.",
-    primary: { label: "View Programs", to: "/apply" },
+    eyebrow: "ACBSP Candidacy Programs",
+    title: "Globally Respected Business Degrees",
+    text: "Our candidacy programs prepare future leaders with internationally recognized BBA, MBA, and DBA degrees that open doors across industries and continents.",
+    primary: { label: "Explore Programs", to: "/apply" },
   },
   {
     img: slide3Img,
-    eyebrow: "Built for Working Professionals",
-    title: "Study on Your Schedule, From Anywhere",
-    text: "Flexible, self-paced learning designed to fit around your life, your job, and your goals.",
+    eyebrow: "A Global University for a Global Era",
+    title: "Study 100% Online, From Anywhere",
+    text: "Flexible, US-accredited programs designed around your career, your schedule, and your ambitions.",
     primary: { label: "Get Started", to: "/apply" },
   },
 ];
@@ -203,13 +204,12 @@ function Home() {
       {/* 1. Header */}
       <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-background/90 backdrop-blur-lg shadow-sm py-4 border-b border-border/50' : 'bg-transparent py-6'}`}>
         <div className="container mx-auto px-6 md:px-12 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-              <Globe className="text-primary-foreground w-6 h-6" />
-            </div>
-            <span className={`text-2xl font-bold font-serif tracking-tight ${isScrolled ? 'text-primary' : 'text-white'}`}>
-              Central Global
-            </span>
+          <div className="flex items-center cursor-pointer" onClick={() => setLocation('/')}>
+            <img
+              src={cguLogo}
+              alt="Central Global University"
+              className={`h-10 md:h-12 w-auto transition-all duration-300 ${isScrolled ? '' : 'brightness-0 invert'}`}
+            />
           </div>
           
           <nav className="hidden md:flex items-center gap-8">
@@ -294,8 +294,8 @@ function Home() {
         <section id="about" className="py-32 bg-muted/30">
           <div className="container mx-auto px-6 md:px-12">
             <div className="text-center max-w-3xl mx-auto mb-20">
-              <h2 className="text-4xl md:text-5xl font-serif font-bold text-primary mb-6">The Global Standard for Online Learning</h2>
-              <p className="text-lg text-muted-foreground leading-relaxed">We combine the academic rigor of a traditional top-tier university with the flexibility of modern technology to provide an unparalleled learning experience.</p>
+              <h2 className="text-4xl md:text-5xl font-serif font-bold text-primary mb-6">A Global University for a Global Era</h2>
+              <p className="text-lg text-muted-foreground leading-relaxed">Central Global University is a hub for academic excellence, innovation, and global engagement — empowering students with the knowledge, skills, and opportunities to thrive in an interconnected world.</p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
@@ -365,12 +365,12 @@ function Home() {
             </div>
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
               {[
-                { icon: <Code2 className="w-7 h-7" />, label: "Computer Science" },
-                { icon: <Briefcase className="w-7 h-7" />, label: "Business" },
-                { icon: <LineChart className="w-7 h-7" />, label: "Data Science" },
-                { icon: <HeartPulse className="w-7 h-7" />, label: "Health" },
-                { icon: <Palette className="w-7 h-7" />, label: "Design" },
-                { icon: <GraduationCap className="w-7 h-7" />, label: "Education" },
+                { icon: <Briefcase className="w-7 h-7" />, label: "Management" },
+                { icon: <LineChart className="w-7 h-7" />, label: "Finance & Accounting" },
+                { icon: <Megaphone className="w-7 h-7" />, label: "Marketing" },
+                { icon: <Lightbulb className="w-7 h-7" />, label: "Entrepreneurship" },
+                { icon: <Globe className="w-7 h-7" />, label: "International Business" },
+                { icon: <Users className="w-7 h-7" />, label: "Leadership & Strategy" },
               ].map((cat, i) => (
                 <motion.button key={i} variants={fadeIn} onClick={() => setLocation('/apply')} className="group flex flex-col items-center gap-4 p-6 rounded-2xl border border-border bg-card hover:border-primary/40 hover:shadow-lg transition-all">
                   <div className="w-14 h-14 rounded-2xl bg-accent text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
@@ -398,9 +398,9 @@ function Home() {
 
             <div className="grid md:grid-cols-3 gap-8">
               {[
-                { img: course1Img, title: "Master of Computer Science", category: "Technology", duration: "18-24 Months", credits: "36 Credits" },
-                { img: course2Img, title: "Master of Business Administration", category: "Business", duration: "12-18 Months", credits: "42 Credits" },
-                { img: course3Img, title: "B.S. in Data Analytics", category: "Data Science", duration: "3-4 Years", credits: "120 Credits" }
+                { img: course1Img, title: "Bachelor of Business Administration", category: "Undergraduate", duration: "3–4 Years", credits: "ACBSP Candidate" },
+                { img: course2Img, title: "Master of Business Administration", category: "Graduate", duration: "12–18 Months", credits: "Strategic Leadership" },
+                { img: course3Img, title: "Doctor of Business Administration", category: "Doctorate", duration: "3–4 Years", credits: "Research & Practice" }
               ].map((program, i) => (
                 <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} role="button" tabIndex={0} onClick={() => setLocation('/apply')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLocation('/apply'); } }} className="group cursor-pointer rounded-2xl overflow-hidden border border-border bg-card shadow-sm hover:shadow-2xl hover:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-all duration-500 flex flex-col">
                   <div className="relative h-64 overflow-hidden">
@@ -511,11 +511,8 @@ function Home() {
         <div className="container mx-auto px-6 md:px-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
             <div className="col-span-1 md:col-span-2">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-secondary rounded-xl flex items-center justify-center">
-                  <Globe className="text-secondary-foreground w-6 h-6" />
-                </div>
-                <span className="text-2xl font-bold font-serif text-white">Central Global</span>
+              <div className="mb-6">
+                <img src={cguLogo} alt="Central Global University" className="h-12 w-auto brightness-0 invert" />
               </div>
               <p className="text-primary-foreground/70 max-w-sm mb-6 leading-relaxed">Empowering the next generation of leaders through accessible, world-class online education.</p>
             </div>

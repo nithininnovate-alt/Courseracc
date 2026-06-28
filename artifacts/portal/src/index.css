@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -57,31 +56,31 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
-  /* Coursera-inspired blue and white palette */
+  /* Central Global University — deep purple + mauve brand palette */
   --background: 0 0% 100%;
-  --foreground: 220 26% 14%;
-  --border: 214 20% 89%;
+  --foreground: 262 25% 18%;
+  --border: 275 24% 90%;
   --card: 0 0% 100%;
-  --card-foreground: 220 26% 14%;
-  --card-border: 214 20% 89%;
+  --card-foreground: 262 25% 18%;
+  --card-border: 275 24% 90%;
   --popover: 0 0% 100%;
-  --popover-foreground: 220 26% 14%;
-  --popover-border: 214 20% 89%;
-  --primary: 215 100% 41%; /* Coursera blue #0056D2 */
+  --popover-foreground: 262 25% 18%;
+  --popover-border: 275 24% 90%;
+  --primary: 262 30% 32%; /* CGU deep purple */
   --primary-foreground: 0 0% 100%;
-  --secondary: 214 41% 95%; /* Soft blue tint */
-  --secondary-foreground: 218 38% 22%;
-  --muted: 210 33% 96%;
-  --muted-foreground: 218 14% 42%;
-  --accent: 214 100% 96%;
-  --accent-foreground: 215 100% 35%;
+  --secondary: 322 38% 64%; /* CGU mauve accent */
+  --secondary-foreground: 0 0% 100%;
+  --muted: 270 24% 96%;
+  --muted-foreground: 262 12% 44%;
+  --accent: 280 44% 96%;
+  --accent-foreground: 262 34% 34%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
-  --input: 214 20% 89%;
-  --ring: 215 100% 41%;
+  --input: 275 24% 90%;
+  --ring: 262 30% 32%;
 
   --app-font-sans: 'Source Sans 3', sans-serif;
-  --app-font-serif: 'Source Sans 3', sans-serif;
+  --app-font-serif: 'Roboto Slab', serif;
   --app-font-mono: Menlo, monospace;
   --radius: 0.5rem;
 
@@ -95,27 +94,27 @@
 }
 
 .dark {
-  --background: 220 40% 8%;
-  --foreground: 210 20% 98%;
-  --border: 220 20% 20%;
-  --card: 220 35% 11%;
-  --card-foreground: 210 20% 98%;
-  --card-border: 220 20% 20%;
-  --popover: 220 35% 11%;
-  --popover-foreground: 210 20% 98%;
-  --popover-border: 220 20% 20%;
-  --primary: 214 95% 60%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 217 33% 18%;
-  --secondary-foreground: 210 20% 98%;
-  --muted: 217 30% 18%;
-  --muted-foreground: 215 16% 68%;
-  --accent: 217 40% 20%;
-  --accent-foreground: 214 95% 80%;
+  --background: 264 30% 9%;
+  --foreground: 270 20% 98%;
+  --border: 264 18% 22%;
+  --card: 264 28% 12%;
+  --card-foreground: 270 20% 98%;
+  --card-border: 264 18% 22%;
+  --popover: 264 28% 12%;
+  --popover-foreground: 270 20% 98%;
+  --popover-border: 264 18% 22%;
+  --primary: 270 46% 70%;
+  --primary-foreground: 264 30% 12%;
+  --secondary: 322 38% 60%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 264 22% 18%;
+  --muted-foreground: 270 14% 70%;
+  --accent: 264 30% 22%;
+  --accent-foreground: 270 50% 84%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
-  --input: 220 20% 20%;
-  --ring: 214 95% 60%;
+  --input: 264 18% 22%;
+  --ring: 270 46% 70%;
 }
 
 @layer base {
