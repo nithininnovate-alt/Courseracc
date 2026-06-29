@@ -5,20 +5,49 @@
  * Central Global University LMS/SMS API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ApplicationDocument } from './applicationDocument';
 import type { ApplicationStatus } from './applicationStatus';
 
 export interface Application {
   id: number;
-  userId: number;
+  /** @nullable */
+  userId: number | null;
   programName: string;
+  /** @nullable */
+  courseId?: number | null;
   fullName: string;
   email: string;
   /** @nullable */
   phone?: string | null;
+  /** @nullable */
+  dateOfBirth?: string | null;
+  /** @nullable */
+  gender?: string | null;
+  /** @nullable */
+  nationality?: string | null;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  city?: string | null;
+  /** @nullable */
+  country?: string | null;
+  /** @nullable */
+  previousQualification?: string | null;
+  /** @nullable */
+  previousInstitution?: string | null;
+  /** @nullable */
+  graduationYear?: string | null;
+  /** @nullable */
+  gradePercentage?: string | null;
   status: ApplicationStatus;
   /** @nullable */
   reviewNote?: string | null;
   /** @nullable */
   documentsUrl?: string | null;
+  /** @nullable */
+  admissionLetterUrl?: string | null;
+  /** @nullable */
+  reviewedAt?: Date | null;
   submittedAt: Date;
+  documents?: ApplicationDocument[];
 }

@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
-import { UpdateUserRoleBody } from "@workspace/api-zod";
+import { UpdateUserRoleBody, UpdateCurrentUserBody } from "@workspace/api-zod";
 import {
   resolveCurrentUser,
   requireStaff,
@@ -18,6 +18,25 @@ router.get("/users/me", async (req, res) => {
     return;
   }
   res.json(sanitizeUser(user));
+});
+
+router.patch("/users/me", async (req, res) => {
+  const user = await resolveCurrentUser(req);
+  if (!user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const parsed = UpdateCurrentUserBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid input" });
+    return;
+  }
+  const [updated] = await db
+    .update(usersTable)
+    .set(parsed.data)
+    .where(eq(usersTable.id, user.id))
+    .returning();
+  res.json(sanitizeUser(updated));
 });
 
 router.get("/users", requireStaff, async (_req, res) => {

@@ -5,14 +5,26 @@
  * Central Global University LMS/SMS API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ApplicationDocumentInput } from './applicationDocumentInput';
 
 export interface ApplicationInput {
   /** @minLength 1 */
   programName: string;
+  courseId?: number;
   /** @minLength 1 */
   fullName: string;
   /** @minLength 1 */
   email: string;
   phone?: string;
-  documentsUrl?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  nationality?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  previousQualification?: string;
+  previousInstitution?: string;
+  graduationYear?: string;
+  gradePercentage?: string;
+  documents?: ApplicationDocumentInput[];
 }

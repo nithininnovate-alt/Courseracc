@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useClerk, useUser } from "@clerk/react";
 import { Button } from "@/components/ui/button";
-import { Globe, BookOpen, CreditCard, GraduationCap, LayoutDashboard, Menu, CheckSquare, FileText, ArrowRight, X, LogOut } from "lucide-react";
+import { Globe, BookOpen, CreditCard, GraduationCap, LayoutDashboard, Menu, CheckSquare, FileText, ArrowRight, X, LogOut, UserCircle } from "lucide-react";
 import { useState } from "react";
 
 export function StudentLayout({ children }: { children: React.ReactNode }) {
@@ -19,6 +19,7 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
     { label: "Payments", href: "/portal/payments", icon: <CreditCard className="w-5 h-5" /> },
     { label: "Certificates", href: "/portal/certificates", icon: <GraduationCap className="w-5 h-5" /> },
     { label: "My Applications", href: "/portal/applications", icon: <ArrowRight className="w-5 h-5" /> },
+    { label: "Profile", href: "/portal/profile", icon: <UserCircle className="w-5 h-5" /> },
   ];
 
   return (

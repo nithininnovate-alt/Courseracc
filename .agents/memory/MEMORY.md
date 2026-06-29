@@ -1,0 +1,1 @@
+- [wouter route wildcards](wouter-route-wildcards.md) — parent section routes need `/portal/*?` form to match bare + sub-paths; auth gate must Redirect to /sign-in, not inline SignIn.

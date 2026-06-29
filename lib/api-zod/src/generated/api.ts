@@ -31,12 +31,17 @@ export const StaffLoginBody = zod.object({
 
 export const StaffLoginResponse = zod.object({
   "id": zod.number(),
-  "clerkId": zod.string(),
+  "clerkId": zod.string().nullish(),
+  "username": zod.string().nullish(),
   "email": zod.string(),
   "firstName": zod.string().nullish(),
   "lastName": zod.string().nullish(),
   "role": zod.enum(['student', 'admin', 'superadmin']),
   "avatarUrl": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "dateOfBirth": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "country": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -54,12 +59,47 @@ export const StaffLogoutResponse = zod.object({
  */
 export const GetCurrentUserResponse = zod.object({
   "id": zod.number(),
-  "clerkId": zod.string(),
+  "clerkId": zod.string().nullish(),
+  "username": zod.string().nullish(),
   "email": zod.string(),
   "firstName": zod.string().nullish(),
   "lastName": zod.string().nullish(),
   "role": zod.enum(['student', 'admin', 'superadmin']),
   "avatarUrl": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "dateOfBirth": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update the current user's profile
+ */
+export const UpdateCurrentUserBody = zod.object({
+  "firstName": zod.string().optional(),
+  "lastName": zod.string().optional(),
+  "phone": zod.string().optional(),
+  "dateOfBirth": zod.string().optional(),
+  "address": zod.string().optional(),
+  "country": zod.string().optional(),
+  "avatarUrl": zod.string().optional()
+})
+
+export const UpdateCurrentUserResponse = zod.object({
+  "id": zod.number(),
+  "clerkId": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "email": zod.string(),
+  "firstName": zod.string().nullish(),
+  "lastName": zod.string().nullish(),
+  "role": zod.enum(['student', 'admin', 'superadmin']),
+  "avatarUrl": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "dateOfBirth": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "country": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -69,12 +109,17 @@ export const GetCurrentUserResponse = zod.object({
  */
 export const ListUsersResponseItem = zod.object({
   "id": zod.number(),
-  "clerkId": zod.string(),
+  "clerkId": zod.string().nullish(),
+  "username": zod.string().nullish(),
   "email": zod.string(),
   "firstName": zod.string().nullish(),
   "lastName": zod.string().nullish(),
   "role": zod.enum(['student', 'admin', 'superadmin']),
   "avatarUrl": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "dateOfBirth": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "country": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 export const ListUsersResponse = zod.array(ListUsersResponseItem)
@@ -93,12 +138,17 @@ export const UpdateUserRoleBody = zod.object({
 
 export const UpdateUserRoleResponse = zod.object({
   "id": zod.number(),
-  "clerkId": zod.string(),
+  "clerkId": zod.string().nullish(),
+  "username": zod.string().nullish(),
   "email": zod.string(),
   "firstName": zod.string().nullish(),
   "lastName": zod.string().nullish(),
   "role": zod.enum(['student', 'admin', 'superadmin']),
   "avatarUrl": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "dateOfBirth": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "country": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -108,15 +158,36 @@ export const UpdateUserRoleResponse = zod.object({
  */
 export const ListApplicationsResponseItem = zod.object({
   "id": zod.number(),
-  "userId": zod.number(),
+  "userId": zod.number().nullable(),
   "programName": zod.string(),
+  "courseId": zod.number().nullish(),
   "fullName": zod.string(),
   "email": zod.string(),
   "phone": zod.string().nullish(),
+  "dateOfBirth": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "nationality": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "previousQualification": zod.string().nullish(),
+  "previousInstitution": zod.string().nullish(),
+  "graduationYear": zod.string().nullish(),
+  "gradePercentage": zod.string().nullish(),
   "status": zod.enum(['pending', 'under_review', 'approved', 'rejected']),
   "reviewNote": zod.string().nullish(),
   "documentsUrl": zod.string().nullish(),
-  "submittedAt": zod.coerce.date()
+  "admissionLetterUrl": zod.string().nullish(),
+  "reviewedAt": zod.coerce.date().nullish(),
+  "submittedAt": zod.coerce.date(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "applicationId": zod.number(),
+  "name": zod.string(),
+  "type": zod.string().nullish(),
+  "objectPath": zod.string(),
+  "uploadedAt": zod.coerce.date()
+})).optional()
 })
 export const ListApplicationsResponse = zod.array(ListApplicationsResponseItem)
 
@@ -129,25 +200,63 @@ export const ListApplicationsResponse = zod.array(ListApplicationsResponseItem)
 
 
 
+
+
 export const CreateApplicationBody = zod.object({
   "programName": zod.string().min(1),
+  "courseId": zod.number().optional(),
   "fullName": zod.string().min(1),
   "email": zod.string().min(1),
   "phone": zod.string().optional(),
-  "documentsUrl": zod.string().optional()
+  "dateOfBirth": zod.string().optional(),
+  "gender": zod.string().optional(),
+  "nationality": zod.string().optional(),
+  "address": zod.string().optional(),
+  "city": zod.string().optional(),
+  "country": zod.string().optional(),
+  "previousQualification": zod.string().optional(),
+  "previousInstitution": zod.string().optional(),
+  "graduationYear": zod.string().optional(),
+  "gradePercentage": zod.string().optional(),
+  "documents": zod.array(zod.object({
+  "name": zod.string().min(1),
+  "type": zod.string().optional(),
+  "objectPath": zod.string().min(1)
+})).optional()
 })
 
 export const CreateApplicationResponse = zod.object({
   "id": zod.number(),
-  "userId": zod.number(),
+  "userId": zod.number().nullable(),
   "programName": zod.string(),
+  "courseId": zod.number().nullish(),
   "fullName": zod.string(),
   "email": zod.string(),
   "phone": zod.string().nullish(),
+  "dateOfBirth": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "nationality": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "previousQualification": zod.string().nullish(),
+  "previousInstitution": zod.string().nullish(),
+  "graduationYear": zod.string().nullish(),
+  "gradePercentage": zod.string().nullish(),
   "status": zod.enum(['pending', 'under_review', 'approved', 'rejected']),
   "reviewNote": zod.string().nullish(),
   "documentsUrl": zod.string().nullish(),
-  "submittedAt": zod.coerce.date()
+  "admissionLetterUrl": zod.string().nullish(),
+  "reviewedAt": zod.coerce.date().nullish(),
+  "submittedAt": zod.coerce.date(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "applicationId": zod.number(),
+  "name": zod.string(),
+  "type": zod.string().nullish(),
+  "objectPath": zod.string(),
+  "uploadedAt": zod.coerce.date()
+})).optional()
 })
 
 
@@ -160,15 +269,36 @@ export const GetApplicationParams = zod.object({
 
 export const GetApplicationResponse = zod.object({
   "id": zod.number(),
-  "userId": zod.number(),
+  "userId": zod.number().nullable(),
   "programName": zod.string(),
+  "courseId": zod.number().nullish(),
   "fullName": zod.string(),
   "email": zod.string(),
   "phone": zod.string().nullish(),
+  "dateOfBirth": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "nationality": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "previousQualification": zod.string().nullish(),
+  "previousInstitution": zod.string().nullish(),
+  "graduationYear": zod.string().nullish(),
+  "gradePercentage": zod.string().nullish(),
   "status": zod.enum(['pending', 'under_review', 'approved', 'rejected']),
   "reviewNote": zod.string().nullish(),
   "documentsUrl": zod.string().nullish(),
-  "submittedAt": zod.coerce.date()
+  "admissionLetterUrl": zod.string().nullish(),
+  "reviewedAt": zod.coerce.date().nullish(),
+  "submittedAt": zod.coerce.date(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "applicationId": zod.number(),
+  "name": zod.string(),
+  "type": zod.string().nullish(),
+  "objectPath": zod.string(),
+  "uploadedAt": zod.coerce.date()
+})).optional()
 })
 
 
@@ -186,16 +316,89 @@ export const UpdateApplicationBody = zod.object({
 
 export const UpdateApplicationResponse = zod.object({
   "id": zod.number(),
-  "userId": zod.number(),
+  "userId": zod.number().nullable(),
   "programName": zod.string(),
+  "courseId": zod.number().nullish(),
   "fullName": zod.string(),
   "email": zod.string(),
   "phone": zod.string().nullish(),
+  "dateOfBirth": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "nationality": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "previousQualification": zod.string().nullish(),
+  "previousInstitution": zod.string().nullish(),
+  "graduationYear": zod.string().nullish(),
+  "gradePercentage": zod.string().nullish(),
   "status": zod.enum(['pending', 'under_review', 'approved', 'rejected']),
   "reviewNote": zod.string().nullish(),
   "documentsUrl": zod.string().nullish(),
-  "submittedAt": zod.coerce.date()
+  "admissionLetterUrl": zod.string().nullish(),
+  "reviewedAt": zod.coerce.date().nullish(),
+  "submittedAt": zod.coerce.date(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "applicationId": zod.number(),
+  "name": zod.string(),
+  "type": zod.string().nullish(),
+  "objectPath": zod.string(),
+  "uploadedAt": zod.coerce.date()
+})).optional()
 })
+
+
+/**
+ * Returns a presigned GCS URL for direct upload. The client sends JSON
+ * metadata here, then uploads the file directly to the returned URL.
+ * @summary Request a presigned URL for file upload
+ */
+
+
+
+
+
+export const RequestUploadUrlBody = zod.object({
+  "name": zod.string().min(1),
+  "size": zod.number().min(1),
+  "contentType": zod.string().min(1)
+})
+
+
+
+
+
+
+export const RequestUploadUrlResponse = zod.object({
+  "uploadURL": zod.string().url(),
+  "objectPath": zod.string(),
+  "metadata": zod.object({
+  "name": zod.string().min(1),
+  "size": zod.number().min(1),
+  "contentType": zod.string().min(1)
+}).optional()
+})
+
+
+/**
+ * @summary Serve a public asset from PUBLIC_OBJECT_SEARCH_PATHS
+ */
+export const GetPublicObjectParams = zod.object({
+  "filePath": zod.coerce.string()
+})
+
+export const GetPublicObjectResponse = zod.unknown()
+
+
+/**
+ * @summary Serve an object entity from PRIVATE_OBJECT_DIR
+ */
+export const GetStorageObjectParams = zod.object({
+  "objectPath": zod.coerce.string()
+})
+
+export const GetStorageObjectResponse = zod.unknown()
 
 
 /**

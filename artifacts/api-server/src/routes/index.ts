@@ -7,6 +7,7 @@ import coursesRouter from "./courses";
 import academicsRouter from "./academics";
 import operationsRouter from "./operations";
 import dashboardRouter from "./dashboard";
+import storageRouter from "./storage";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(coursesRouter);
 router.use(academicsRouter);
 router.use(operationsRouter);
 router.use(dashboardRouter);
+router.use(storageRouter);
 
 export default router;

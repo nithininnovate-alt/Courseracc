@@ -8,6 +8,8 @@
 
 export * from './adminDashboard';
 export * from './application';
+export * from './applicationDocument';
+export * from './applicationDocumentInput';
 export * from './applicationInput';
 export * from './applicationStatus';
 export * from './applicationUpdate';
@@ -26,6 +28,7 @@ export * from './emailLogStatus';
 export * from './enrollment';
 export * from './enrollmentInput';
 export * from './enrollmentStatus';
+export * from './errorEnvelope';
 export * from './exam';
 export * from './healthStatus';
 export * from './loginInput';
@@ -40,6 +43,9 @@ export * from './subject';
 export * from './submission';
 export * from './submissionInput';
 export * from './submissionStatus';
+export * from './updateProfileInput';
+export * from './uploadUrlRequest';
+export * from './uploadUrlResponse';
 export * from './user';
 export * from './userRole';
 export * from './userRoleUpdate';

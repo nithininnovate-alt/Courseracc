@@ -38,6 +38,8 @@ tags:
     description: Certificate courier tracking
   - name: dashboard
     description: Dashboard summaries
+  - name: storage
+    description: Object storage upload and serving endpoints
 paths:
   /healthz:
     get:
@@ -93,6 +95,23 @@ paths:
       responses:
         "200":
           description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    patch:
+      operationId: updateCurrentUser
+      tags: [users]
+      summary: Update the current user's profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileInput"
+      responses:
+        "200":
+          description: Updated user
           content:
             application/json:
               schema:
@@ -211,6 +230,90 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Application"
+
+  /storage/uploads/request-url:
+    post:
+      tags: [storage]
+      operationId: requestUploadUrl
+      summary: Request a presigned URL for file upload
+      description: |
+        Returns a presigned GCS URL for direct upload. The client sends JSON
+        metadata here, then uploads the file directly to the returned URL.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadUrlRequest"
+      responses:
+        "200":
+          description: Presigned upload URL generated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrlResponse"
+        "400":
+          description: Missing or invalid required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Failed to generate upload URL.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /storage/public-objects/{filePath}:
+    get:
+      tags: [storage]
+      operationId: getPublicObject
+      summary: Serve a public asset from PUBLIC_OBJECT_SEARCH_PATHS
+      parameters:
+        - name: filePath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Object content streamed with correct Content-Type.
+          content:
+            "*/*":
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: File not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /storage/objects/{objectPath}:
+    get:
+      tags: [storage]
+      operationId: getStorageObject
+      summary: Serve an object entity from PRIVATE_OBJECT_DIR
+      parameters:
+        - name: objectPath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Object content streamed with correct Content-Type.
+          content:
+            "*/*":
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Object not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
 
   /courses:
     get:
@@ -586,16 +689,31 @@ components:
 
     User:
       type: object
-      required: [id, clerkId, email, role, createdAt]
+      required: [id, email, role, createdAt]
       properties:
         id: { type: integer }
-        clerkId: { type: string }
+        clerkId: { type: ["string", "null"] }
+        username: { type: ["string", "null"] }
         email: { type: string }
         firstName: { type: ["string", "null"] }
         lastName: { type: ["string", "null"] }
         role: { type: string, enum: [student, admin, superadmin] }
         avatarUrl: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+        dateOfBirth: { type: ["string", "null"] }
+        address: { type: ["string", "null"] }
+        country: { type: ["string", "null"] }
         createdAt: { type: string, format: date-time }
+    UpdateProfileInput:
+      type: object
+      properties:
+        firstName: { type: string }
+        lastName: { type: string }
+        phone: { type: string }
+        dateOfBirth: { type: string }
+        address: { type: string }
+        country: { type: string }
+        avatarUrl: { type: string }
     UserRoleUpdate:
       type: object
       required: [role]
@@ -613,29 +731,77 @@ components:
       properties:
         success: { type: boolean }
 
+    ApplicationDocument:
+      type: object
+      required: [id, applicationId, name, objectPath, uploadedAt]
+      properties:
+        id: { type: integer }
+        applicationId: { type: integer }
+        name: { type: string }
+        type: { type: ["string", "null"] }
+        objectPath: { type: string }
+        uploadedAt: { type: string, format: date-time }
+    ApplicationDocumentInput:
+      type: object
+      required: [name, objectPath]
+      properties:
+        name: { type: string, minLength: 1 }
+        type: { type: string }
+        objectPath: { type: string, minLength: 1 }
     Application:
       type: object
       required: [id, userId, programName, fullName, email, status, submittedAt]
       properties:
         id: { type: integer }
-        userId: { type: integer }
+        userId: { type: ["integer", "null"] }
         programName: { type: string }
+        courseId: { type: ["integer", "null"] }
         fullName: { type: string }
         email: { type: string }
         phone: { type: ["string", "null"] }
+        dateOfBirth: { type: ["string", "null"] }
+        gender: { type: ["string", "null"] }
+        nationality: { type: ["string", "null"] }
+        address: { type: ["string", "null"] }
+        city: { type: ["string", "null"] }
+        country: { type: ["string", "null"] }
+        previousQualification: { type: ["string", "null"] }
+        previousInstitution: { type: ["string", "null"] }
+        graduationYear: { type: ["string", "null"] }
+        gradePercentage: { type: ["string", "null"] }
         status: { type: string, enum: [pending, under_review, approved, rejected] }
         reviewNote: { type: ["string", "null"] }
         documentsUrl: { type: ["string", "null"] }
+        admissionLetterUrl: { type: ["string", "null"] }
+        reviewedAt: { type: ["string", "null"], format: date-time }
         submittedAt: { type: string, format: date-time }
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApplicationDocument"
     ApplicationInput:
       type: object
       required: [programName, fullName, email]
       properties:
         programName: { type: string, minLength: 1 }
+        courseId: { type: integer }
         fullName: { type: string, minLength: 1 }
         email: { type: string, minLength: 1 }
         phone: { type: string }
-        documentsUrl: { type: string }
+        dateOfBirth: { type: string }
+        gender: { type: string }
+        nationality: { type: string }
+        address: { type: string }
+        city: { type: string }
+        country: { type: string }
+        previousQualification: { type: string }
+        previousInstitution: { type: string }
+        graduationYear: { type: string }
+        gradePercentage: { type: string }
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApplicationDocumentInput"
     ApplicationUpdate:
       type: object
       required: [status]
@@ -834,3 +1000,24 @@ components:
         totalCourses: { type: integer }
         activeEnrollments: { type: integer }
         totalRevenue: { type: number }
+
+    UploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name: { type: string, minLength: 1 }
+        size: { type: integer, minimum: 1 }
+        contentType: { type: string, minLength: 1 }
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL: { type: string, format: uri }
+        objectPath: { type: string }
+        metadata:
+          $ref: "#/components/schemas/UploadUrlRequest"
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }

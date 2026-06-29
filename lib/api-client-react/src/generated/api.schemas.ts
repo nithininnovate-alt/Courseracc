@@ -20,7 +20,10 @@ export const UserRole = {
 
 export interface User {
   id: number;
-  clerkId: string;
+  /** @nullable */
+  clerkId?: string | null;
+  /** @nullable */
+  username?: string | null;
   email: string;
   /** @nullable */
   firstName?: string | null;
@@ -29,7 +32,25 @@ export interface User {
   role: UserRole;
   /** @nullable */
   avatarUrl?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  dateOfBirth?: string | null;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  country?: string | null;
   createdAt: string;
+}
+
+export interface UpdateProfileInput {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  dateOfBirth?: string;
+  address?: string;
+  country?: string;
+  avatarUrl?: string;
 }
 
 export type UserRoleUpdateRole = typeof UserRoleUpdateRole[keyof typeof UserRoleUpdateRole];
@@ -56,6 +77,24 @@ export interface AuthMessage {
   success: boolean;
 }
 
+export interface ApplicationDocument {
+  id: number;
+  applicationId: number;
+  name: string;
+  /** @nullable */
+  type?: string | null;
+  objectPath: string;
+  uploadedAt: string;
+}
+
+export interface ApplicationDocumentInput {
+  /** @minLength 1 */
+  name: string;
+  type?: string;
+  /** @minLength 1 */
+  objectPath: string;
+}
+
 export type ApplicationStatus = typeof ApplicationStatus[keyof typeof ApplicationStatus];
 
 
@@ -68,29 +107,68 @@ export const ApplicationStatus = {
 
 export interface Application {
   id: number;
-  userId: number;
+  /** @nullable */
+  userId: number | null;
   programName: string;
+  /** @nullable */
+  courseId?: number | null;
   fullName: string;
   email: string;
   /** @nullable */
   phone?: string | null;
+  /** @nullable */
+  dateOfBirth?: string | null;
+  /** @nullable */
+  gender?: string | null;
+  /** @nullable */
+  nationality?: string | null;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  city?: string | null;
+  /** @nullable */
+  country?: string | null;
+  /** @nullable */
+  previousQualification?: string | null;
+  /** @nullable */
+  previousInstitution?: string | null;
+  /** @nullable */
+  graduationYear?: string | null;
+  /** @nullable */
+  gradePercentage?: string | null;
   status: ApplicationStatus;
   /** @nullable */
   reviewNote?: string | null;
   /** @nullable */
   documentsUrl?: string | null;
+  /** @nullable */
+  admissionLetterUrl?: string | null;
+  /** @nullable */
+  reviewedAt?: string | null;
   submittedAt: string;
+  documents?: ApplicationDocument[];
 }
 
 export interface ApplicationInput {
   /** @minLength 1 */
   programName: string;
+  courseId?: number;
   /** @minLength 1 */
   fullName: string;
   /** @minLength 1 */
   email: string;
   phone?: string;
-  documentsUrl?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  nationality?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  previousQualification?: string;
+  previousInstitution?: string;
+  graduationYear?: string;
+  gradePercentage?: string;
+  documents?: ApplicationDocumentInput[];
 }
 
 export type ApplicationUpdateStatus = typeof ApplicationUpdateStatus[keyof typeof ApplicationUpdateStatus];
@@ -362,5 +440,24 @@ export interface AdminDashboard {
   totalCourses: number;
   activeEnrollments: number;
   totalRevenue: number;
+}
+
+export interface UploadUrlRequest {
+  /** @minLength 1 */
+  name: string;
+  /** @minimum 1 */
+  size: number;
+  /** @minLength 1 */
+  contentType: string;
+}
+
+export interface UploadUrlResponse {
+  uploadURL: string;
+  objectPath: string;
+  metadata?: UploadUrlRequest;
+}
+
+export interface ErrorEnvelope {
+  error: string;
 }
 

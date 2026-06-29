@@ -38,6 +38,7 @@ import StudentExams from "@/pages/student/Exams";
 import StudentPayments from "@/pages/student/Payments";
 import StudentCertificates from "@/pages/student/Certificates";
 import StudentApplications from "@/pages/student/Applications";
+import StudentProfile from "@/pages/student/Profile";
 import AdminApplications from "@/pages/admin/Applications";
 import AdminCourses from "@/pages/admin/Courses";
 import AdminStudents from "@/pages/admin/Students";
@@ -589,7 +590,11 @@ export default function App() {
                 <Route path="/sign-in/*?" component={SignInPage} />
                 <Route path="/sign-up/*?" component={SignUpPage} />
                 <Route path="/admin/login" component={AdminLoginPage} />
-                <Route path="/apply" component={ApplyPage} />
+                <Route path="/apply">
+                  <RequireSignedIn>
+                    <ApplyPage />
+                  </RequireSignedIn>
+                </Route>
 
                 {/* Admin Routes */}
                 <Route path="/admin*">
@@ -622,6 +627,7 @@ export default function App() {
                         <Route path="/portal/payments" component={StudentPayments} />
                         <Route path="/portal/certificates" component={StudentCertificates} />
                         <Route path="/portal/applications" component={StudentApplications} />
+                        <Route path="/portal/profile" component={StudentProfile} />
                         <Route component={NotFound} />
                       </Switch>
                     </StudentLayout>

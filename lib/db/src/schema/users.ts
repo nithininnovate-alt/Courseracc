@@ -12,6 +12,10 @@ export const usersTable = pgTable("users", {
   lastName: text("last_name"),
   role: text("role").notNull().default("student"),
   avatarUrl: text("avatar_url"),
+  phone: text("phone"),
+  dateOfBirth: text("date_of_birth"),
+  address: text("address"),
+  country: text("country"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

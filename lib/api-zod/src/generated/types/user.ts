@@ -9,7 +9,10 @@ import type { UserRole } from './userRole';
 
 export interface User {
   id: number;
-  clerkId: string;
+  /** @nullable */
+  clerkId?: string | null;
+  /** @nullable */
+  username?: string | null;
   email: string;
   /** @nullable */
   firstName?: string | null;
@@ -18,5 +21,13 @@ export interface User {
   role: UserRole;
   /** @nullable */
   avatarUrl?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  dateOfBirth?: string | null;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  country?: string | null;
   createdAt: Date;
 }
