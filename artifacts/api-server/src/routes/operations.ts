@@ -299,6 +299,46 @@ router.get("/certificates", async (req, res) => {
 
 const TYPE_PREFIX: Record<string, string> = { degree: "DEG", transcript: "TRN" };
 
+async function publishedResultCourseKeys(): Promise<Set<string>> {
+  const rows = await db
+    .select({ userId: resultsTable.userId, courseId: subjectsTable.courseId })
+    .from(resultsTable)
+    .innerJoin(examsTable, eq(examsTable.id, resultsTable.examId))
+    .innerJoin(subjectsTable, eq(subjectsTable.id, examsTable.subjectId))
+    .where(eq(resultsTable.published, true));
+  return new Set(rows.map((r) => `${r.userId}:${r.courseId}`));
+}
+
+async function isCertificateEligible(userId: number, courseId: number): Promise<boolean> {
+  const [enrollment] = await db
+    .select({ id: enrollmentsTable.id })
+    .from(enrollmentsTable)
+    .where(
+      and(
+        eq(enrollmentsTable.userId, userId),
+        eq(enrollmentsTable.courseId, courseId),
+        eq(enrollmentsTable.status, "completed"),
+      ),
+    )
+    .limit(1);
+  if (!enrollment) return false;
+
+  const [result] = await db
+    .select({ id: resultsTable.id })
+    .from(resultsTable)
+    .innerJoin(examsTable, eq(examsTable.id, resultsTable.examId))
+    .innerJoin(subjectsTable, eq(subjectsTable.id, examsTable.subjectId))
+    .where(
+      and(
+        eq(resultsTable.userId, userId),
+        eq(resultsTable.published, true),
+        eq(subjectsTable.courseId, courseId),
+      ),
+    )
+    .limit(1);
+  return !!result;
+}
+
 router.get("/certificates/eligible", requireStaff, async (_req, res) => {
   const completed = await db
     .select({
@@ -314,6 +354,8 @@ router.get("/certificates/eligible", requireStaff, async (_req, res) => {
     .innerJoin(coursesTable, eq(coursesTable.id, enrollmentsTable.courseId))
     .where(eq(enrollmentsTable.status, "completed"));
 
+  const publishedKeys = await publishedResultCourseKeys();
+
   const issued = await db
     .select()
     .from(certificatesTable)
@@ -323,7 +365,9 @@ router.get("/certificates/eligible", requireStaff, async (_req, res) => {
   );
 
   res.json(
-    completed.map((row) => ({
+    completed
+      .filter((row) => publishedKeys.has(`${row.userId}:${row.courseId}`))
+      .map((row) => ({
       userId: row.userId,
       fullName:
         [row.firstName, row.lastName].filter(Boolean).join(" ") || row.email,
@@ -355,6 +399,14 @@ router.post("/certificates", requireStaff, async (req, res) => {
     .where(eq(coursesTable.id, courseId));
   if (!course) {
     res.status(404).json({ error: "Course not found" });
+    return;
+  }
+
+  if (!(await isCertificateEligible(userId, courseId))) {
+    res.status(422).json({
+      error:
+        "Student is not eligible: requires a completed enrollment and published results for this course",
+    });
     return;
   }
 
