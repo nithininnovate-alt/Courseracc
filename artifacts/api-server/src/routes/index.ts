@@ -9,6 +9,7 @@ import operationsRouter from "./operations";
 import progressRouter from "./progress";
 import dashboardRouter from "./dashboard";
 import storageRouter from "./storage";
+import aiRouter from "./ai";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(operationsRouter);
 router.use(progressRouter);
 router.use(dashboardRouter);
 router.use(storageRouter);
+router.use(aiRouter);
 
 export default router;

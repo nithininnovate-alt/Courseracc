@@ -47,11 +47,15 @@ export async function getCourseAccess(
   return { courseId, price, paid, hasAccess: price <= 0 || paid };
 }
 
-/** Create an enrollment for a user/course if one does not already exist. */
+/**
+ * Create an enrollment for a user/course if one does not already exist.
+ * Returns true when a new enrollment was created (i.e. the course was newly
+ * activated for the user), false when one already existed.
+ */
 export async function ensureEnrollment(
   userId: number,
   courseId: number,
-): Promise<void> {
+): Promise<boolean> {
   const [existing] = await db
     .select({ id: enrollmentsTable.id })
     .from(enrollmentsTable)
@@ -62,10 +66,11 @@ export async function ensureEnrollment(
       ),
     )
     .limit(1);
-  if (existing) return;
+  if (existing) return false;
   await db
     .insert(enrollmentsTable)
     .values({ userId, courseId, status: "active", progress: 0 });
+  return true;
 }
 
 /**

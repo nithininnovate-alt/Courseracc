@@ -673,8 +673,31 @@ export interface EmailLog {
   template: string;
   status: EmailLogStatus;
   /** @nullable */
+  body?: string | null;
+  /** @nullable */
+  html?: string | null;
+  /** @nullable */
   sentAt?: string | null;
   createdAt: string;
+}
+
+export type ChatMessageRole = typeof ChatMessageRole[keyof typeof ChatMessageRole];
+
+
+export const ChatMessageRole = {
+  user: 'user',
+  assistant: 'assistant',
+} as const;
+
+export interface ChatMessage {
+  role: ChatMessageRole;
+  /** @minLength 1 */
+  content: string;
+}
+
+export interface SendChatMessageInput {
+  /** @minItems 1 */
+  messages: ChatMessage[];
 }
 
 export type CourierTrackingStatus = typeof CourierTrackingStatus[keyof typeof CourierTrackingStatus];

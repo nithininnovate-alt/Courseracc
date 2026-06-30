@@ -37,8 +37,11 @@ import {
 } from "../lib/certificate";
 import {
   sendEmail,
+  resendEmailLog,
   buildCertificateIssued,
   buildCourierDispatched,
+  buildPaymentConfirmation,
+  buildCourseActivation,
 } from "../lib/email";
 import { ensureEnrollment } from "../lib/access";
 
@@ -200,9 +203,43 @@ router.post(
         })
         .where(eq(paymentsTable.id, payment.id))
         .returning();
+
+      const student = req.currentUser!;
+      const studentEmail = student.email;
+      const fullName =
+        [student.firstName, student.lastName].filter(Boolean).join(" ") ||
+        studentEmail;
+
+      let course: { title: string } | undefined;
+      let newlyEnrolled = false;
       if (payment.courseId) {
-        await ensureEnrollment(req.currentUser!.id, payment.courseId);
+        newlyEnrolled = await ensureEnrollment(student.id, payment.courseId);
+        [course] = await db
+          .select({ title: coursesTable.title })
+          .from(coursesTable)
+          .where(eq(coursesTable.id, payment.courseId));
       }
+
+      if (studentEmail) {
+        await sendEmail({
+          ...buildPaymentConfirmation({
+            fullName,
+            amount: Number(updated.amount),
+            currency: updated.currency,
+            courseTitle: course?.title ?? null,
+            invoiceNumber,
+          }),
+          to: studentEmail,
+        });
+        // Notify of course activation only when access was newly granted.
+        if (newlyEnrolled && course) {
+          await sendEmail({
+            ...buildCourseActivation({ fullName, courseTitle: course.title }),
+            to: studentEmail,
+          });
+        }
+      }
+
       res.json(serializePayment(updated));
     } catch (err) {
       res
@@ -589,6 +626,20 @@ router.get("/email-logs", requireStaff, async (_req, res) => {
   res.json(
     await db.select().from(emailLogsTable).orderBy(desc(emailLogsTable.createdAt)),
   );
+});
+
+router.post("/email-logs/:id/resend", requireStaff, async (req, res) => {
+  const id = Number(req.params.id);
+  const status = await resendEmailLog(id);
+  if (status === null) {
+    res.status(404).json({ error: "Email log not found" });
+    return;
+  }
+  const [updated] = await db
+    .select()
+    .from(emailLogsTable)
+    .where(eq(emailLogsTable.id, id));
+  res.json(updated);
 });
 
 router.get("/courier", async (req, res) => {

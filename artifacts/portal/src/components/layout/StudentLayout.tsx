@@ -3,6 +3,7 @@ import { useClerk, useUser } from "@clerk/react";
 import { Button } from "@/components/ui/button";
 import { Globe, BookOpen, CreditCard, GraduationCap, LayoutDashboard, Menu, CheckSquare, FileText, ArrowRight, X, LogOut, UserCircle } from "lucide-react";
 import { useState } from "react";
+import { ChatWidget } from "@/components/student/ChatWidget";
 
 export function StudentLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -86,6 +87,8 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 container mx-auto px-4 py-8">
         {children}
       </main>
+
+      <ChatWidget />
     </div>
   );
 }

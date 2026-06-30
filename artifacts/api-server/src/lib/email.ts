@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { db, emailLogsTable } from "@workspace/db";
 
 export interface EmailMessage {
@@ -7,23 +8,125 @@ export interface EmailMessage {
   template: string;
   /** Rendered plain-text body */
   body: string;
+  /** Rendered HTML body */
+  html: string;
+}
+
+const BRAND = {
+  name: "Central Global University",
+  primary: "#41356b",
+  accent: "#c9a227",
+  muted: "#6b6480",
+};
+
+/**
+ * Wrap a sequence of plain paragraphs in a branded, responsive HTML email
+ * layout. Lines that are empty in the source text become paragraph breaks.
+ */
+function renderEmailHtml(opts: {
+  heading: string;
+  paragraphs: string[];
+  cta?: { label: string; url: string };
+}): string {
+  const { heading, paragraphs, cta } = opts;
+  const body = paragraphs
+    .map((p) =>
+      p.trim() === ""
+        ? ""
+        : `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#2a2438;">${escapeHtml(
+            p,
+          )}</p>`,
+    )
+    .join("\n");
+
+  const ctaHtml = cta
+    ? `<table role="presentation" cellspacing="0" cellpadding="0" style="margin:8px 0 24px;"><tr><td style="border-radius:8px;background:${BRAND.primary};">
+        <a href="${cta.url}" style="display:inline-block;padding:12px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;">${escapeHtml(
+          cta.label,
+        )}</a></td></tr></table>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f2f8;font-family:'Segoe UI',Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f2f8;padding:32px 0;">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:600px;max-width:92%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 6px 24px rgba(65,53,107,0.08);">
+        <tr><td style="background:${BRAND.primary};padding:28px 40px;">
+          <span style="font-size:20px;font-weight:700;color:#ffffff;letter-spacing:0.3px;">${BRAND.name}</span>
+          <span style="display:block;margin-top:4px;font-size:12px;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:2px;">Office of the Registrar</span>
+        </td></tr>
+        <tr><td style="height:4px;background:${BRAND.accent};"></td></tr>
+        <tr><td style="padding:36px 40px 12px;">
+          <h1 style="margin:0 0 20px;font-size:22px;line-height:1.3;color:${BRAND.primary};">${escapeHtml(
+            heading,
+          )}</h1>
+          ${body}
+          ${ctaHtml}
+        </td></tr>
+        <tr><td style="padding:24px 40px 32px;border-top:1px solid #eceaf2;">
+          <p style="margin:0;font-size:12px;line-height:1.6;color:${BRAND.muted};">This is an automated message from ${BRAND.name}. Please do not reply directly to this email.</p>
+          <p style="margin:8px 0 0;font-size:12px;color:${BRAND.muted};">© ${new Date().getFullYear()} ${BRAND.name}. All rights reserved.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 /**
- * Pluggable email transport.
- *
- * No external email provider is wired up in this task — delivery infrastructure
- * (Resend/SMTP) is owned by the dedicated "Email Automation & AI Assistant"
- * task. Until then we log the rendered message to the server console so the
- * trigger is observable, and every message is persisted to the `email_logs`
- * table (surfaced in the admin Emails panel). Swapping in a real provider only
- * requires replacing the body of this function.
+ * Deliver an email through Resend when RESEND_API_KEY is configured. When it is
+ * not (e.g. local development), the rendered message is logged to the server
+ * console so the trigger remains observable. Returns true on successful
+ * delivery / logging, false on a delivery failure.
  */
 async function deliverEmail(msg: EmailMessage): Promise<boolean> {
-  console.log(
-    `\n[email] to=${msg.to} subject="${msg.subject}" template=${msg.template}\n${msg.body}\n`,
-  );
-  return true;
+  const apiKey = process.env.RESEND_API_KEY;
+  const from =
+    process.env.EMAIL_FROM || "Central Global University <onboarding@resend.dev>";
+
+  if (!apiKey) {
+    console.log(
+      `\n[email] (no RESEND_API_KEY — logging only) to=${msg.to} subject="${msg.subject}" template=${msg.template}\n${msg.body}\n`,
+    );
+    return true;
+  }
+
+  try {
+    const resp = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: [msg.to],
+        subject: msg.subject,
+        html: msg.html,
+        text: msg.body,
+      }),
+    });
+    if (!resp.ok) {
+      const detail = await resp.text().catch(() => "");
+      console.error(`[email] Resend delivery failed (${resp.status}): ${detail}`);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[email] Resend delivery threw", err);
+    return false;
+  }
 }
 
 /**
@@ -50,11 +153,111 @@ export async function sendEmail(msg: EmailMessage): Promise<void> {
       subject: msg.subject,
       template: msg.template,
       status,
+      body: msg.body,
+      html: msg.html,
       sentAt,
     });
   } catch (err) {
     console.error("[email] failed to record email log", err);
   }
+}
+
+/**
+ * Re-attempt delivery of a previously logged email (used by the admin "resend"
+ * action). Updates the existing log row with the new status/timestamp. Returns
+ * the resulting status, or null if the log id does not exist.
+ */
+export async function resendEmailLog(id: number): Promise<string | null> {
+  const [log] = await db
+    .select()
+    .from(emailLogsTable)
+    .where(eq(emailLogsTable.id, id));
+  if (!log) return null;
+
+  const msg: EmailMessage = {
+    to: log.recipient,
+    subject: log.subject,
+    template: log.template,
+    body: log.body ?? log.subject,
+    html: log.html ?? `<p>${escapeHtml(log.body ?? log.subject)}</p>`,
+  };
+
+  let status = "failed";
+  let sentAt: Date | null = null;
+  try {
+    if (await deliverEmail(msg)) {
+      status = "sent";
+      sentAt = new Date();
+    }
+  } catch {
+    status = "failed";
+  }
+
+  await db
+    .update(emailLogsTable)
+    .set({ status, sentAt })
+    .where(eq(emailLogsTable.id, id));
+  return status;
+}
+
+/* --------------------------- template builders --------------------------- */
+
+function build(opts: {
+  to?: string;
+  subject: string;
+  template: string;
+  heading: string;
+  paragraphs: string[];
+  cta?: { label: string; url: string };
+  signoff?: string[];
+}): EmailMessage {
+  const signoff = opts.signoff ?? [
+    "",
+    "Warm regards,",
+    "Office of the Registrar",
+    BRAND.name,
+  ];
+  const paragraphs = [...opts.paragraphs, ...signoff];
+  return {
+    to: opts.to ?? "",
+    subject: opts.subject,
+    template: opts.template,
+    body: paragraphs.join("\n"),
+    html: renderEmailHtml({
+      heading: opts.heading,
+      paragraphs,
+      cta: opts.cta,
+    }),
+  };
+}
+
+export function buildWelcome(opts: { fullName: string }): EmailMessage {
+  return build({
+    subject: `Welcome to ${BRAND.name}`,
+    template: "welcome",
+    heading: `Welcome, ${opts.fullName}!`,
+    paragraphs: [
+      `Dear ${opts.fullName},`,
+      ``,
+      `Your account at ${BRAND.name} has been created successfully. You can now sign in to your student portal to explore programmes, apply for admission, and manage your studies.`,
+      `We're thrilled to have you join our global community of learners.`,
+    ],
+    signoff: ["", "Warm regards,", "Office of Admissions", BRAND.name],
+  });
+}
+
+export function buildPasswordCreated(opts: { fullName: string }): EmailMessage {
+  return build({
+    subject: `Your ${BRAND.name} password has been set`,
+    template: "password_created",
+    heading: "Your password is ready",
+    paragraphs: [
+      `Dear ${opts.fullName},`,
+      ``,
+      `This is a confirmation that a password has been set for your ${BRAND.name} account.`,
+      `If you did not request this change, please contact our support team immediately.`,
+    ],
+  });
 }
 
 export function buildApplicationAcknowledgement(opts: {
@@ -63,24 +266,20 @@ export function buildApplicationAcknowledgement(opts: {
   applicationId: number;
 }): EmailMessage {
   const { fullName, programName, applicationId } = opts;
-  return {
-    to: "", // filled by caller
+  return build({
     subject: `We received your application — ${programName}`,
     template: "application_acknowledgement",
-    body: [
+    heading: "Application received",
+    paragraphs: [
       `Dear ${fullName},`,
       ``,
-      `Thank you for applying to Central Global University for the ${programName} programme.`,
+      `Thank you for applying to ${BRAND.name} for the ${programName} programme.`,
       `Your application (reference #${applicationId}) has been received and is now pending review.`,
       ``,
-      `You can track your application status anytime from your student dashboard.`,
-      `We will notify you by email as soon as a decision has been made.`,
-      ``,
-      `Warm regards,`,
-      `Office of Admissions`,
-      `Central Global University`,
-    ].join("\n"),
-  };
+      `You can track your application status anytime from your student dashboard. We will notify you by email as soon as a decision has been made.`,
+    ],
+    signoff: ["", "Warm regards,", "Office of Admissions", BRAND.name],
+  });
 }
 
 export function buildAdmissionApproval(opts: {
@@ -89,25 +288,106 @@ export function buildAdmissionApproval(opts: {
   applicationId: number;
 }): EmailMessage {
   const { fullName, programName, applicationId } = opts;
-  return {
-    to: "",
+  return build({
     subject: `Congratulations! Your admission to ${programName} is approved`,
     template: "admission_approved",
-    body: [
+    heading: "Your admission is approved 🎉",
+    paragraphs: [
       `Dear ${fullName},`,
       ``,
-      `We are delighted to inform you that your application (reference #${applicationId}) for the`,
-      `${programName} programme at Central Global University has been APPROVED.`,
+      `We are delighted to inform you that your application (reference #${applicationId}) for the ${programName} programme at ${BRAND.name} has been APPROVED.`,
       ``,
-      `Your official admission letter is attached and is also available for download from your`,
-      `student dashboard. Please review it for your enrollment details and next steps.`,
+      `Your official admission letter is available for download from your student dashboard. Please review it for your enrollment details and next steps.`,
       ``,
-      `Welcome to Central Global University!`,
+      `Welcome to ${BRAND.name}!`,
+    ],
+    signoff: ["", "Warm regards,", "Office of Admissions", BRAND.name],
+  });
+}
+
+export function buildAdmissionRejection(opts: {
+  fullName: string;
+  programName: string;
+  applicationId: number;
+  reviewNote?: string | null;
+}): EmailMessage {
+  const { fullName, programName, applicationId, reviewNote } = opts;
+  return build({
+    subject: `Update on your application — ${programName}`,
+    template: "admission_rejected",
+    heading: "Update on your application",
+    paragraphs: [
+      `Dear ${fullName},`,
       ``,
-      `Warm regards,`,
-      `Office of Admissions`,
-    ].join("\n"),
-  };
+      `Thank you for your interest in the ${programName} programme at ${BRAND.name}. After careful review of your application (reference #${applicationId}), we regret to inform you that we are unable to offer you admission at this time.`,
+      ...(reviewNote ? [``, `Reviewer remarks: ${reviewNote}`] : []),
+      ``,
+      `We encourage you to apply again in a future intake.`,
+    ],
+    signoff: ["", "Warm regards,", "Office of Admissions", BRAND.name],
+  });
+}
+
+export function buildPaymentConfirmation(opts: {
+  fullName: string;
+  amount: number;
+  currency: string;
+  courseTitle?: string | null;
+  invoiceNumber?: string | null;
+}): EmailMessage {
+  const { fullName, amount, currency, courseTitle, invoiceNumber } = opts;
+  const formatted = `${currency} ${amount.toFixed(2)}`;
+  return build({
+    subject: `Payment confirmed — ${formatted}`,
+    template: "payment_confirmation",
+    heading: "Payment received",
+    paragraphs: [
+      `Dear ${fullName},`,
+      ``,
+      `We have successfully received your payment of ${formatted}${
+        courseTitle ? ` for "${courseTitle}"` : ""
+      }.`,
+      ...(invoiceNumber ? [`Invoice number: ${invoiceNumber}`] : []),
+      ``,
+      `Your receipt is available in the Payments section of your student dashboard.`,
+    ],
+  });
+}
+
+export function buildCourseActivation(opts: {
+  fullName: string;
+  courseTitle: string;
+}): EmailMessage {
+  const { fullName, courseTitle } = opts;
+  return build({
+    subject: `Course activated — ${courseTitle}`,
+    template: "course_activation",
+    heading: "Your course is now active",
+    paragraphs: [
+      `Dear ${fullName},`,
+      ``,
+      `Great news — you now have full access to "${courseTitle}".`,
+      `You can begin learning right away from the My Learning section of your student dashboard, where you'll find your lectures, study materials, and assignments.`,
+    ],
+  });
+}
+
+export function buildSubmissionReceived(opts: {
+  fullName: string;
+  assignmentTitle: string;
+}): EmailMessage {
+  const { fullName, assignmentTitle } = opts;
+  return build({
+    subject: `We received your submission — ${assignmentTitle}`,
+    template: "assignment_submitted",
+    heading: "Submission received",
+    paragraphs: [
+      `Dear ${fullName},`,
+      ``,
+      `Your submission for "${assignmentTitle}" has been received successfully.`,
+      `Your instructor will review it and you'll be notified by email once it has been graded.`,
+    ],
+  });
 }
 
 export function buildSubmissionGraded(opts: {
@@ -118,11 +398,11 @@ export function buildSubmissionGraded(opts: {
   feedback?: string | null;
 }): EmailMessage {
   const { fullName, assignmentTitle, score, maxScore, feedback } = opts;
-  return {
-    to: "",
+  return build({
     subject: `Your assignment has been graded — ${assignmentTitle}`,
     template: "assignment_graded",
-    body: [
+    heading: "Your assignment was graded",
+    paragraphs: [
       `Dear ${fullName},`,
       ``,
       `Your submission for "${assignmentTitle}" has been graded.`,
@@ -131,12 +411,8 @@ export function buildSubmissionGraded(opts: {
       ...(feedback ? [``, `Instructor feedback:`, feedback] : []),
       ``,
       `You can review the full details from your student dashboard.`,
-      ``,
-      `Warm regards,`,
-      `Office of the Registrar`,
-      `Central Global University`,
-    ].join("\n"),
-  };
+    ],
+  });
 }
 
 export function buildResultPublished(opts: {
@@ -148,11 +424,11 @@ export function buildResultPublished(opts: {
   passed: boolean;
 }): EmailMessage {
   const { fullName, examTitle, score, totalMarks, grade, passed } = opts;
-  return {
-    to: "",
+  return build({
     subject: `Your result has been published — ${examTitle}`,
     template: "result_published",
-    body: [
+    heading: "Your result is published",
+    paragraphs: [
       `Dear ${fullName},`,
       ``,
       `The result for "${examTitle}" has been published.`,
@@ -161,14 +437,9 @@ export function buildResultPublished(opts: {
       ...(grade ? [`Grade: ${grade}`] : []),
       `Outcome: ${passed ? "PASS" : "FAIL"}`,
       ``,
-      `You can view your full results and download your result slip from your`,
-      `student dashboard.`,
-      ``,
-      `Warm regards,`,
-      `Office of the Registrar`,
-      `Central Global University`,
-    ].join("\n"),
-  };
+      `You can view your full results and download your result slip from your student dashboard.`,
+    ],
+  });
 }
 
 export function buildCertificateIssued(opts: {
@@ -179,25 +450,20 @@ export function buildCertificateIssued(opts: {
 }): EmailMessage {
   const { fullName, courseTitle, certificateType, certificateNumber } = opts;
   const label = certificateType === "transcript" ? "academic transcript" : "certificate";
-  return {
-    to: "",
+  return build({
     subject: `Your ${label} is ready — ${courseTitle}`,
     template: "certificate_issued",
-    body: [
+    heading: `Your ${label} is ready`,
+    paragraphs: [
       `Dear ${fullName},`,
       ``,
-      `Your ${label} for "${courseTitle}" has been issued by Central Global University.`,
+      `Your ${label} for "${courseTitle}" has been issued by ${BRAND.name}.`,
       ``,
       `Certificate No.: ${certificateNumber}`,
       ``,
-      `You can download it from the Certificates section of your student dashboard,`,
-      `and request a physical copy to be couriered to your address.`,
-      ``,
-      `Warm regards,`,
-      `Office of the Registrar`,
-      `Central Global University`,
-    ].join("\n"),
-  };
+      `You can download it from the Certificates section of your student dashboard, and request a physical copy to be couriered to your address.`,
+    ],
+  });
 }
 
 export function buildCourierDispatched(opts: {
@@ -206,11 +472,11 @@ export function buildCourierDispatched(opts: {
   trackingNumber: string;
 }): EmailMessage {
   const { fullName, carrier, trackingNumber } = opts;
-  return {
-    to: "",
+  return build({
     subject: `Your certificate is on its way`,
     template: "courier_dispatched",
-    body: [
+    heading: "Your certificate has shipped",
+    paragraphs: [
       `Dear ${fullName},`,
       ``,
       `Good news — the physical copy of your certificate has been dispatched.`,
@@ -218,39 +484,7 @@ export function buildCourierDispatched(opts: {
       `Carrier: ${carrier}`,
       `Tracking number: ${trackingNumber}`,
       ``,
-      `You can track the delivery status from the Certificates section of your`,
-      `student dashboard.`,
-      ``,
-      `Warm regards,`,
-      `Office of the Registrar`,
-      `Central Global University`,
-    ].join("\n"),
-  };
-}
-
-export function buildAdmissionRejection(opts: {
-  fullName: string;
-  programName: string;
-  applicationId: number;
-  reviewNote?: string | null;
-}): EmailMessage {
-  const { fullName, programName, applicationId, reviewNote } = opts;
-  return {
-    to: "",
-    subject: `Update on your application — ${programName}`,
-    template: "admission_rejected",
-    body: [
-      `Dear ${fullName},`,
-      ``,
-      `Thank you for your interest in the ${programName} programme at Central Global University.`,
-      `After careful review of your application (reference #${applicationId}), we regret to inform`,
-      `you that we are unable to offer you admission at this time.`,
-      ...(reviewNote ? [``, `Reviewer remarks: ${reviewNote}`] : []),
-      ``,
-      `We encourage you to apply again in a future intake.`,
-      ``,
-      `Warm regards,`,
-      `Office of Admissions`,
-    ].join("\n"),
-  };
+      `You can track the delivery status from the Certificates section of your student dashboard.`,
+    ],
+  });
 }

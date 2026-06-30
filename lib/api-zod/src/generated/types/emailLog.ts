@@ -14,6 +14,10 @@ export interface EmailLog {
   template: string;
   status: EmailLogStatus;
   /** @nullable */
+  body?: string | null;
+  /** @nullable */
+  html?: string | null;
+  /** @nullable */
   sentAt?: Date | null;
   createdAt: Date;
 }

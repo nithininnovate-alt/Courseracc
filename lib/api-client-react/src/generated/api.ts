@@ -62,6 +62,7 @@ import type {
   Result,
   ResultInput,
   ResultUpdate,
+  SendChatMessageInput,
   StudentDashboard,
   StudyMaterial,
   Subject,
@@ -4807,6 +4808,147 @@ export function useListEmailLogs<TData = Awaited<ReturnType<typeof listEmailLogs
 
 
 
+
+export const getResendEmailLogUrl = (id: number,) => {
+
+
+
+
+  return `/api/email-logs/${id}/resend`
+}
+
+/**
+ * @summary Re-attempt delivery of a logged email (admin)
+ */
+export const resendEmailLog = async (id: number, options?: RequestInit): Promise<EmailLog> => {
+
+  return customFetch<EmailLog>(getResendEmailLogUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getResendEmailLogMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendEmailLog>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resendEmailLog>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['resendEmailLog'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resendEmailLog>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  resendEmailLog(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResendEmailLogMutationResult = NonNullable<Awaited<ReturnType<typeof resendEmailLog>>>
+
+    export type ResendEmailLogMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Re-attempt delivery of a logged email (admin)
+ */
+export const useResendEmailLog = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendEmailLog>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resendEmailLog>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getResendEmailLogMutationOptions(options));
+    }
+
+export const getSendChatMessageUrl = () => {
+
+
+
+
+  return `/api/ai/chat`
+}
+
+/**
+ * Returns a Server-Sent Events stream of assistant tokens grounded in the student's enrolled courses and study materials.
+ * @summary Stream an AI study-assistant response (student)
+ */
+export const sendChatMessage = async (sendChatMessageInput: SendChatMessageInput, options?: RequestInit): Promise<string> => {
+
+  return customFetch<string>(getSendChatMessageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(sendChatMessageInput)
+  }
+);}
+
+
+
+
+export const getSendChatMessageMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendChatMessage>>, TError,{data: BodyType<SendChatMessageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendChatMessage>>, TError,{data: BodyType<SendChatMessageInput>}, TContext> => {
+
+const mutationKey = ['sendChatMessage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendChatMessage>>, {data: BodyType<SendChatMessageInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  sendChatMessage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendChatMessageMutationResult = NonNullable<Awaited<ReturnType<typeof sendChatMessage>>>
+    export type SendChatMessageMutationBody = BodyType<SendChatMessageInput>
+    export type SendChatMessageMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Stream an AI study-assistant response (student)
+ */
+export const useSendChatMessage = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendChatMessage>>, TError,{data: BodyType<SendChatMessageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendChatMessage>>,
+        TError,
+        {data: BodyType<SendChatMessageInput>},
+        TContext
+      > => {
+      return useMutation(getSendChatMessageMutationOptions(options));
+    }
 
 export const getListCourierTrackingUrl = () => {
 

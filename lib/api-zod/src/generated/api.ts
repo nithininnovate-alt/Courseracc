@@ -1433,10 +1433,50 @@ export const ListEmailLogsResponseItem = zod.object({
   "subject": zod.string(),
   "template": zod.string(),
   "status": zod.enum(['queued', 'sent', 'failed']),
+  "body": zod.string().nullish(),
+  "html": zod.string().nullish(),
   "sentAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date()
 })
 export const ListEmailLogsResponse = zod.array(ListEmailLogsResponseItem)
+
+
+/**
+ * @summary Re-attempt delivery of a logged email (admin)
+ */
+export const ResendEmailLogParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ResendEmailLogResponse = zod.object({
+  "id": zod.number(),
+  "recipient": zod.string(),
+  "subject": zod.string(),
+  "template": zod.string(),
+  "status": zod.enum(['queued', 'sent', 'failed']),
+  "body": zod.string().nullish(),
+  "html": zod.string().nullish(),
+  "sentAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * Returns a Server-Sent Events stream of assistant tokens grounded in the student's enrolled courses and study materials.
+ * @summary Stream an AI study-assistant response (student)
+ */
+
+
+
+
+export const SendChatMessageBody = zod.object({
+  "messages": zod.array(zod.object({
+  "role": zod.enum(['user', 'assistant']),
+  "content": zod.string().min(1)
+})).min(1)
+})
+
+export const SendChatMessageResponse = zod.unknown()
 
 
 /**

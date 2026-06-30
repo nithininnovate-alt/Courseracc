@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { getAuth, clerkClient } from "@clerk/express";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { sendEmail, buildWelcome, buildPasswordCreated } from "./email";
 
 const SESSION_SECRET = process.env.SESSION_SECRET;
 if (!SESSION_SECRET) {
@@ -85,6 +86,28 @@ export async function resolveCurrentUser(req: Request): Promise<DbUser | null> {
         avatarUrl: clerkUser.imageUrl ?? null,
       })
       .returning();
+
+    // A Clerk-authenticated student sets their password during sign-up; the
+    // first authenticated request is when the server first observes the new
+    // account. Registration (welcome) and password creation happen together at
+    // this moment, so we send both lifecycle confirmations here. Best-effort —
+    // email delivery must never block authentication.
+    if (created.email) {
+      const fullName =
+        [created.firstName, created.lastName].filter(Boolean).join(" ") ||
+        created.email;
+      void sendEmail({
+        ...buildWelcome({ fullName }),
+        to: created.email,
+      }).catch((err) => console.error("[email] welcome send failed", err));
+      void sendEmail({
+        ...buildPasswordCreated({ fullName }),
+        to: created.email,
+      }).catch((err) =>
+        console.error("[email] password-created send failed", err),
+      );
+    }
+
     return created;
   }
 

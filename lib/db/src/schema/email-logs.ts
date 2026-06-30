@@ -8,6 +8,8 @@ export const emailLogsTable = pgTable("email_logs", {
   subject: text("subject").notNull(),
   template: text("template").notNull(),
   status: text("status").notNull().default("queued"),
+  body: text("body"),
+  html: text("html"),
   sentAt: timestamp("sent_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

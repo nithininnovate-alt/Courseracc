@@ -36,6 +36,8 @@ import {
   sendEmail,
   buildSubmissionGraded,
   buildResultPublished,
+  buildSubmissionReceived,
+  buildCourseActivation,
 } from "../lib/email";
 import { generateResultReport } from "../lib/resultReport";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
@@ -83,6 +85,23 @@ router.post("/enrollments", requireUser, async (req: AuthedRequest, res) => {
     .insert(enrollmentsTable)
     .values({ ...parsed.data, userId: req.currentUser!.id })
     .returning();
+
+  // Notify the student that their course has been activated.
+  const student = req.currentUser!;
+  const [course] = await db
+    .select({ title: coursesTable.title })
+    .from(coursesTable)
+    .where(eq(coursesTable.id, created.courseId));
+  if (student.email && course) {
+    await sendEmail({
+      ...buildCourseActivation({
+        fullName: studentName(student),
+        courseTitle: course.title,
+      }),
+      to: student.email,
+    });
+  }
+
   res.status(201).json(created);
 });
 
@@ -326,6 +345,22 @@ router.post("/submissions", requireUser, async (req: AuthedRequest, res) => {
     .insert(submissionsTable)
     .values({ ...parsed.data, userId })
     .returning();
+
+  // Acknowledge receipt of the submission by email.
+  const [student] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, userId));
+  if (student?.email) {
+    await sendEmail({
+      ...buildSubmissionReceived({
+        fullName: studentName(student),
+        assignmentTitle: assignment.title,
+      }),
+      to: student.email,
+    });
+  }
+
   res.status(201).json(created);
 });
 

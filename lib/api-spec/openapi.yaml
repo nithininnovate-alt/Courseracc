@@ -40,6 +40,8 @@ tags:
     description: Dashboard summaries
   - name: storage
     description: Object storage upload and serving endpoints
+  - name: ai
+    description: AI student assistant
 paths:
   /healthz:
     get:
@@ -1238,6 +1240,46 @@ paths:
                 items:
                   $ref: "#/components/schemas/EmailLog"
 
+  /email-logs/{id}/resend:
+    post:
+      operationId: resendEmailLog
+      tags: [emails]
+      summary: Re-attempt delivery of a logged email (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Updated email log
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailLog"
+
+  /ai/chat:
+    post:
+      operationId: sendChatMessage
+      tags: [ai]
+      summary: Stream an AI study-assistant response (student)
+      description: >-
+        Returns a Server-Sent Events stream of assistant tokens grounded in the
+        student's enrolled courses and study materials.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendChatMessageInput"
+      responses:
+        "200":
+          description: SSE stream of assistant tokens
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
   /courier:
     get:
       operationId: listCourierTracking
@@ -1822,8 +1864,27 @@ components:
         subject: { type: string }
         template: { type: string }
         status: { type: string, enum: [queued, sent, failed] }
+        body: { type: ["string", "null"] }
+        html: { type: ["string", "null"] }
         sentAt: { type: ["string", "null"], format: date-time }
         createdAt: { type: string, format: date-time }
+
+    ChatMessage:
+      type: object
+      required: [role, content]
+      properties:
+        role: { type: string, enum: [user, assistant] }
+        content: { type: string, minLength: 1 }
+
+    SendChatMessageInput:
+      type: object
+      required: [messages]
+      properties:
+        messages:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/ChatMessage"
 
     CourierTracking:
       type: object
