@@ -110,6 +110,67 @@ export function buildAdmissionApproval(opts: {
   };
 }
 
+export function buildSubmissionGraded(opts: {
+  fullName: string;
+  assignmentTitle: string;
+  score: number;
+  maxScore: number;
+  feedback?: string | null;
+}): EmailMessage {
+  const { fullName, assignmentTitle, score, maxScore, feedback } = opts;
+  return {
+    to: "",
+    subject: `Your assignment has been graded — ${assignmentTitle}`,
+    template: "assignment_graded",
+    body: [
+      `Dear ${fullName},`,
+      ``,
+      `Your submission for "${assignmentTitle}" has been graded.`,
+      ``,
+      `Score: ${score} / ${maxScore}`,
+      ...(feedback ? [``, `Instructor feedback:`, feedback] : []),
+      ``,
+      `You can review the full details from your student dashboard.`,
+      ``,
+      `Warm regards,`,
+      `Office of the Registrar`,
+      `Central Global University`,
+    ].join("\n"),
+  };
+}
+
+export function buildResultPublished(opts: {
+  fullName: string;
+  examTitle: string;
+  score: number;
+  totalMarks: number;
+  grade?: string | null;
+  passed: boolean;
+}): EmailMessage {
+  const { fullName, examTitle, score, totalMarks, grade, passed } = opts;
+  return {
+    to: "",
+    subject: `Your result has been published — ${examTitle}`,
+    template: "result_published",
+    body: [
+      `Dear ${fullName},`,
+      ``,
+      `The result for "${examTitle}" has been published.`,
+      ``,
+      `Score: ${score} / ${totalMarks}`,
+      ...(grade ? [`Grade: ${grade}`] : []),
+      `Outcome: ${passed ? "PASS" : "FAIL"}`,
+      ``,
+      `You can view your full results and download your result slip from your`,
+      `student dashboard.`,
+      ``,
+      `Warm regards,`,
+      `Office of the Registrar`,
+      `Central Global University`,
+    ].join("\n"),
+  };
+}
+
 export function buildAdmissionRejection(opts: {
   fullName: string;
   programName: string;

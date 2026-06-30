@@ -576,6 +576,21 @@ export const GetCourseAccessResponse = zod.object({
 
 
 /**
+ * @summary List all subjects across courses
+ */
+export const ListAllSubjectsResponseItem = zod.object({
+  "id": zod.number(),
+  "courseId": zod.number(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "year": zod.number(),
+  "semester": zod.number(),
+  "orderIndex": zod.number()
+})
+export const ListAllSubjectsResponse = zod.array(ListAllSubjectsResponseItem)
+
+
+/**
  * @summary Get a subject by id
  */
 export const GetSubjectParams = zod.object({
@@ -808,10 +823,38 @@ export const ListAssignmentsResponseItem = zod.object({
   "subjectId": zod.number(),
   "title": zod.string(),
   "description": zod.string().nullish(),
+  "instructionsUrl": zod.string().nullish(),
   "dueDate": zod.coerce.date(),
   "maxScore": zod.number()
 })
 export const ListAssignmentsResponse = zod.array(ListAssignmentsResponseItem)
+
+
+/**
+ * @summary Create an assignment (admin)
+ */
+
+
+
+
+export const CreateAssignmentBody = zod.object({
+  "subjectId": zod.number(),
+  "title": zod.string().min(1),
+  "description": zod.string().optional(),
+  "instructionsUrl": zod.string().optional(),
+  "dueDate": zod.coerce.date(),
+  "maxScore": zod.number().min(1).optional()
+})
+
+export const CreateAssignmentResponse = zod.object({
+  "id": zod.number(),
+  "subjectId": zod.number(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "instructionsUrl": zod.string().nullish(),
+  "dueDate": zod.coerce.date(),
+  "maxScore": zod.number()
+})
 
 
 /**
@@ -826,9 +869,75 @@ export const GetAssignmentResponse = zod.object({
   "subjectId": zod.number(),
   "title": zod.string(),
   "description": zod.string().nullish(),
+  "instructionsUrl": zod.string().nullish(),
   "dueDate": zod.coerce.date(),
   "maxScore": zod.number()
 })
+
+
+/**
+ * @summary Update an assignment (admin)
+ */
+export const UpdateAssignmentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+
+export const UpdateAssignmentBody = zod.object({
+  "subjectId": zod.number().optional(),
+  "title": zod.string().min(1).optional(),
+  "description": zod.string().optional(),
+  "instructionsUrl": zod.string().optional(),
+  "dueDate": zod.coerce.date().optional(),
+  "maxScore": zod.number().min(1).optional()
+})
+
+export const UpdateAssignmentResponse = zod.object({
+  "id": zod.number(),
+  "subjectId": zod.number(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "instructionsUrl": zod.string().nullish(),
+  "dueDate": zod.coerce.date(),
+  "maxScore": zod.number()
+})
+
+
+/**
+ * @summary Delete an assignment (admin)
+ */
+export const DeleteAssignmentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteAssignmentResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary List all submissions for an assignment (admin)
+ */
+export const ListAssignmentSubmissionsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ListAssignmentSubmissionsResponseItem = zod.object({
+  "id": zod.number(),
+  "assignmentId": zod.number(),
+  "userId": zod.number(),
+  "status": zod.enum(['submitted', 'graded', 'late']),
+  "score": zod.number().nullish(),
+  "fileUrl": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "feedback": zod.string().nullish(),
+  "gradedAt": zod.coerce.date().nullish(),
+  "submittedAt": zod.coerce.date()
+})
+export const ListAssignmentSubmissionsResponse = zod.array(ListAssignmentSubmissionsResponseItem)
 
 
 /**
@@ -842,6 +951,8 @@ export const ListSubmissionsResponseItem = zod.object({
   "score": zod.number().nullish(),
   "fileUrl": zod.string().nullish(),
   "note": zod.string().nullish(),
+  "feedback": zod.string().nullish(),
+  "gradedAt": zod.coerce.date().nullish(),
   "submittedAt": zod.coerce.date()
 })
 export const ListSubmissionsResponse = zod.array(ListSubmissionsResponseItem)
@@ -864,6 +975,38 @@ export const CreateSubmissionResponse = zod.object({
   "score": zod.number().nullish(),
   "fileUrl": zod.string().nullish(),
   "note": zod.string().nullish(),
+  "feedback": zod.string().nullish(),
+  "gradedAt": zod.coerce.date().nullish(),
+  "submittedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Grade a submission (admin)
+ */
+export const GradeSubmissionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const gradeSubmissionBodyScoreMin = 0;
+
+
+
+export const GradeSubmissionBody = zod.object({
+  "score": zod.number().min(gradeSubmissionBodyScoreMin),
+  "feedback": zod.string().optional()
+})
+
+export const GradeSubmissionResponse = zod.object({
+  "id": zod.number(),
+  "assignmentId": zod.number(),
+  "userId": zod.number(),
+  "status": zod.enum(['submitted', 'graded', 'late']),
+  "score": zod.number().nullish(),
+  "fileUrl": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "feedback": zod.string().nullish(),
+  "gradedAt": zod.coerce.date().nullish(),
   "submittedAt": zod.coerce.date()
 })
 
@@ -877,9 +1020,44 @@ export const ListExamsResponseItem = zod.object({
   "title": zod.string(),
   "scheduledAt": zod.coerce.date(),
   "durationMinutes": zod.number(),
-  "totalMarks": zod.number()
+  "totalMarks": zod.number(),
+  "questionUrl": zod.string().nullish(),
+  "startsAt": zod.coerce.date().nullish(),
+  "endsAt": zod.coerce.date().nullish()
 })
 export const ListExamsResponse = zod.array(ListExamsResponseItem)
+
+
+/**
+ * @summary Create an exam (admin)
+ */
+
+
+
+
+
+export const CreateExamBody = zod.object({
+  "subjectId": zod.number(),
+  "title": zod.string().min(1),
+  "scheduledAt": zod.coerce.date().optional(),
+  "durationMinutes": zod.number().min(1).optional(),
+  "totalMarks": zod.number().min(1).optional(),
+  "questionUrl": zod.string().optional(),
+  "startsAt": zod.coerce.date().optional(),
+  "endsAt": zod.coerce.date().optional()
+})
+
+export const CreateExamResponse = zod.object({
+  "id": zod.number(),
+  "subjectId": zod.number(),
+  "title": zod.string(),
+  "scheduledAt": zod.coerce.date(),
+  "durationMinutes": zod.number(),
+  "totalMarks": zod.number(),
+  "questionUrl": zod.string().nullish(),
+  "startsAt": zod.coerce.date().nullish(),
+  "endsAt": zod.coerce.date().nullish()
+})
 
 
 /**
@@ -895,7 +1073,124 @@ export const GetExamResponse = zod.object({
   "title": zod.string(),
   "scheduledAt": zod.coerce.date(),
   "durationMinutes": zod.number(),
-  "totalMarks": zod.number()
+  "totalMarks": zod.number(),
+  "questionUrl": zod.string().nullish(),
+  "startsAt": zod.coerce.date().nullish(),
+  "endsAt": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary Update an exam (admin)
+ */
+export const UpdateExamParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+
+
+export const UpdateExamBody = zod.object({
+  "subjectId": zod.number().optional(),
+  "title": zod.string().min(1).optional(),
+  "scheduledAt": zod.coerce.date().optional(),
+  "durationMinutes": zod.number().min(1).optional(),
+  "totalMarks": zod.number().min(1).optional(),
+  "questionUrl": zod.string().optional(),
+  "startsAt": zod.coerce.date().optional(),
+  "endsAt": zod.coerce.date().optional()
+})
+
+export const UpdateExamResponse = zod.object({
+  "id": zod.number(),
+  "subjectId": zod.number(),
+  "title": zod.string(),
+  "scheduledAt": zod.coerce.date(),
+  "durationMinutes": zod.number(),
+  "totalMarks": zod.number(),
+  "questionUrl": zod.string().nullish(),
+  "startsAt": zod.coerce.date().nullish(),
+  "endsAt": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary Delete an exam (admin)
+ */
+export const DeleteExamParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteExamResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary List all answer submissions for an exam (admin)
+ */
+export const ListExamSubmissionsForExamParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ListExamSubmissionsForExamResponseItem = zod.object({
+  "id": zod.number(),
+  "examId": zod.number(),
+  "userId": zod.number(),
+  "status": zod.enum(['submitted', 'graded']),
+  "fileUrl": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "submittedAt": zod.coerce.date()
+})
+export const ListExamSubmissionsForExamResponse = zod.array(ListExamSubmissionsForExamResponseItem)
+
+
+/**
+ * @summary Publish all results for an exam (admin)
+ */
+export const PublishExamResultsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const PublishExamResultsResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary List the current student's exam submissions
+ */
+export const ListExamSubmissionsResponseItem = zod.object({
+  "id": zod.number(),
+  "examId": zod.number(),
+  "userId": zod.number(),
+  "status": zod.enum(['submitted', 'graded']),
+  "fileUrl": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "submittedAt": zod.coerce.date()
+})
+export const ListExamSubmissionsResponse = zod.array(ListExamSubmissionsResponseItem)
+
+
+/**
+ * @summary Submit exam answers
+ */
+export const CreateExamSubmissionBody = zod.object({
+  "examId": zod.number(),
+  "fileUrl": zod.string().optional(),
+  "note": zod.string().optional()
+})
+
+export const CreateExamSubmissionResponse = zod.object({
+  "id": zod.number(),
+  "examId": zod.number(),
+  "userId": zod.number(),
+  "status": zod.enum(['submitted', 'graded']),
+  "fileUrl": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "submittedAt": zod.coerce.date()
 })
 
 
@@ -909,9 +1204,73 @@ export const ListResultsResponseItem = zod.object({
   "score": zod.number(),
   "grade": zod.string().nullish(),
   "passed": zod.boolean(),
+  "remarks": zod.string().nullish(),
+  "published": zod.boolean(),
   "publishedAt": zod.coerce.date()
 })
 export const ListResultsResponse = zod.array(ListResultsResponseItem)
+
+
+/**
+ * @summary Create or update a student's result (admin)
+ */
+export const createResultBodyScoreMin = 0;
+
+
+
+export const CreateResultBody = zod.object({
+  "userId": zod.number(),
+  "examId": zod.number(),
+  "score": zod.number().min(createResultBodyScoreMin),
+  "grade": zod.string().optional(),
+  "passed": zod.boolean().optional(),
+  "remarks": zod.string().optional(),
+  "published": zod.boolean().optional()
+})
+
+export const CreateResultResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "examId": zod.number(),
+  "score": zod.number(),
+  "grade": zod.string().nullish(),
+  "passed": zod.boolean(),
+  "remarks": zod.string().nullish(),
+  "published": zod.boolean(),
+  "publishedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update a result (admin)
+ */
+export const UpdateResultParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateResultBodyScoreMin = 0;
+
+
+
+export const UpdateResultBody = zod.object({
+  "score": zod.number().min(updateResultBodyScoreMin).optional(),
+  "grade": zod.string().optional(),
+  "passed": zod.boolean().optional(),
+  "remarks": zod.string().optional(),
+  "published": zod.boolean().optional()
+})
+
+export const UpdateResultResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "examId": zod.number(),
+  "score": zod.number(),
+  "grade": zod.string().nullish(),
+  "passed": zod.boolean(),
+  "remarks": zod.string().nullish(),
+  "published": zod.boolean(),
+  "publishedAt": zod.coerce.date()
+})
 
 
 /**

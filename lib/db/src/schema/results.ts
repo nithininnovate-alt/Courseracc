@@ -9,6 +9,8 @@ export const resultsTable = pgTable("results", {
   score: integer("score").notNull().default(0),
   grade: text("grade"),
   passed: boolean("passed").notNull().default(false),
+  remarks: text("remarks"),
+  published: boolean("published").notNull().default(false),
   publishedAt: timestamp("published_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

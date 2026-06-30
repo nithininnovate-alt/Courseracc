@@ -469,6 +469,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/CourseAccess"
 
+  /subjects:
+    get:
+      operationId: listAllSubjects
+      tags: [subjects]
+      summary: List all subjects across courses
+      responses:
+        "200":
+          description: Subjects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subject"
+
   /subjects/{id}:
     get:
       operationId: getSubject
@@ -698,6 +713,23 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Assignment"
+    post:
+      operationId: createAssignment
+      tags: [assignments]
+      summary: Create an assignment (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignmentInput"
+      responses:
+        "201":
+          description: Created assignment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assignment"
 
   /assignments/{id}:
     get:
@@ -717,6 +749,67 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Assignment"
+    patch:
+      operationId: updateAssignment
+      tags: [assignments]
+      summary: Update an assignment (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignmentUpdate"
+      responses:
+        "200":
+          description: Updated assignment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assignment"
+    delete:
+      operationId: deleteAssignment
+      tags: [assignments]
+      summary: Delete an assignment (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthMessage"
+
+  /assignments/{id}/submissions:
+    get:
+      operationId: listAssignmentSubmissions
+      tags: [assignments]
+      summary: List all submissions for an assignment (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Submissions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Submission"
 
   /submissions:
     get:
@@ -750,6 +843,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/Submission"
 
+  /submissions/{id}:
+    patch:
+      operationId: gradeSubmission
+      tags: [assignments]
+      summary: Grade a submission (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmissionGrade"
+      responses:
+        "200":
+          description: Graded submission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Submission"
+
   /exams:
     get:
       operationId: listExams
@@ -764,6 +882,23 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Exam"
+    post:
+      operationId: createExam
+      tags: [exams]
+      summary: Create an exam (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExamInput"
+      responses:
+        "201":
+          description: Created exam
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Exam"
 
   /exams/{id}:
     get:
@@ -783,6 +918,118 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Exam"
+    patch:
+      operationId: updateExam
+      tags: [exams]
+      summary: Update an exam (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExamUpdate"
+      responses:
+        "200":
+          description: Updated exam
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Exam"
+    delete:
+      operationId: deleteExam
+      tags: [exams]
+      summary: Delete an exam (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthMessage"
+
+  /exams/{id}/submissions:
+    get:
+      operationId: listExamSubmissionsForExam
+      tags: [exams]
+      summary: List all answer submissions for an exam (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Exam submissions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExamSubmission"
+
+  /exams/{id}/publish-results:
+    post:
+      operationId: publishExamResults
+      tags: [exams]
+      summary: Publish all results for an exam (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Published
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthMessage"
+
+  /exam-submissions:
+    get:
+      operationId: listExamSubmissions
+      tags: [exams]
+      summary: List the current student's exam submissions
+      responses:
+        "200":
+          description: Exam submissions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExamSubmission"
+    post:
+      operationId: createExamSubmission
+      tags: [exams]
+      summary: Submit exam answers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExamSubmissionInput"
+      responses:
+        "201":
+          description: Created exam submission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExamSubmission"
 
   /results:
     get:
@@ -798,6 +1045,48 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Result"
+    post:
+      operationId: createResult
+      tags: [exams]
+      summary: Create or update a student's result (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResultInput"
+      responses:
+        "201":
+          description: Created result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Result"
+
+  /results/{id}:
+    patch:
+      operationId: updateResult
+      tags: [exams]
+      summary: Update a result (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResultUpdate"
+      responses:
+        "200":
+          description: Updated result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Result"
 
   /payments:
     get:
@@ -1225,8 +1514,28 @@ components:
         subjectId: { type: integer }
         title: { type: string }
         description: { type: ["string", "null"] }
+        instructionsUrl: { type: ["string", "null"] }
         dueDate: { type: string, format: date-time }
         maxScore: { type: integer }
+    AssignmentInput:
+      type: object
+      required: [subjectId, title, dueDate]
+      properties:
+        subjectId: { type: integer }
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+        instructionsUrl: { type: string }
+        dueDate: { type: string, format: date-time }
+        maxScore: { type: integer, minimum: 1 }
+    AssignmentUpdate:
+      type: object
+      properties:
+        subjectId: { type: integer }
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+        instructionsUrl: { type: string }
+        dueDate: { type: string, format: date-time }
+        maxScore: { type: integer, minimum: 1 }
 
     Submission:
       type: object
@@ -1239,6 +1548,8 @@ components:
         score: { type: ["integer", "null"] }
         fileUrl: { type: ["string", "null"] }
         note: { type: ["string", "null"] }
+        feedback: { type: ["string", "null"] }
+        gradedAt: { type: ["string", "null"], format: date-time }
         submittedAt: { type: string, format: date-time }
     SubmissionInput:
       type: object
@@ -1247,6 +1558,12 @@ components:
         assignmentId: { type: integer }
         fileUrl: { type: string }
         note: { type: string }
+    SubmissionGrade:
+      type: object
+      required: [score]
+      properties:
+        score: { type: integer, minimum: 0 }
+        feedback: { type: string }
 
     Exam:
       type: object
@@ -1258,10 +1575,55 @@ components:
         scheduledAt: { type: string, format: date-time }
         durationMinutes: { type: integer }
         totalMarks: { type: integer }
+        questionUrl: { type: ["string", "null"] }
+        startsAt: { type: ["string", "null"], format: date-time }
+        endsAt: { type: ["string", "null"], format: date-time }
+    ExamInput:
+      type: object
+      required: [subjectId, title]
+      properties:
+        subjectId: { type: integer }
+        title: { type: string, minLength: 1 }
+        scheduledAt: { type: string, format: date-time }
+        durationMinutes: { type: integer, minimum: 1 }
+        totalMarks: { type: integer, minimum: 1 }
+        questionUrl: { type: string }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+    ExamUpdate:
+      type: object
+      properties:
+        subjectId: { type: integer }
+        title: { type: string, minLength: 1 }
+        scheduledAt: { type: string, format: date-time }
+        durationMinutes: { type: integer, minimum: 1 }
+        totalMarks: { type: integer, minimum: 1 }
+        questionUrl: { type: string }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+
+    ExamSubmission:
+      type: object
+      required: [id, examId, userId, status, submittedAt]
+      properties:
+        id: { type: integer }
+        examId: { type: integer }
+        userId: { type: integer }
+        status: { type: string, enum: [submitted, graded] }
+        fileUrl: { type: ["string", "null"] }
+        note: { type: ["string", "null"] }
+        submittedAt: { type: string, format: date-time }
+    ExamSubmissionInput:
+      type: object
+      required: [examId]
+      properties:
+        examId: { type: integer }
+        fileUrl: { type: string }
+        note: { type: string }
 
     Result:
       type: object
-      required: [id, userId, examId, score, passed, publishedAt]
+      required: [id, userId, examId, score, passed, published, publishedAt]
       properties:
         id: { type: integer }
         userId: { type: integer }
@@ -1269,7 +1631,28 @@ components:
         score: { type: integer }
         grade: { type: ["string", "null"] }
         passed: { type: boolean }
+        remarks: { type: ["string", "null"] }
+        published: { type: boolean }
         publishedAt: { type: string, format: date-time }
+    ResultInput:
+      type: object
+      required: [userId, examId, score]
+      properties:
+        userId: { type: integer }
+        examId: { type: integer }
+        score: { type: integer, minimum: 0 }
+        grade: { type: string }
+        passed: { type: boolean }
+        remarks: { type: string }
+        published: { type: boolean }
+    ResultUpdate:
+      type: object
+      properties:
+        score: { type: integer, minimum: 0 }
+        grade: { type: string }
+        passed: { type: boolean }
+        remarks: { type: string }
+        published: { type: boolean }
 
     Payment:
       type: object

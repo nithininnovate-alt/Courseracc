@@ -6,14 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface Assignment {
-  id: number;
+export interface AssignmentInput {
   subjectId: number;
+  /** @minLength 1 */
   title: string;
-  /** @nullable */
-  description?: string | null;
-  /** @nullable */
-  instructionsUrl?: string | null;
+  description?: string;
+  instructionsUrl?: string;
   dueDate: Date;
-  maxScore: number;
+  /** @minimum 1 */
+  maxScore?: number;
 }

@@ -149,6 +149,14 @@ router.post("/courses/:courseId/subjects", requireStaff, async (req, res) => {
   res.status(201).json(created);
 });
 
+router.get("/subjects", async (_req, res) => {
+  const rows = await db
+    .select()
+    .from(subjectsTable)
+    .orderBy(asc(subjectsTable.courseId), asc(subjectsTable.year), asc(subjectsTable.semester), asc(subjectsTable.orderIndex));
+  res.json(rows);
+});
+
 router.get("/subjects/:id", async (req, res) => {
   const id = Number(req.params.id);
   const [row] = await db.select().from(subjectsTable).where(eq(subjectsTable.id, id));

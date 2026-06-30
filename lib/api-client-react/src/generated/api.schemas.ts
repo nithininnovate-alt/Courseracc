@@ -402,8 +402,32 @@ export interface Assignment {
   title: string;
   /** @nullable */
   description?: string | null;
+  /** @nullable */
+  instructionsUrl?: string | null;
   dueDate: string;
   maxScore: number;
+}
+
+export interface AssignmentInput {
+  subjectId: number;
+  /** @minLength 1 */
+  title: string;
+  description?: string;
+  instructionsUrl?: string;
+  dueDate: string;
+  /** @minimum 1 */
+  maxScore?: number;
+}
+
+export interface AssignmentUpdate {
+  subjectId?: number;
+  /** @minLength 1 */
+  title?: string;
+  description?: string;
+  instructionsUrl?: string;
+  dueDate?: string;
+  /** @minimum 1 */
+  maxScore?: number;
 }
 
 export type SubmissionStatus = typeof SubmissionStatus[keyof typeof SubmissionStatus];
@@ -426,6 +450,10 @@ export interface Submission {
   fileUrl?: string | null;
   /** @nullable */
   note?: string | null;
+  /** @nullable */
+  feedback?: string | null;
+  /** @nullable */
+  gradedAt?: string | null;
   submittedAt: string;
 }
 
@@ -435,6 +463,12 @@ export interface SubmissionInput {
   note?: string;
 }
 
+export interface SubmissionGrade {
+  /** @minimum 0 */
+  score: number;
+  feedback?: string;
+}
+
 export interface Exam {
   id: number;
   subjectId: number;
@@ -442,6 +476,66 @@ export interface Exam {
   scheduledAt: string;
   durationMinutes: number;
   totalMarks: number;
+  /** @nullable */
+  questionUrl?: string | null;
+  /** @nullable */
+  startsAt?: string | null;
+  /** @nullable */
+  endsAt?: string | null;
+}
+
+export interface ExamInput {
+  subjectId: number;
+  /** @minLength 1 */
+  title: string;
+  scheduledAt?: string;
+  /** @minimum 1 */
+  durationMinutes?: number;
+  /** @minimum 1 */
+  totalMarks?: number;
+  questionUrl?: string;
+  startsAt?: string;
+  endsAt?: string;
+}
+
+export interface ExamUpdate {
+  subjectId?: number;
+  /** @minLength 1 */
+  title?: string;
+  scheduledAt?: string;
+  /** @minimum 1 */
+  durationMinutes?: number;
+  /** @minimum 1 */
+  totalMarks?: number;
+  questionUrl?: string;
+  startsAt?: string;
+  endsAt?: string;
+}
+
+export type ExamSubmissionStatus = typeof ExamSubmissionStatus[keyof typeof ExamSubmissionStatus];
+
+
+export const ExamSubmissionStatus = {
+  submitted: 'submitted',
+  graded: 'graded',
+} as const;
+
+export interface ExamSubmission {
+  id: number;
+  examId: number;
+  userId: number;
+  status: ExamSubmissionStatus;
+  /** @nullable */
+  fileUrl?: string | null;
+  /** @nullable */
+  note?: string | null;
+  submittedAt: string;
+}
+
+export interface ExamSubmissionInput {
+  examId: number;
+  fileUrl?: string;
+  note?: string;
 }
 
 export interface Result {
@@ -452,7 +546,30 @@ export interface Result {
   /** @nullable */
   grade?: string | null;
   passed: boolean;
+  /** @nullable */
+  remarks?: string | null;
+  published: boolean;
   publishedAt: string;
+}
+
+export interface ResultInput {
+  userId: number;
+  examId: number;
+  /** @minimum 0 */
+  score: number;
+  grade?: string;
+  passed?: boolean;
+  remarks?: string;
+  published?: boolean;
+}
+
+export interface ResultUpdate {
+  /** @minimum 0 */
+  score?: number;
+  grade?: string;
+  passed?: boolean;
+  remarks?: string;
+  published?: boolean;
 }
 
 export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];

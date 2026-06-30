@@ -18,5 +18,9 @@ export interface Submission {
   fileUrl?: string | null;
   /** @nullable */
   note?: string | null;
+  /** @nullable */
+  feedback?: string | null;
+  /** @nullable */
+  gradedAt?: Date | null;
   submittedAt: Date;
 }

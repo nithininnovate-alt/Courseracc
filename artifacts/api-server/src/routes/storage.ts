@@ -5,6 +5,10 @@ import {
   db,
   applicationsTable,
   applicationDocumentsTable,
+  submissionsTable,
+  examSubmissionsTable,
+  assignmentsTable,
+  examsTable,
 } from "@workspace/db";
 import {
   RequestUploadUrlBody,
@@ -51,7 +55,52 @@ async function userOwnsObject(
       ),
     )
     .limit(1);
-  return Boolean(doc);
+  if (doc) return true;
+
+  const [sub] = await db
+    .select({ id: submissionsTable.id })
+    .from(submissionsTable)
+    .where(
+      and(
+        eq(submissionsTable.userId, userId),
+        eq(submissionsTable.fileUrl, objectPath),
+      ),
+    )
+    .limit(1);
+  if (sub) return true;
+
+  const [examSub] = await db
+    .select({ id: examSubmissionsTable.id })
+    .from(examSubmissionsTable)
+    .where(
+      and(
+        eq(examSubmissionsTable.userId, userId),
+        eq(examSubmissionsTable.fileUrl, objectPath),
+      ),
+    )
+    .limit(1);
+  return Boolean(examSub);
+}
+
+/**
+ * Assignment instruction sheets and exam question papers are shared academic
+ * assets that any authenticated user may download (they are surfaced to all
+ * students in the portal).
+ */
+async function isSharedAcademicAsset(objectPath: string): Promise<boolean> {
+  const [assignment] = await db
+    .select({ id: assignmentsTable.id })
+    .from(assignmentsTable)
+    .where(eq(assignmentsTable.instructionsUrl, objectPath))
+    .limit(1);
+  if (assignment) return true;
+
+  const [exam] = await db
+    .select({ id: examsTable.id })
+    .from(examsTable)
+    .where(eq(examsTable.questionUrl, objectPath))
+    .limit(1);
+  return Boolean(exam);
 }
 
 /**
@@ -151,7 +200,8 @@ router.get("/storage/objects/*path", async (req: Request, res: Response) => {
     if (
       !isStaff(user) &&
       !(await userOwnsObject(user.id, objectPath)) &&
-      !(await userCanAccessMaterialObject(user.id, objectPath))
+      !(await userCanAccessMaterialObject(user.id, objectPath)) &&
+      !(await isSharedAcademicAsset(objectPath))
     ) {
       res.status(403).json({ error: "Forbidden" });
       return;

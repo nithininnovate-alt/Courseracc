@@ -7,6 +7,7 @@ export const assignmentsTable = pgTable("assignments", {
   subjectId: integer("subject_id").notNull(),
   title: text("title").notNull(),
   description: text("description"),
+  instructionsUrl: text("instructions_url"),
   dueDate: timestamp("due_date", { withTimezone: true }).notNull().defaultNow(),
   maxScore: integer("max_score").notNull().default(100),
 });

@@ -46,6 +46,7 @@ import AdminCourses from "@/pages/admin/Courses";
 import AdminCourseBuilder from "@/pages/admin/CourseBuilder";
 import AdminStudents from "@/pages/admin/Students";
 import AdminExams from "@/pages/admin/Exams";
+import AdminAssignments from "@/pages/admin/Assignments";
 import AdminPayments from "@/pages/admin/Payments";
 import AdminCertificates from "@/pages/admin/Certificates";
 import AdminEmails from "@/pages/admin/Emails";
@@ -670,6 +671,7 @@ export default function App() {
                       <Route path="/admin/courses/:id" component={AdminCourseBuilder} />
                       <Route path="/admin/students" component={AdminStudents} />
                       <Route path="/admin/exams" component={AdminExams} />
+                      <Route path="/admin/assignments" component={AdminAssignments} />
                       <Route path="/admin/payments" component={AdminPayments} />
                       <Route path="/admin/certificates" component={AdminCertificates} />
                       <Route path="/admin/emails" component={AdminEmails} />

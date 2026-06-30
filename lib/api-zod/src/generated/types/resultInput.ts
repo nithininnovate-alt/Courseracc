@@ -6,16 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface Result {
-  id: number;
+export interface ResultInput {
   userId: number;
   examId: number;
+  /** @minimum 0 */
   score: number;
-  /** @nullable */
-  grade?: string | null;
-  passed: boolean;
-  /** @nullable */
-  remarks?: string | null;
-  published: boolean;
-  publishedAt: Date;
+  grade?: string;
+  passed?: boolean;
+  remarks?: string;
+  published?: boolean;
 }

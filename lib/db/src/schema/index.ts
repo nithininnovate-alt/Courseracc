@@ -9,6 +9,7 @@ export * from "./material-progress";
 export * from "./assignments";
 export * from "./submissions";
 export * from "./exams";
+export * from "./exam-submissions";
 export * from "./results";
 export * from "./payments";
 export * from "./certificates";

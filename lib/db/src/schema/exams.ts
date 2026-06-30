@@ -9,6 +9,9 @@ export const examsTable = pgTable("exams", {
   scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull().defaultNow(),
   durationMinutes: integer("duration_minutes").notNull().default(60),
   totalMarks: integer("total_marks").notNull().default(100),
+  questionUrl: text("question_url"),
+  startsAt: timestamp("starts_at", { withTimezone: true }),
+  endsAt: timestamp("ends_at", { withTimezone: true }),
 });
 
 export const insertExamSchema = createInsertSchema(examsTable).omit({

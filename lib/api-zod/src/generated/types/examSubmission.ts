@@ -5,17 +5,16 @@
  * Central Global University LMS/SMS API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ExamSubmissionStatus } from './examSubmissionStatus';
 
-export interface Result {
+export interface ExamSubmission {
   id: number;
-  userId: number;
   examId: number;
-  score: number;
+  userId: number;
+  status: ExamSubmissionStatus;
   /** @nullable */
-  grade?: string | null;
-  passed: boolean;
+  fileUrl?: string | null;
   /** @nullable */
-  remarks?: string | null;
-  published: boolean;
-  publishedAt: Date;
+  note?: string | null;
+  submittedAt: Date;
 }

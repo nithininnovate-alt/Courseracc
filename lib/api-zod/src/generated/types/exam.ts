@@ -13,4 +13,10 @@ export interface Exam {
   scheduledAt: Date;
   durationMinutes: number;
   totalMarks: number;
+  /** @nullable */
+  questionUrl?: string | null;
+  /** @nullable */
+  startsAt?: Date | null;
+  /** @nullable */
+  endsAt?: Date | null;
 }
