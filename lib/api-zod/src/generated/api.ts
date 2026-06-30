@@ -467,6 +467,50 @@ export const GetCourseResponse = zod.object({
 
 
 /**
+ * @summary Update a course (admin)
+ */
+export const UpdateCourseParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+export const UpdateCourseBody = zod.object({
+  "title": zod.string().min(1),
+  "description": zod.string().optional(),
+  "level": zod.enum(['undergraduate', 'postgraduate', 'diploma', 'certificate']),
+  "durationWeeks": zod.number(),
+  "price": zod.number(),
+  "thumbnailUrl": zod.string().optional()
+})
+
+export const UpdateCourseResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "slug": zod.string(),
+  "description": zod.string().nullish(),
+  "level": zod.enum(['undergraduate', 'postgraduate', 'diploma', 'certificate']),
+  "durationWeeks": zod.number(),
+  "price": zod.number(),
+  "thumbnailUrl": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a course (admin)
+ */
+export const DeleteCourseParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteCourseResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
  * @summary List subjects for a course
  */
 export const ListSubjectsParams = zod.object({
@@ -478,9 +522,57 @@ export const ListSubjectsResponseItem = zod.object({
   "courseId": zod.number(),
   "title": zod.string(),
   "description": zod.string().nullish(),
+  "year": zod.number(),
+  "semester": zod.number(),
   "orderIndex": zod.number()
 })
 export const ListSubjectsResponse = zod.array(ListSubjectsResponseItem)
+
+
+/**
+ * @summary Create a subject for a course (admin)
+ */
+export const CreateSubjectParams = zod.object({
+  "courseId": zod.coerce.number()
+})
+
+
+
+
+
+
+export const CreateSubjectBody = zod.object({
+  "title": zod.string().min(1),
+  "description": zod.string().optional(),
+  "year": zod.number().min(1).optional(),
+  "semester": zod.number().min(1).optional(),
+  "orderIndex": zod.number().optional()
+})
+
+export const CreateSubjectResponse = zod.object({
+  "id": zod.number(),
+  "courseId": zod.number(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "year": zod.number(),
+  "semester": zod.number(),
+  "orderIndex": zod.number()
+})
+
+
+/**
+ * @summary Check the current student's access to a course
+ */
+export const GetCourseAccessParams = zod.object({
+  "courseId": zod.coerce.number()
+})
+
+export const GetCourseAccessResponse = zod.object({
+  "courseId": zod.number(),
+  "hasAccess": zod.boolean(),
+  "price": zod.number(),
+  "paid": zod.boolean()
+})
 
 
 /**
@@ -495,7 +587,52 @@ export const GetSubjectResponse = zod.object({
   "courseId": zod.number(),
   "title": zod.string(),
   "description": zod.string().nullish(),
+  "year": zod.number(),
+  "semester": zod.number(),
   "orderIndex": zod.number()
+})
+
+
+/**
+ * @summary Update a subject (admin)
+ */
+export const UpdateSubjectParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+
+
+export const UpdateSubjectBody = zod.object({
+  "title": zod.string().min(1).optional(),
+  "description": zod.string().optional(),
+  "year": zod.number().min(1).optional(),
+  "semester": zod.number().min(1).optional(),
+  "orderIndex": zod.number().optional()
+})
+
+export const UpdateSubjectResponse = zod.object({
+  "id": zod.number(),
+  "courseId": zod.number(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "year": zod.number(),
+  "semester": zod.number(),
+  "orderIndex": zod.number()
+})
+
+
+/**
+ * @summary Delete a subject (admin)
+ */
+export const DeleteSubjectParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteSubjectResponse = zod.object({
+  "success": zod.boolean()
 })
 
 
@@ -514,9 +651,122 @@ export const ListMaterialsResponseItem = zod.object({
   "url": zod.string().nullish(),
   "content": zod.string().nullish(),
   "durationMinutes": zod.number().nullish(),
+  "orderIndex": zod.number(),
   "createdAt": zod.coerce.date()
 })
 export const ListMaterialsResponse = zod.array(ListMaterialsResponseItem)
+
+
+/**
+ * @summary Create a study material (admin)
+ */
+export const CreateMaterialParams = zod.object({
+  "subjectId": zod.coerce.number()
+})
+
+
+
+
+export const CreateMaterialBody = zod.object({
+  "title": zod.string().min(1),
+  "type": zod.enum(['video', 'pdf', 'link', 'text']),
+  "url": zod.string().optional(),
+  "content": zod.string().optional(),
+  "durationMinutes": zod.number().optional(),
+  "orderIndex": zod.number().optional()
+})
+
+export const CreateMaterialResponse = zod.object({
+  "id": zod.number(),
+  "subjectId": zod.number(),
+  "title": zod.string(),
+  "type": zod.enum(['video', 'pdf', 'link', 'text']),
+  "url": zod.string().nullish(),
+  "content": zod.string().nullish(),
+  "durationMinutes": zod.number().nullish(),
+  "orderIndex": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update a study material (admin)
+ */
+export const UpdateMaterialParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+export const UpdateMaterialBody = zod.object({
+  "title": zod.string().min(1).optional(),
+  "type": zod.enum(['video', 'pdf', 'link', 'text']).optional(),
+  "url": zod.string().optional(),
+  "content": zod.string().optional(),
+  "durationMinutes": zod.number().optional(),
+  "orderIndex": zod.number().optional()
+})
+
+export const UpdateMaterialResponse = zod.object({
+  "id": zod.number(),
+  "subjectId": zod.number(),
+  "title": zod.string(),
+  "type": zod.enum(['video', 'pdf', 'link', 'text']),
+  "url": zod.string().nullish(),
+  "content": zod.string().nullish(),
+  "durationMinutes": zod.number().nullish(),
+  "orderIndex": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a study material (admin)
+ */
+export const DeleteMaterialParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteMaterialResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary List the current student's material progress
+ */
+export const ListProgressQueryParams = zod.object({
+  "courseId": zod.coerce.number().optional()
+})
+
+export const ListProgressResponseItem = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "materialId": zod.number(),
+  "courseId": zod.number(),
+  "action": zod.string(),
+  "completedAt": zod.coerce.date()
+})
+export const ListProgressResponse = zod.array(ListProgressResponseItem)
+
+
+/**
+ * @summary Record progress for a study material
+ */
+export const RecordProgressBody = zod.object({
+  "materialId": zod.number(),
+  "action": zod.enum(['watched', 'downloaded', 'completed']).optional()
+})
+
+export const RecordProgressResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "materialId": zod.number(),
+  "courseId": zod.number(),
+  "action": zod.string(),
+  "completedAt": zod.coerce.date()
+})
 
 
 /**
@@ -670,11 +920,13 @@ export const ListResultsResponse = zod.array(ListResultsResponseItem)
 export const ListPaymentsResponseItem = zod.object({
   "id": zod.number(),
   "userId": zod.number(),
+  "courseId": zod.number().nullish(),
   "amount": zod.number(),
   "currency": zod.string(),
   "status": zod.enum(['pending', 'completed', 'failed', 'refunded']),
   "provider": zod.string(),
   "reference": zod.string().nullish(),
+  "invoiceNumber": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 export const ListPaymentsResponse = zod.array(ListPaymentsResponseItem)
@@ -691,11 +943,50 @@ export const CreatePaymentBody = zod.object({
 export const CreatePaymentResponse = zod.object({
   "id": zod.number(),
   "userId": zod.number(),
+  "courseId": zod.number().nullish(),
   "amount": zod.number(),
   "currency": zod.string(),
   "status": zod.enum(['pending', 'completed', 'failed', 'refunded']),
   "provider": zod.string(),
   "reference": zod.string().nullish(),
+  "invoiceNumber": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Create a PayPal order for a course
+ */
+export const CreatePaypalOrderBody = zod.object({
+  "courseId": zod.number(),
+  "returnUrl": zod.string(),
+  "cancelUrl": zod.string()
+})
+
+export const CreatePaypalOrderResponse = zod.object({
+  "paymentId": zod.number(),
+  "orderId": zod.string(),
+  "approveUrl": zod.string()
+})
+
+
+/**
+ * @summary Capture an approved PayPal order
+ */
+export const CapturePaypalOrderBody = zod.object({
+  "orderId": zod.string()
+})
+
+export const CapturePaypalOrderResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "courseId": zod.number().nullish(),
+  "amount": zod.number(),
+  "currency": zod.string(),
+  "status": zod.enum(['pending', 'completed', 'failed', 'refunded']),
+  "provider": zod.string(),
+  "reference": zod.string().nullish(),
+  "invoiceNumber": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 

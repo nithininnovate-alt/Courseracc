@@ -6,13 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface Subject {
-  id: number;
+export interface CourseAccess {
   courseId: number;
-  title: string;
-  /** @nullable */
-  description?: string | null;
-  year: number;
-  semester: number;
-  orderIndex: number;
+  hasAccess: boolean;
+  price: number;
+  paid: boolean;
 }

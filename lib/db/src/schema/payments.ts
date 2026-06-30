@@ -5,11 +5,13 @@ import { z } from "zod/v4";
 export const paymentsTable = pgTable("payments", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
+  courseId: integer("course_id"),
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull().default("0"),
   currency: text("currency").notNull().default("USD"),
   status: text("status").notNull().default("pending"),
   provider: text("provider").notNull().default("manual"),
   reference: text("reference"),
+  invoiceNumber: text("invoice_number"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

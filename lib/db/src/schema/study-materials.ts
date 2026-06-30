@@ -10,6 +10,7 @@ export const studyMaterialsTable = pgTable("study_materials", {
   url: text("url"),
   content: text("content"),
   durationMinutes: integer("duration_minutes"),
+  orderIndex: integer("order_index").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

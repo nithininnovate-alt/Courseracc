@@ -365,6 +365,46 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Course"
+    patch:
+      operationId: updateCourse
+      tags: [courses]
+      summary: Update a course (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CourseInput"
+      responses:
+        "200":
+          description: Updated course
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Course"
+    delete:
+      operationId: deleteCourse
+      tags: [courses]
+      summary: Delete a course (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthMessage"
 
   /courses/{courseId}/subjects:
     get:
@@ -386,6 +426,48 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Subject"
+    post:
+      operationId: createSubject
+      tags: [subjects]
+      summary: Create a subject for a course (admin)
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubjectInput"
+      responses:
+        "201":
+          description: Created subject
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subject"
+
+  /courses/{courseId}/access:
+    get:
+      operationId: getCourseAccess
+      tags: [courses]
+      summary: Check the current student's access to a course
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Course access status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourseAccess"
 
   /subjects/{id}:
     get:
@@ -405,6 +487,46 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Subject"
+    patch:
+      operationId: updateSubject
+      tags: [subjects]
+      summary: Update a subject (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubjectUpdate"
+      responses:
+        "200":
+          description: Updated subject
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subject"
+    delete:
+      operationId: deleteSubject
+      tags: [subjects]
+      summary: Delete a subject (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthMessage"
 
   /subjects/{subjectId}/materials:
     get:
@@ -426,6 +548,109 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/StudyMaterial"
+    post:
+      operationId: createMaterial
+      tags: [materials]
+      summary: Create a study material (admin)
+      parameters:
+        - name: subjectId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MaterialInput"
+      responses:
+        "201":
+          description: Created material
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudyMaterial"
+
+  /materials/{id}:
+    patch:
+      operationId: updateMaterial
+      tags: [materials]
+      summary: Update a study material (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MaterialUpdate"
+      responses:
+        "200":
+          description: Updated material
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudyMaterial"
+    delete:
+      operationId: deleteMaterial
+      tags: [materials]
+      summary: Delete a study material (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthMessage"
+
+  /progress:
+    get:
+      operationId: listProgress
+      tags: [progress]
+      summary: List the current student's material progress
+      parameters:
+        - name: courseId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Material progress
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MaterialProgress"
+    post:
+      operationId: recordProgress
+      tags: [progress]
+      summary: Record progress for a study material
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MaterialProgressInput"
+      responses:
+        "201":
+          description: Recorded progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaterialProgress"
 
   /enrollments:
     get:
@@ -601,6 +826,44 @@ paths:
       responses:
         "201":
           description: Created payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  /payments/paypal/create-order:
+    post:
+      operationId: createPaypalOrder
+      tags: [payments]
+      summary: Create a PayPal order for a course
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaypalOrderInput"
+      responses:
+        "201":
+          description: Created PayPal order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaypalOrderResponse"
+
+  /payments/paypal/capture:
+    post:
+      operationId: capturePaypalOrder
+      tags: [payments]
+      summary: Capture an approved PayPal order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaypalCaptureInput"
+      responses:
+        "200":
+          description: Captured payment
           content:
             application/json:
               schema:
@@ -835,12 +1098,31 @@ components:
 
     Subject:
       type: object
-      required: [id, courseId, title, orderIndex]
+      required: [id, courseId, title, year, semester, orderIndex]
       properties:
         id: { type: integer }
         courseId: { type: integer }
         title: { type: string }
         description: { type: ["string", "null"] }
+        year: { type: integer }
+        semester: { type: integer }
+        orderIndex: { type: integer }
+    SubjectInput:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+        year: { type: integer, minimum: 1 }
+        semester: { type: integer, minimum: 1 }
+        orderIndex: { type: integer }
+    SubjectUpdate:
+      type: object
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+        year: { type: integer, minimum: 1 }
+        semester: { type: integer, minimum: 1 }
         orderIndex: { type: integer }
 
     Enrollment:
@@ -861,7 +1143,7 @@ components:
 
     StudyMaterial:
       type: object
-      required: [id, subjectId, title, type, createdAt]
+      required: [id, subjectId, title, type, orderIndex, createdAt]
       properties:
         id: { type: integer }
         subjectId: { type: integer }
@@ -870,7 +1152,70 @@ components:
         url: { type: ["string", "null"] }
         content: { type: ["string", "null"] }
         durationMinutes: { type: ["integer", "null"] }
+        orderIndex: { type: integer }
         createdAt: { type: string, format: date-time }
+    MaterialInput:
+      type: object
+      required: [title, type]
+      properties:
+        title: { type: string, minLength: 1 }
+        type: { type: string, enum: [video, pdf, link, text] }
+        url: { type: string }
+        content: { type: string }
+        durationMinutes: { type: integer }
+        orderIndex: { type: integer }
+    MaterialUpdate:
+      type: object
+      properties:
+        title: { type: string, minLength: 1 }
+        type: { type: string, enum: [video, pdf, link, text] }
+        url: { type: string }
+        content: { type: string }
+        durationMinutes: { type: integer }
+        orderIndex: { type: integer }
+    CourseAccess:
+      type: object
+      required: [courseId, hasAccess, price, paid]
+      properties:
+        courseId: { type: integer }
+        hasAccess: { type: boolean }
+        price: { type: number }
+        paid: { type: boolean }
+    MaterialProgress:
+      type: object
+      required: [id, userId, materialId, courseId, action, completedAt]
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        materialId: { type: integer }
+        courseId: { type: integer }
+        action: { type: string }
+        completedAt: { type: string, format: date-time }
+    MaterialProgressInput:
+      type: object
+      required: [materialId]
+      properties:
+        materialId: { type: integer }
+        action: { type: string, enum: [watched, downloaded, completed] }
+    PaypalOrderInput:
+      type: object
+      required: [courseId, returnUrl, cancelUrl]
+      properties:
+        courseId: { type: integer }
+        returnUrl: { type: string }
+        cancelUrl: { type: string }
+    PaypalOrderResponse:
+      type: object
+      required: [paymentId, orderId, approveUrl]
+      properties:
+        paymentId: { type: integer }
+        orderId: { type: string }
+        approveUrl: { type: string }
+    PaypalCaptureInput:
+      type: object
+      required: [orderId]
+      properties:
+        orderId: { type: string }
 
     Assignment:
       type: object
@@ -932,11 +1277,13 @@ components:
       properties:
         id: { type: integer }
         userId: { type: integer }
+        courseId: { type: ["integer", "null"] }
         amount: { type: number }
         currency: { type: string }
         status: { type: string, enum: [pending, completed, failed, refunded] }
         provider: { type: string }
         reference: { type: ["string", "null"] }
+        invoiceNumber: { type: ["string", "null"] }
         createdAt: { type: string, format: date-time }
     PaymentInput:
       type: object

@@ -6,13 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface Subject {
+export interface MaterialProgress {
   id: number;
+  userId: number;
+  materialId: number;
   courseId: number;
-  title: string;
-  /** @nullable */
-  description?: string | null;
-  year: number;
-  semester: number;
-  orderIndex: number;
+  action: string;
+  completedAt: Date;
 }

@@ -6,13 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface Subject {
-  id: number;
-  courseId: number;
+export interface SubjectInput {
+  /** @minLength 1 */
   title: string;
-  /** @nullable */
-  description?: string | null;
-  year: number;
-  semester: number;
-  orderIndex: number;
+  description?: string;
+  /** @minimum 1 */
+  year?: number;
+  /** @minimum 1 */
+  semester?: number;
+  orderIndex?: number;
 }

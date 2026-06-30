@@ -1,10 +1,11 @@
 import { useListCourses, useListEnrollments, useCreateEnrollment } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Clock, CheckCircle2 } from "lucide-react";
+import { Clock, ArrowRight, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader, EmptyCard } from "@/components/common/PageState";
 
@@ -47,12 +48,15 @@ export default function StudentCourses() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {courses.map((c) => {
             const enrolled = enrolledIds.has(c.id);
+            const free = c.price <= 0;
             return (
               <Card key={c.id} className="flex flex-col rounded-2xl">
                 <CardHeader>
                   <div className="flex items-center justify-between gap-2">
                     <Badge variant="secondary" className="capitalize">{c.level}</Badge>
-                    <span className="text-sm font-semibold text-primary">${c.price.toLocaleString()}</span>
+                    <span className="text-sm font-semibold text-primary">
+                      {free ? "Free" : `$${c.price.toLocaleString()}`}
+                    </span>
                   </div>
                   <CardTitle className="font-serif text-xl mt-2">{c.title}</CardTitle>
                   {c.description && (
@@ -64,12 +68,20 @@ export default function StudentCourses() {
                     <Clock className="w-4 h-4" /> {c.durationWeeks} weeks
                   </div>
                   {enrolled ? (
-                    <Button variant="outline" className="w-full" disabled>
-                      <CheckCircle2 className="w-4 h-4 mr-2" /> Enrolled
+                    <Button className="w-full" asChild>
+                      <Link href={`/portal/learning/${c.id}`}>
+                        Continue Learning <ArrowRight className="w-4 h-4 ml-2" />
+                      </Link>
                     </Button>
-                  ) : (
+                  ) : free ? (
                     <Button className="w-full" onClick={() => handleEnroll(c.id)} disabled={enroll.isPending}>
                       Enroll Now
+                    </Button>
+                  ) : (
+                    <Button variant="outline" className="w-full" asChild>
+                      <Link href={`/portal/learning/${c.id}`}>
+                        <Lock className="w-4 h-4 mr-2" /> Get Access — ${c.price.toLocaleString()}
+                      </Link>
                     </Button>
                   )}
                 </CardContent>

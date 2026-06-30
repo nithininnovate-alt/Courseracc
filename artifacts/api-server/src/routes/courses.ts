@@ -6,8 +6,20 @@ import {
   subjectsTable,
   studyMaterialsTable,
 } from "@workspace/db";
-import { CreateCourseBody } from "@workspace/api-zod";
-import { requireStaff } from "../lib/auth";
+import {
+  CreateCourseBody,
+  UpdateCourseBody,
+  CreateSubjectBody,
+  UpdateSubjectBody,
+  CreateMaterialBody,
+  UpdateMaterialBody,
+} from "@workspace/api-zod";
+import {
+  requireStaff,
+  resolveCurrentUser,
+  isStaff,
+} from "../lib/auth";
+import { getCourseAccess } from "../lib/access";
 
 const router: IRouter = Router();
 
@@ -54,14 +66,87 @@ router.get("/courses/:id", async (req, res) => {
   res.json(serializeCourse(row));
 });
 
+router.patch("/courses/:id", requireStaff, async (req, res) => {
+  const id = Number(req.params.id);
+  const parsed = UpdateCourseBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid input" });
+    return;
+  }
+  const { price, ...rest } = parsed.data;
+  const values: Record<string, unknown> = { ...rest };
+  if (price !== undefined) values.price = String(price);
+  const [updated] = await db
+    .update(coursesTable)
+    .set(values)
+    .where(eq(coursesTable.id, id))
+    .returning();
+  if (!updated) {
+    res.status(404).json({ error: "Course not found" });
+    return;
+  }
+  res.json(serializeCourse(updated));
+});
+
+router.delete("/courses/:id", requireStaff, async (req, res) => {
+  const id = Number(req.params.id);
+  await db.delete(coursesTable).where(eq(coursesTable.id, id));
+  res.json({ success: true });
+});
+
+router.get("/courses/:courseId/access", async (req, res) => {
+  const courseId = Number(req.params.courseId);
+  const user = await resolveCurrentUser(req);
+  if (!user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  if (isStaff(user)) {
+    const [course] = await db
+      .select()
+      .from(coursesTable)
+      .where(eq(coursesTable.id, courseId));
+    if (!course) {
+      res.status(404).json({ error: "Course not found" });
+      return;
+    }
+    res.json({ courseId, hasAccess: true, price: Number(course.price), paid: true });
+    return;
+  }
+  const access = await getCourseAccess(user.id, courseId);
+  if (!access) {
+    res.status(404).json({ error: "Course not found" });
+    return;
+  }
+  res.json(access);
+});
+
 router.get("/courses/:courseId/subjects", async (req, res) => {
   const courseId = Number(req.params.courseId);
   const rows = await db
     .select()
     .from(subjectsTable)
     .where(eq(subjectsTable.courseId, courseId))
-    .orderBy(asc(subjectsTable.orderIndex));
+    .orderBy(
+      asc(subjectsTable.year),
+      asc(subjectsTable.semester),
+      asc(subjectsTable.orderIndex),
+    );
   res.json(rows);
+});
+
+router.post("/courses/:courseId/subjects", requireStaff, async (req, res) => {
+  const courseId = Number(req.params.courseId);
+  const parsed = CreateSubjectBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid input" });
+    return;
+  }
+  const [created] = await db
+    .insert(subjectsTable)
+    .values({ ...parsed.data, courseId })
+    .returning();
+  res.status(201).json(created);
 });
 
 router.get("/subjects/:id", async (req, res) => {
@@ -74,13 +159,101 @@ router.get("/subjects/:id", async (req, res) => {
   res.json(row);
 });
 
+router.patch("/subjects/:id", requireStaff, async (req, res) => {
+  const id = Number(req.params.id);
+  const parsed = UpdateSubjectBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid input" });
+    return;
+  }
+  const [updated] = await db
+    .update(subjectsTable)
+    .set(parsed.data)
+    .where(eq(subjectsTable.id, id))
+    .returning();
+  if (!updated) {
+    res.status(404).json({ error: "Subject not found" });
+    return;
+  }
+  res.json(updated);
+});
+
+router.delete("/subjects/:id", requireStaff, async (req, res) => {
+  const id = Number(req.params.id);
+  await db.delete(subjectsTable).where(eq(subjectsTable.id, id));
+  res.json({ success: true });
+});
+
 router.get("/subjects/:subjectId/materials", async (req, res) => {
   const subjectId = Number(req.params.subjectId);
+  const [subject] = await db
+    .select()
+    .from(subjectsTable)
+    .where(eq(subjectsTable.id, subjectId));
+  if (!subject) {
+    res.status(404).json({ error: "Subject not found" });
+    return;
+  }
+
+  // Gate content behind payment for non-staff users.
+  const user = await resolveCurrentUser(req);
+  if (!isStaff(user)) {
+    if (!user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const access = await getCourseAccess(user.id, subject.courseId);
+    if (!access?.hasAccess) {
+      res.status(403).json({ error: "Payment required to access this content" });
+      return;
+    }
+  }
+
   const rows = await db
     .select()
     .from(studyMaterialsTable)
-    .where(eq(studyMaterialsTable.subjectId, subjectId));
+    .where(eq(studyMaterialsTable.subjectId, subjectId))
+    .orderBy(asc(studyMaterialsTable.orderIndex));
   res.json(rows);
+});
+
+router.post("/subjects/:subjectId/materials", requireStaff, async (req, res) => {
+  const subjectId = Number(req.params.subjectId);
+  const parsed = CreateMaterialBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid input" });
+    return;
+  }
+  const [created] = await db
+    .insert(studyMaterialsTable)
+    .values({ ...parsed.data, subjectId })
+    .returning();
+  res.status(201).json(created);
+});
+
+router.patch("/materials/:id", requireStaff, async (req, res) => {
+  const id = Number(req.params.id);
+  const parsed = UpdateMaterialBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid input" });
+    return;
+  }
+  const [updated] = await db
+    .update(studyMaterialsTable)
+    .set(parsed.data)
+    .where(eq(studyMaterialsTable.id, id))
+    .returning();
+  if (!updated) {
+    res.status(404).json({ error: "Material not found" });
+    return;
+  }
+  res.json(updated);
+});
+
+router.delete("/materials/:id", requireStaff, async (req, res) => {
+  const id = Number(req.params.id);
+  await db.delete(studyMaterialsTable).where(eq(studyMaterialsTable.id, id));
+  res.json({ success: true });
 });
 
 export default router;

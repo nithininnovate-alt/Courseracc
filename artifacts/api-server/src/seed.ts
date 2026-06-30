@@ -1,11 +1,19 @@
 import bcrypt from "bcryptjs";
+import { eq } from "drizzle-orm";
 import {
   db,
   pool,
   usersTable,
   coursesTable,
   subjectsTable,
+  studyMaterialsTable,
+  materialProgressTable,
 } from "@workspace/db";
+
+const SAMPLE_VIDEO =
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+const SAMPLE_PDF =
+  "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
 
 async function main() {
   const superadminPassword =
@@ -72,44 +80,108 @@ async function main() {
         "A short certificate program on SEO, content, paid media and analytics.",
       level: "certificate",
       durationWeeks: 12,
-      price: "600.00",
+      price: "0.00",
       thumbnailUrl: null,
     },
   ];
 
-  const insertedCourses = await db
+  await db
     .insert(coursesTable)
     .values(courseSeed)
-    .onConflictDoNothing({ target: coursesTable.slug })
-    .returning();
+    .onConflictDoNothing({ target: coursesTable.slug });
 
-  for (const course of insertedCourses) {
-    await db.insert(subjectsTable).values([
-      {
-        courseId: course.id,
-        title: "Foundations",
-        description: "Introductory module establishing core concepts.",
-        orderIndex: 1,
-      },
-      {
-        courseId: course.id,
-        title: "Core Practice",
-        description: "Applied module with hands-on coursework.",
-        orderIndex: 2,
-      },
-      {
-        courseId: course.id,
-        title: "Capstone",
-        description: "Final project demonstrating mastery.",
-        orderIndex: 3,
-      },
-    ]);
+  // Ensure prices stay in sync (e.g. free certificate course) on re-seed.
+  for (const c of courseSeed) {
+    await db
+      .update(coursesTable)
+      .set({ price: c.price })
+      .where(eq(coursesTable.slug, c.slug));
+  }
+
+  const allCourses = await db.select().from(coursesTable);
+
+  // Reset curriculum so subjects/materials match the current plan.
+  await db.delete(materialProgressTable);
+  await db.delete(studyMaterialsTable);
+  await db.delete(subjectsTable);
+
+  const subjectPlan = [
+    {
+      year: 1,
+      semester: 1,
+      title: "Foundations",
+      description: "Introductory module establishing core concepts.",
+    },
+    {
+      year: 1,
+      semester: 2,
+      title: "Core Principles",
+      description: "Building blocks and essential theory for the program.",
+    },
+    {
+      year: 2,
+      semester: 1,
+      title: "Advanced Practice",
+      description: "Applied module with hands-on coursework.",
+    },
+    {
+      year: 2,
+      semester: 2,
+      title: "Capstone",
+      description: "Final project demonstrating mastery.",
+    },
+  ];
+
+  let materialCount = 0;
+  for (const course of allCourses) {
+    for (let i = 0; i < subjectPlan.length; i++) {
+      const plan = subjectPlan[i];
+      const [subject] = await db
+        .insert(subjectsTable)
+        .values({
+          courseId: course.id,
+          title: plan.title,
+          description: plan.description,
+          year: plan.year,
+          semester: plan.semester,
+          orderIndex: i + 1,
+        })
+        .returning();
+
+      await db.insert(studyMaterialsTable).values([
+        {
+          subjectId: subject.id,
+          title: `${plan.title} — Video Lecture`,
+          type: "video",
+          url: SAMPLE_VIDEO,
+          durationMinutes: 10,
+          orderIndex: 1,
+        },
+        {
+          subjectId: subject.id,
+          title: `${plan.title} — Lecture Notes (PDF)`,
+          type: "pdf",
+          url: SAMPLE_PDF,
+          orderIndex: 2,
+        },
+        {
+          subjectId: subject.id,
+          title: `${plan.title} — Reading Summary`,
+          type: "text",
+          content:
+            "Review the key concepts covered in this module and complete the practice questions before moving on.",
+          orderIndex: 3,
+        },
+      ]);
+      materialCount += 3;
+    }
   }
 
   console.log("Seed complete.");
   console.log(`  superadmin / ${superadminPassword}`);
   console.log(`  admin / ${adminPassword}`);
-  console.log(`  courses inserted: ${insertedCourses.length}`);
+  console.log(`  courses: ${allCourses.length}`);
+  console.log(`  materials inserted: ${materialCount}`);
   await pool.end();
 }
 

@@ -1,5 +1,10 @@
-import { useState } from "react";
-import { useListPayments, useListCourses, useCreatePayment } from "@workspace/api-client-react";
+import { useEffect, useState } from "react";
+import {
+  useListPayments,
+  useListCourses,
+  useCreatePayment,
+  useCapturePaypalOrder,
+} from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { PageHeader, LoadingCard, EmptyCard } from "@/components/common/PageState";
 import { useToast } from "@/hooks/use-toast";
+import { Download } from "lucide-react";
 
 export default function StudentPayments() {
   const { toast } = useToast();
@@ -18,10 +24,31 @@ export default function StudentPayments() {
   const { data: payments, isLoading } = useListPayments();
   const { data: courses } = useListCourses();
   const createPayment = useCreatePayment();
+  const captureOrder = useCapturePaypalOrder();
 
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [courseId, setCourseId] = useState<string>("");
+
+  // Capture a PayPal order when returning from approval (?token=ORDER_ID).
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const token = sp.get("token");
+    if (!token) return;
+    window.history.replaceState({}, "", window.location.pathname);
+    captureOrder.mutate(
+      { data: { orderId: token } },
+      {
+        onSuccess: () => {
+          toast({ title: "Payment successful", description: "Your payment has been confirmed." });
+          qc.invalidateQueries();
+        },
+        onError: () =>
+          toast({ title: "Payment not completed", description: "We could not confirm your payment.", variant: "destructive" }),
+      },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handlePay = () => {
     const value = parseFloat(amount);
@@ -49,7 +76,7 @@ export default function StudentPayments() {
     <div className="space-y-8">
       <PageHeader
         title="Payments"
-        description="View your transactions and make payments."
+        description="View your transactions, download invoices, and make payments."
         action={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -97,21 +124,33 @@ export default function StudentPayments() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Reference</TableHead>
+                  <TableHead>Invoice / Reference</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Provider</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Date</TableHead>
+                  <TableHead className="text-right">Invoice</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {payments.map((p) => (
                   <TableRow key={p.id}>
-                    <TableCell className="font-mono text-sm">{p.reference ?? `#${p.id}`}</TableCell>
+                    <TableCell className="font-mono text-sm">{p.invoiceNumber ?? p.reference ?? `#${p.id}`}</TableCell>
                     <TableCell className="font-medium">{p.currency} {p.amount.toLocaleString()}</TableCell>
                     <TableCell className="capitalize">{p.provider}</TableCell>
                     <TableCell><StatusBadge status={p.status} /></TableCell>
                     <TableCell>{new Date(p.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-right">
+                      {p.status === "completed" ? (
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={`/api/payments/${p.id}/invoice`} target="_blank" rel="noreferrer">
+                            <Download className="w-4 h-4 mr-2" /> PDF
+                          </a>
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

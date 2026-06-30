@@ -10,11 +10,15 @@ import type { PaymentStatus } from './paymentStatus';
 export interface Payment {
   id: number;
   userId: number;
+  /** @nullable */
+  courseId?: number | null;
   amount: number;
   currency: string;
   status: PaymentStatus;
   provider: string;
   /** @nullable */
   reference?: string | null;
+  /** @nullable */
+  invoiceNumber?: string | null;
   createdAt: Date;
 }

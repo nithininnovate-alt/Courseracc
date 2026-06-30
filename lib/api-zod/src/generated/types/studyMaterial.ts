@@ -18,5 +18,6 @@ export interface StudyMaterial {
   content?: string | null;
   /** @nullable */
   durationMinutes?: number | null;
+  orderIndex: number;
   createdAt: Date;
 }

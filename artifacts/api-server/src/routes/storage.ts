@@ -12,6 +12,7 @@ import {
 } from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 import { resolveCurrentUser, isStaff } from "../lib/auth";
+import { userCanAccessMaterialObject } from "../lib/access";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
@@ -145,8 +146,13 @@ router.get("/storage/objects/*path", async (req: Request, res: Response) => {
     const objectPath = `/objects/${wildcardPath}`;
 
     // Staff can view any object (needed to review student documents);
-    // students may only access objects they own.
-    if (!isStaff(user) && !(await userOwnsObject(user.id, objectPath))) {
+    // students may access objects they own, or study materials belonging to a
+    // course they have access to (free or paid-for).
+    if (
+      !isStaff(user) &&
+      !(await userOwnsObject(user.id, objectPath)) &&
+      !(await userCanAccessMaterialObject(user.id, objectPath))
+    ) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }

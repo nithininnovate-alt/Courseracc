@@ -5,6 +5,7 @@ export * from "./courses";
 export * from "./subjects";
 export * from "./enrollments";
 export * from "./study-materials";
+export * from "./material-progress";
 export * from "./assignments";
 export * from "./submissions";
 export * from "./exams";

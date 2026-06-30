@@ -236,7 +236,31 @@ export interface Subject {
   title: string;
   /** @nullable */
   description?: string | null;
+  year: number;
+  semester: number;
   orderIndex: number;
+}
+
+export interface SubjectInput {
+  /** @minLength 1 */
+  title: string;
+  description?: string;
+  /** @minimum 1 */
+  year?: number;
+  /** @minimum 1 */
+  semester?: number;
+  orderIndex?: number;
+}
+
+export interface SubjectUpdate {
+  /** @minLength 1 */
+  title?: string;
+  description?: string;
+  /** @minimum 1 */
+  year?: number;
+  /** @minimum 1 */
+  semester?: number;
+  orderIndex?: number;
 }
 
 export type EnrollmentStatus = typeof EnrollmentStatus[keyof typeof EnrollmentStatus];
@@ -282,7 +306,94 @@ export interface StudyMaterial {
   content?: string | null;
   /** @nullable */
   durationMinutes?: number | null;
+  orderIndex: number;
   createdAt: string;
+}
+
+export type MaterialInputType = typeof MaterialInputType[keyof typeof MaterialInputType];
+
+
+export const MaterialInputType = {
+  video: 'video',
+  pdf: 'pdf',
+  link: 'link',
+  text: 'text',
+} as const;
+
+export interface MaterialInput {
+  /** @minLength 1 */
+  title: string;
+  type: MaterialInputType;
+  url?: string;
+  content?: string;
+  durationMinutes?: number;
+  orderIndex?: number;
+}
+
+export type MaterialUpdateType = typeof MaterialUpdateType[keyof typeof MaterialUpdateType];
+
+
+export const MaterialUpdateType = {
+  video: 'video',
+  pdf: 'pdf',
+  link: 'link',
+  text: 'text',
+} as const;
+
+export interface MaterialUpdate {
+  /** @minLength 1 */
+  title?: string;
+  type?: MaterialUpdateType;
+  url?: string;
+  content?: string;
+  durationMinutes?: number;
+  orderIndex?: number;
+}
+
+export interface CourseAccess {
+  courseId: number;
+  hasAccess: boolean;
+  price: number;
+  paid: boolean;
+}
+
+export interface MaterialProgress {
+  id: number;
+  userId: number;
+  materialId: number;
+  courseId: number;
+  action: string;
+  completedAt: string;
+}
+
+export type MaterialProgressInputAction = typeof MaterialProgressInputAction[keyof typeof MaterialProgressInputAction];
+
+
+export const MaterialProgressInputAction = {
+  watched: 'watched',
+  downloaded: 'downloaded',
+  completed: 'completed',
+} as const;
+
+export interface MaterialProgressInput {
+  materialId: number;
+  action?: MaterialProgressInputAction;
+}
+
+export interface PaypalOrderInput {
+  courseId: number;
+  returnUrl: string;
+  cancelUrl: string;
+}
+
+export interface PaypalOrderResponse {
+  paymentId: number;
+  orderId: string;
+  approveUrl: string;
+}
+
+export interface PaypalCaptureInput {
+  orderId: string;
 }
 
 export interface Assignment {
@@ -357,12 +468,16 @@ export const PaymentStatus = {
 export interface Payment {
   id: number;
   userId: number;
+  /** @nullable */
+  courseId?: number | null;
   amount: number;
   currency: string;
   status: PaymentStatus;
   provider: string;
   /** @nullable */
   reference?: string | null;
+  /** @nullable */
+  invoiceNumber?: string | null;
   createdAt: string;
 }
 
@@ -460,4 +575,8 @@ export interface UploadUrlResponse {
 export interface ErrorEnvelope {
   error: string;
 }
+
+export type ListProgressParams = {
+courseId?: number;
+};
 

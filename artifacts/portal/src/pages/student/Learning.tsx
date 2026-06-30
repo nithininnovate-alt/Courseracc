@@ -48,7 +48,7 @@ export default function StudentLearning() {
                     <Progress value={e.progress} />
                   </div>
                   <Button variant="outline" size="sm" asChild>
-                    <Link href="/portal/courses">View Catalog</Link>
+                    <Link href={`/portal/learning/${e.courseId}`}>Continue</Link>
                   </Button>
                 </CardContent>
               </Card>

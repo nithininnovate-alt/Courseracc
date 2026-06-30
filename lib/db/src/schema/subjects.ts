@@ -7,6 +7,8 @@ export const subjectsTable = pgTable("subjects", {
   courseId: integer("course_id").notNull(),
   title: text("title").notNull(),
   description: text("description"),
+  year: integer("year").notNull().default(1),
+  semester: integer("semester").notNull().default(1),
   orderIndex: integer("order_index").notNull().default(0),
 });
 

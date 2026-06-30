@@ -1,1 +1,2 @@
 - [wouter route wildcards](wouter-route-wildcards.md) — parent section routes need `/portal/*?` form to match bare + sub-paths; auth gate must Redirect to /sign-in, not inline SignIn.
+- [pnpm esbuild dep linking](pnpm-esbuild-dep-linking.md) — esbuild "Could not resolve <pkg>" despite it being in package.json: run `pnpm install` to relink into the package's node_modules.
