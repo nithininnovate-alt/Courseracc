@@ -10,6 +10,7 @@ import { motion, type Variants } from "framer-motion";
 import { ChevronRight, ChevronLeft, PlayCircle, BookOpen, Award, Globe, Users, ArrowRight, CheckCircle2, Menu, X, MonitorPlay, GraduationCap, Clock, HelpCircle, Laptop, Briefcase, LineChart, Megaphone, Lightbulb } from "lucide-react";
 import { ClerkProvider, useUser } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
+import { shadcn } from "@clerk/themes";
 
 import slide1Img from "./assets/slide1.jpg";
 import slide2Img from "./assets/slide2.jpg";
@@ -54,6 +55,46 @@ const clerkPubKey = publishableKeyFromHost(
 );
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 const basePath = import.meta.env.BASE_URL || "/";
+
+const clerkAppearance = {
+  theme: shadcn,
+  options: {
+    logoPlacement: "inside" as const,
+    logoLinkUrl: basePath,
+    logoImageUrl: `${window.location.origin}${import.meta.env.BASE_URL}logo.svg`,
+  },
+  variables: {
+    colorPrimary: "hsl(262, 30%, 32%)",
+    colorForeground: "hsl(262, 25%, 18%)",
+    colorMutedForeground: "hsl(262, 12%, 44%)",
+    colorDanger: "hsl(0, 84%, 60%)",
+    colorBackground: "#ffffff",
+    colorInput: "#ffffff",
+    colorInputForeground: "hsl(262, 25%, 18%)",
+    colorNeutral: "hsl(262, 14%, 30%)",
+    fontFamily: "'Source Sans 3', sans-serif",
+    borderRadius: "0.5rem",
+  },
+  elements: {
+    cardBox: { width: "440px", maxWidth: "100%" },
+    headerTitle: { fontFamily: "'Roboto Slab', serif", fontWeight: 700 },
+  },
+};
+
+const clerkLocalization = {
+  signIn: {
+    start: {
+      title: "Welcome to Central Global University",
+      subtitle: "Sign in to access your student portal",
+    },
+  },
+  signUp: {
+    start: {
+      title: "Create your CGU account",
+      subtitle: "Begin your journey with Central Global University",
+    },
+  },
+};
 
 const fadeIn: Variants = {
   hidden: { opacity: 0, y: 30 },
@@ -580,7 +621,12 @@ function RequireSignedIn({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl}>
+    <ClerkProvider
+      publishableKey={clerkPubKey}
+      proxyUrl={clerkProxyUrl}
+      appearance={clerkAppearance}
+      localization={clerkLocalization}
+    >
       <QueryClientProvider client={queryClient}>
         <WouterRouter base={basePath}>
           <TooltipProvider>
