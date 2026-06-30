@@ -12,7 +12,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Globe, CheckCircle2, ArrowLeft, ArrowRight, Upload, FileText, X, Loader2 } from "lucide-react";
+import { CheckCircle2, ArrowLeft, ArrowRight, Upload, FileText, X, Loader2 } from "lucide-react";
+import cguLogo from "@assets/cropped-cgu_logo-768x244_1782643160003.png";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -146,11 +147,8 @@ export default function ApplyPage() {
           <ArrowLeft className="w-4 h-4" /> Back to Dashboard
         </Link>
 
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-            <Globe className="text-primary-foreground w-7 h-7" />
-          </div>
-          <span className="text-2xl font-bold font-serif tracking-tight text-primary">Central Global</span>
+        <div className="mb-8">
+          <img src={cguLogo} alt="Central Global University" className="h-12 w-auto" />
         </div>
 
         {/* Stepper */}

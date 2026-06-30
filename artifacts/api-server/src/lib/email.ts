@@ -171,6 +171,63 @@ export function buildResultPublished(opts: {
   };
 }
 
+export function buildCertificateIssued(opts: {
+  fullName: string;
+  courseTitle: string;
+  certificateType: string;
+  certificateNumber: string;
+}): EmailMessage {
+  const { fullName, courseTitle, certificateType, certificateNumber } = opts;
+  const label = certificateType === "transcript" ? "academic transcript" : "certificate";
+  return {
+    to: "",
+    subject: `Your ${label} is ready — ${courseTitle}`,
+    template: "certificate_issued",
+    body: [
+      `Dear ${fullName},`,
+      ``,
+      `Your ${label} for "${courseTitle}" has been issued by Central Global University.`,
+      ``,
+      `Certificate No.: ${certificateNumber}`,
+      ``,
+      `You can download it from the Certificates section of your student dashboard,`,
+      `and request a physical copy to be couriered to your address.`,
+      ``,
+      `Warm regards,`,
+      `Office of the Registrar`,
+      `Central Global University`,
+    ].join("\n"),
+  };
+}
+
+export function buildCourierDispatched(opts: {
+  fullName: string;
+  carrier: string;
+  trackingNumber: string;
+}): EmailMessage {
+  const { fullName, carrier, trackingNumber } = opts;
+  return {
+    to: "",
+    subject: `Your certificate is on its way`,
+    template: "courier_dispatched",
+    body: [
+      `Dear ${fullName},`,
+      ``,
+      `Good news — the physical copy of your certificate has been dispatched.`,
+      ``,
+      `Carrier: ${carrier}`,
+      `Tracking number: ${trackingNumber}`,
+      ``,
+      `You can track the delivery status from the Certificates section of your`,
+      `student dashboard.`,
+      ``,
+      `Warm regards,`,
+      `Office of the Registrar`,
+      `Central Global University`,
+    ].join("\n"),
+  };
+}
+
 export function buildAdmissionRejection(opts: {
   fullName: string;
   programName: string;

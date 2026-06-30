@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdminAnalytics,
   AdminDashboard,
   Application,
   ApplicationInput,
@@ -29,10 +30,14 @@ import type {
   AssignmentUpdate,
   AuthMessage,
   Certificate,
+  CertificateInput,
+  CourierRequestInput,
   CourierTracking,
+  CourierUpdate,
   Course,
   CourseAccess,
   CourseInput,
+  EligibleRecipient,
   EmailLog,
   Enrollment,
   EnrollmentInput,
@@ -4509,6 +4514,223 @@ export function useListCertificates<TData = Awaited<ReturnType<typeof listCertif
 
 
 
+export const getIssueCertificateUrl = () => {
+
+
+
+
+  return `/api/certificates`
+}
+
+/**
+ * @summary Issue a certificate to a student (admin)
+ */
+export const issueCertificate = async (certificateInput: CertificateInput, options?: RequestInit): Promise<Certificate> => {
+
+  return customFetch<Certificate>(getIssueCertificateUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(certificateInput)
+  }
+);}
+
+
+
+
+export const getIssueCertificateMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof issueCertificate>>, TError,{data: BodyType<CertificateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof issueCertificate>>, TError,{data: BodyType<CertificateInput>}, TContext> => {
+
+const mutationKey = ['issueCertificate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof issueCertificate>>, {data: BodyType<CertificateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  issueCertificate(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type IssueCertificateMutationResult = NonNullable<Awaited<ReturnType<typeof issueCertificate>>>
+    export type IssueCertificateMutationBody = BodyType<CertificateInput>
+    export type IssueCertificateMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Issue a certificate to a student (admin)
+ */
+export const useIssueCertificate = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof issueCertificate>>, TError,{data: BodyType<CertificateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof issueCertificate>>,
+        TError,
+        {data: BodyType<CertificateInput>},
+        TContext
+      > => {
+      return useMutation(getIssueCertificateMutationOptions(options));
+    }
+
+export const getListEligibleRecipientsUrl = () => {
+
+
+
+
+  return `/api/certificates/eligible`
+}
+
+/**
+ * @summary List students eligible for certificate issuance (admin)
+ */
+export const listEligibleRecipients = async ( options?: RequestInit): Promise<EligibleRecipient[]> => {
+
+  return customFetch<EligibleRecipient[]>(getListEligibleRecipientsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListEligibleRecipientsQueryKey = () => {
+    return [
+    `/api/certificates/eligible`
+    ] as const;
+    }
+
+
+export const getListEligibleRecipientsQueryOptions = <TData = Awaited<ReturnType<typeof listEligibleRecipients>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEligibleRecipients>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListEligibleRecipientsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEligibleRecipients>>> = ({ signal }) => listEligibleRecipients({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listEligibleRecipients>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListEligibleRecipientsQueryResult = NonNullable<Awaited<ReturnType<typeof listEligibleRecipients>>>
+export type ListEligibleRecipientsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List students eligible for certificate issuance (admin)
+ */
+
+export function useListEligibleRecipients<TData = Awaited<ReturnType<typeof listEligibleRecipients>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEligibleRecipients>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListEligibleRecipientsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRevokeCertificateUrl = (id: number,) => {
+
+
+
+
+  return `/api/certificates/${id}/revoke`
+}
+
+/**
+ * @summary Revoke an issued certificate (admin)
+ */
+export const revokeCertificate = async (id: number, options?: RequestInit): Promise<Certificate> => {
+
+  return customFetch<Certificate>(getRevokeCertificateUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRevokeCertificateMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeCertificate>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeCertificate>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['revokeCertificate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeCertificate>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  revokeCertificate(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeCertificateMutationResult = NonNullable<Awaited<ReturnType<typeof revokeCertificate>>>
+
+    export type RevokeCertificateMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Revoke an issued certificate (admin)
+ */
+export const useRevokeCertificate = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeCertificate>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revokeCertificate>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getRevokeCertificateMutationOptions(options));
+    }
+
 export const getListEmailLogsUrl = () => {
 
 
@@ -4663,6 +4885,147 @@ export function useListCourierTracking<TData = Awaited<ReturnType<typeof listCou
 
 
 
+export const getRequestCourierUrl = () => {
+
+
+
+
+  return `/api/courier`
+}
+
+/**
+ * @summary Request a physical copy of a certificate (student)
+ */
+export const requestCourier = async (courierRequestInput: CourierRequestInput, options?: RequestInit): Promise<CourierTracking> => {
+
+  return customFetch<CourierTracking>(getRequestCourierUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(courierRequestInput)
+  }
+);}
+
+
+
+
+export const getRequestCourierMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestCourier>>, TError,{data: BodyType<CourierRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestCourier>>, TError,{data: BodyType<CourierRequestInput>}, TContext> => {
+
+const mutationKey = ['requestCourier'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestCourier>>, {data: BodyType<CourierRequestInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestCourier(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestCourierMutationResult = NonNullable<Awaited<ReturnType<typeof requestCourier>>>
+    export type RequestCourierMutationBody = BodyType<CourierRequestInput>
+    export type RequestCourierMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Request a physical copy of a certificate (student)
+ */
+export const useRequestCourier = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestCourier>>, TError,{data: BodyType<CourierRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestCourier>>,
+        TError,
+        {data: BodyType<CourierRequestInput>},
+        TContext
+      > => {
+      return useMutation(getRequestCourierMutationOptions(options));
+    }
+
+export const getUpdateCourierUrl = (id: number,) => {
+
+
+
+
+  return `/api/courier/${id}`
+}
+
+/**
+ * @summary Update a courier request (admin dispatch / status)
+ */
+export const updateCourier = async (id: number,
+    courierUpdate: CourierUpdate, options?: RequestInit): Promise<CourierTracking> => {
+
+  return customFetch<CourierTracking>(getUpdateCourierUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(courierUpdate)
+  }
+);}
+
+
+
+
+export const getUpdateCourierMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCourier>>, TError,{id: number;data: BodyType<CourierUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCourier>>, TError,{id: number;data: BodyType<CourierUpdate>}, TContext> => {
+
+const mutationKey = ['updateCourier'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCourier>>, {id: number;data: BodyType<CourierUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateCourier(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCourierMutationResult = NonNullable<Awaited<ReturnType<typeof updateCourier>>>
+    export type UpdateCourierMutationBody = BodyType<CourierUpdate>
+    export type UpdateCourierMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update a courier request (admin dispatch / status)
+ */
+export const useUpdateCourier = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCourier>>, TError,{id: number;data: BodyType<CourierUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCourier>>,
+        TError,
+        {id: number;data: BodyType<CourierUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateCourierMutationOptions(options));
+    }
+
 export const getGetStudentDashboardUrl = () => {
 
 
@@ -4805,6 +5168,83 @@ export function useGetAdminDashboard<TData = Awaited<ReturnType<typeof getAdminD
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetAdminDashboardQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminAnalyticsUrl = () => {
+
+
+
+
+  return `/api/dashboard/analytics`
+}
+
+/**
+ * @summary Admin analytics charts data
+ */
+export const getAdminAnalytics = async ( options?: RequestInit): Promise<AdminAnalytics> => {
+
+  return customFetch<AdminAnalytics>(getGetAdminAnalyticsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminAnalyticsQueryKey = () => {
+    return [
+    `/api/dashboard/analytics`
+    ] as const;
+    }
+
+
+export const getGetAdminAnalyticsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminAnalytics>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminAnalyticsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminAnalytics>>> = ({ signal }) => getAdminAnalytics({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminAnalytics>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminAnalyticsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminAnalytics>>>
+export type GetAdminAnalyticsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Admin analytics charts data
+ */
+
+export function useGetAdminAnalytics<TData = Awaited<ReturnType<typeof getAdminAnalytics>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminAnalyticsQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

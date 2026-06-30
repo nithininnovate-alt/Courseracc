@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import cguLogo from "@assets/cropped-cgu_logo-768x244_1782643160003.png";
 
 export default function AdminLoginPage() {
   const [, setLocation] = useLocation();
@@ -30,13 +30,8 @@ export default function AdminLoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-muted/30 p-4 font-sans">
-      <div className="mb-8 flex items-center gap-3">
-        <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-          <Globe className="text-primary-foreground w-8 h-8" />
-        </div>
-        <span className="text-3xl font-bold font-serif tracking-tight text-primary">
-          Central Global
-        </span>
+      <div className="mb-8">
+        <img src={cguLogo} alt="Central Global University" className="h-14 w-auto" />
       </div>
 
       <Card className="w-full max-w-md border-border shadow-xl">

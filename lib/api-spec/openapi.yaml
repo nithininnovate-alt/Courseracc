@@ -1172,6 +1172,56 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Certificate"
+    post:
+      operationId: issueCertificate
+      tags: [certificates]
+      summary: Issue a certificate to a student (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CertificateInput"
+      responses:
+        "201":
+          description: Issued certificate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Certificate"
+
+  /certificates/eligible:
+    get:
+      operationId: listEligibleRecipients
+      tags: [certificates]
+      summary: List students eligible for certificate issuance (admin)
+      responses:
+        "200":
+          description: Eligible recipients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EligibleRecipient"
+
+  /certificates/{id}/revoke:
+    post:
+      operationId: revokeCertificate
+      tags: [certificates]
+      summary: Revoke an issued certificate (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Revoked certificate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Certificate"
 
   /email-logs:
     get:
@@ -1202,6 +1252,47 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/CourierTracking"
+    post:
+      operationId: requestCourier
+      tags: [courier]
+      summary: Request a physical copy of a certificate (student)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CourierRequestInput"
+      responses:
+        "201":
+          description: Created courier request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourierTracking"
+
+  /courier/{id}:
+    patch:
+      operationId: updateCourier
+      tags: [courier]
+      summary: Update a courier request (admin dispatch / status)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CourierUpdate"
+      responses:
+        "200":
+          description: Updated courier record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourierTracking"
 
   /dashboard/student:
     get:
@@ -1228,6 +1319,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdminDashboard"
+
+  /dashboard/analytics:
+    get:
+      operationId: getAdminAnalytics
+      tags: [dashboard]
+      summary: Admin analytics charts data
+      responses:
+        "200":
+          description: Admin analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAnalytics"
 
 components:
   schemas:
@@ -1677,14 +1781,37 @@ components:
 
     Certificate:
       type: object
-      required: [id, userId, courseId, certificateNumber, issuedAt]
+      required: [id, userId, courseId, certificateNumber, type, status, issuedAt]
       properties:
         id: { type: integer }
         userId: { type: integer }
         courseId: { type: integer }
         certificateNumber: { type: string }
+        type: { type: string, enum: [degree, transcript] }
+        status: { type: string, enum: [issued, revoked] }
         issuedAt: { type: string, format: date-time }
+        revokedAt: { type: ["string", "null"], format: date-time }
         fileUrl: { type: ["string", "null"] }
+
+    CertificateInput:
+      type: object
+      required: [userId, courseId, type]
+      properties:
+        userId: { type: integer }
+        courseId: { type: integer }
+        type: { type: string, enum: [degree, transcript] }
+
+    EligibleRecipient:
+      type: object
+      required: [userId, fullName, email, courseId, courseTitle]
+      properties:
+        userId: { type: integer }
+        fullName: { type: string }
+        email: { type: string }
+        courseId: { type: integer }
+        courseTitle: { type: string }
+        hasDegree: { type: boolean }
+        hasTranscript: { type: boolean }
 
     EmailLog:
       type: object
@@ -1700,16 +1827,32 @@ components:
 
     CourierTracking:
       type: object
-      required: [id, userId, trackingNumber, carrier, status]
+      required: [id, userId, status, requestedAt]
       properties:
         id: { type: integer }
         userId: { type: integer }
         certificateId: { type: ["integer", "null"] }
-        trackingNumber: { type: string }
-        carrier: { type: string }
-        status: { type: string, enum: [pending, shipped, in_transit, delivered, returned] }
+        trackingNumber: { type: ["string", "null"] }
+        carrier: { type: ["string", "null"] }
+        status: { type: string, enum: [requested, shipped, in_transit, delivered, returned] }
+        shippingAddress: { type: ["string", "null"] }
+        requestedAt: { type: string, format: date-time }
         shippedAt: { type: ["string", "null"], format: date-time }
         deliveredAt: { type: ["string", "null"], format: date-time }
+
+    CourierRequestInput:
+      type: object
+      required: [shippingAddress]
+      properties:
+        certificateId: { type: integer }
+        shippingAddress: { type: string, minLength: 1 }
+
+    CourierUpdate:
+      type: object
+      properties:
+        carrier: { type: string }
+        trackingNumber: { type: string }
+        status: { type: string, enum: [requested, shipped, in_transit, delivered, returned] }
 
     StudentDashboard:
       type: object
@@ -1730,6 +1873,43 @@ components:
         totalCourses: { type: integer }
         activeEnrollments: { type: integer }
         totalRevenue: { type: number }
+
+    NameValue:
+      type: object
+      required: [name, value]
+      properties:
+        name: { type: string }
+        value: { type: number }
+
+    AdminAnalytics:
+      type: object
+      required: [applicationsByStatus, revenueByMonth, enrollmentsByCourse, examPassRates, assignmentCompletion]
+      properties:
+        applicationsByStatus:
+          type: array
+          items: { $ref: "#/components/schemas/NameValue" }
+        revenueByMonth:
+          type: array
+          items: { $ref: "#/components/schemas/NameValue" }
+        enrollmentsByCourse:
+          type: array
+          items: { $ref: "#/components/schemas/NameValue" }
+        examPassRates:
+          type: array
+          items:
+            type: object
+            required: [name, passed, failed]
+            properties:
+              name: { type: string }
+              passed: { type: number }
+              failed: { type: number }
+        assignmentCompletion:
+          type: object
+          required: [graded, submitted, pending]
+          properties:
+            graded: { type: number }
+            submitted: { type: number }
+            pending: { type: number }
 
     UploadUrlRequest:
       type: object

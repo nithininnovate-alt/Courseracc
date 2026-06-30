@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type CourierTrackingStatus = typeof CourierTrackingStatus[keyof typeof CourierTrackingStatus];
+export type CourierUpdateStatus = typeof CourierUpdateStatus[keyof typeof CourierUpdateStatus];
 
 
-export const CourierTrackingStatus = {
+export const CourierUpdateStatus = {
   requested: 'requested',
   shipped: 'shipped',
   in_transit: 'in_transit',

@@ -5,13 +5,19 @@
  * Central Global University LMS/SMS API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CertificateStatus } from './certificateStatus';
+import type { CertificateType } from './certificateType';
 
 export interface Certificate {
   id: number;
   userId: number;
   courseId: number;
   certificateNumber: string;
+  type: CertificateType;
+  status: CertificateStatus;
   issuedAt: Date;
+  /** @nullable */
+  revokedAt?: Date | null;
   /** @nullable */
   fileUrl?: string | null;
 }

@@ -7,7 +7,10 @@ export const certificatesTable = pgTable("certificates", {
   userId: integer("user_id").notNull(),
   courseId: integer("course_id").notNull(),
   certificateNumber: text("certificate_number").notNull().unique(),
+  type: text("type").notNull().default("degree"),
+  status: text("status").notNull().default("issued"),
   issuedAt: timestamp("issued_at", { withTimezone: true }).notNull().defaultNow(),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
   fileUrl: text("file_url"),
 });
 

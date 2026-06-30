@@ -603,14 +603,58 @@ export interface PaymentInput {
   courseId?: number;
 }
 
+export type CertificateType = typeof CertificateType[keyof typeof CertificateType];
+
+
+export const CertificateType = {
+  degree: 'degree',
+  transcript: 'transcript',
+} as const;
+
+export type CertificateStatus = typeof CertificateStatus[keyof typeof CertificateStatus];
+
+
+export const CertificateStatus = {
+  issued: 'issued',
+  revoked: 'revoked',
+} as const;
+
 export interface Certificate {
   id: number;
   userId: number;
   courseId: number;
   certificateNumber: string;
+  type: CertificateType;
+  status: CertificateStatus;
   issuedAt: string;
   /** @nullable */
+  revokedAt?: string | null;
+  /** @nullable */
   fileUrl?: string | null;
+}
+
+export type CertificateInputType = typeof CertificateInputType[keyof typeof CertificateInputType];
+
+
+export const CertificateInputType = {
+  degree: 'degree',
+  transcript: 'transcript',
+} as const;
+
+export interface CertificateInput {
+  userId: number;
+  courseId: number;
+  type: CertificateInputType;
+}
+
+export interface EligibleRecipient {
+  userId: number;
+  fullName: string;
+  email: string;
+  courseId: number;
+  courseTitle: string;
+  hasDegree?: boolean;
+  hasTranscript?: boolean;
 }
 
 export type EmailLogStatus = typeof EmailLogStatus[keyof typeof EmailLogStatus];
@@ -637,7 +681,7 @@ export type CourierTrackingStatus = typeof CourierTrackingStatus[keyof typeof Co
 
 
 export const CourierTrackingStatus = {
-  pending: 'pending',
+  requested: 'requested',
   shipped: 'shipped',
   in_transit: 'in_transit',
   delivered: 'delivered',
@@ -649,13 +693,41 @@ export interface CourierTracking {
   userId: number;
   /** @nullable */
   certificateId?: number | null;
-  trackingNumber: string;
-  carrier: string;
+  /** @nullable */
+  trackingNumber?: string | null;
+  /** @nullable */
+  carrier?: string | null;
   status: CourierTrackingStatus;
+  /** @nullable */
+  shippingAddress?: string | null;
+  requestedAt: string;
   /** @nullable */
   shippedAt?: string | null;
   /** @nullable */
   deliveredAt?: string | null;
+}
+
+export interface CourierRequestInput {
+  certificateId?: number;
+  /** @minLength 1 */
+  shippingAddress: string;
+}
+
+export type CourierUpdateStatus = typeof CourierUpdateStatus[keyof typeof CourierUpdateStatus];
+
+
+export const CourierUpdateStatus = {
+  requested: 'requested',
+  shipped: 'shipped',
+  in_transit: 'in_transit',
+  delivered: 'delivered',
+  returned: 'returned',
+} as const;
+
+export interface CourierUpdate {
+  carrier?: string;
+  trackingNumber?: string;
+  status?: CourierUpdateStatus;
 }
 
 export interface StudentDashboard {
@@ -672,6 +744,31 @@ export interface AdminDashboard {
   totalCourses: number;
   activeEnrollments: number;
   totalRevenue: number;
+}
+
+export interface NameValue {
+  name: string;
+  value: number;
+}
+
+export type AdminAnalyticsExamPassRatesItem = {
+  name: string;
+  passed: number;
+  failed: number;
+};
+
+export type AdminAnalyticsAssignmentCompletion = {
+  graded: number;
+  submitted: number;
+  pending: number;
+};
+
+export interface AdminAnalytics {
+  applicationsByStatus: NameValue[];
+  revenueByMonth: NameValue[];
+  enrollmentsByCourse: NameValue[];
+  examPassRates: AdminAnalyticsExamPassRatesItem[];
+  assignmentCompletion: AdminAnalyticsAssignmentCompletion;
 }
 
 export interface UploadUrlRequest {

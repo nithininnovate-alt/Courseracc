@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './adminAnalytics';
+export * from './adminAnalyticsAssignmentCompletion';
+export * from './adminAnalyticsExamPassRatesItem';
 export * from './adminDashboard';
 export * from './application';
 export * from './applicationDocument';
@@ -19,13 +22,21 @@ export * from './assignmentInput';
 export * from './assignmentUpdate';
 export * from './authMessage';
 export * from './certificate';
+export * from './certificateInput';
+export * from './certificateInputType';
+export * from './certificateStatus';
+export * from './certificateType';
+export * from './courierRequestInput';
 export * from './courierTracking';
 export * from './courierTrackingStatus';
+export * from './courierUpdate';
+export * from './courierUpdateStatus';
 export * from './course';
 export * from './courseAccess';
 export * from './courseInput';
 export * from './courseInputLevel';
 export * from './courseLevel';
+export * from './eligibleRecipient';
 export * from './emailLog';
 export * from './emailLogStatus';
 export * from './enrollment';
@@ -48,6 +59,7 @@ export * from './materialProgressInput';
 export * from './materialProgressInputAction';
 export * from './materialUpdate';
 export * from './materialUpdateType';
+export * from './nameValue';
 export * from './payment';
 export * from './paymentInput';
 export * from './paymentStatus';

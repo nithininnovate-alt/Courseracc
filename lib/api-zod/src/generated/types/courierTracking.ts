@@ -12,9 +12,14 @@ export interface CourierTracking {
   userId: number;
   /** @nullable */
   certificateId?: number | null;
-  trackingNumber: string;
-  carrier: string;
+  /** @nullable */
+  trackingNumber?: string | null;
+  /** @nullable */
+  carrier?: string | null;
   status: CourierTrackingStatus;
+  /** @nullable */
+  shippingAddress?: string | null;
+  requestedAt: Date;
   /** @nullable */
   shippedAt?: Date | null;
   /** @nullable */

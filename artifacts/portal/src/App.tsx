@@ -51,6 +51,7 @@ import AdminPayments from "@/pages/admin/Payments";
 import AdminCertificates from "@/pages/admin/Certificates";
 import AdminEmails from "@/pages/admin/Emails";
 import AdminCourier from "@/pages/admin/Courier";
+import AdminReports from "@/pages/admin/Reports";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -269,7 +270,7 @@ function Home() {
             <img
               src={cguLogo}
               alt="Central Global University"
-              className={`h-10 md:h-12 w-auto transition-all duration-300 ${isScrolled ? '' : 'brightness-0 invert'}`}
+              className={`h-10 md:h-12 w-auto transition-all duration-300 ${isScrolled ? '' : 'brightness-0 invert drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)]'}`}
             />
           </div>
           
@@ -676,6 +677,7 @@ export default function App() {
                       <Route path="/admin/certificates" component={AdminCertificates} />
                       <Route path="/admin/emails" component={AdminEmails} />
                       <Route path="/admin/courier" component={AdminCourier} />
+                      <Route path="/admin/reports" component={AdminReports} />
                       <Route component={NotFound} />
                     </Switch>
                   </AdminLayout>

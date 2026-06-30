@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, eq, desc } from "drizzle-orm";
+import { and, eq, desc, inArray } from "drizzle-orm";
 import {
   db,
   paymentsTable,
@@ -8,11 +8,18 @@ import {
   certificatesTable,
   emailLogsTable,
   courierTrackingTable,
+  enrollmentsTable,
+  subjectsTable,
+  examsTable,
+  resultsTable,
 } from "@workspace/db";
 import {
   CreatePaymentBody,
   CreatePaypalOrderBody,
   CapturePaypalOrderBody,
+  IssueCertificateBody,
+  RequestCourierBody,
+  UpdateCourierBody,
 } from "@workspace/api-zod";
 import {
   resolveCurrentUser,
@@ -23,6 +30,16 @@ import {
 } from "../lib/auth";
 import { isPaypalConfigured, createOrder, captureOrder } from "../lib/paypal";
 import { generateInvoice } from "../lib/invoice";
+import {
+  generateDegreeCertificate,
+  generateTranscript,
+  type TranscriptRow,
+} from "../lib/certificate";
+import {
+  sendEmail,
+  buildCertificateIssued,
+  buildCourierDispatched,
+} from "../lib/email";
 import { ensureEnrollment } from "../lib/access";
 
 const router: IRouter = Router();
@@ -262,7 +279,9 @@ router.get("/payments/:id/invoice", async (req, res) => {
 router.get("/certificates", async (req, res) => {
   const user = await resolveCurrentUser(req);
   if (isStaff(user)) {
-    res.json(await db.select().from(certificatesTable));
+    res.json(
+      await db.select().from(certificatesTable).orderBy(desc(certificatesTable.issuedAt)),
+    );
     return;
   }
   if (user) {
@@ -270,11 +289,248 @@ router.get("/certificates", async (req, res) => {
       await db
         .select()
         .from(certificatesTable)
-        .where(eq(certificatesTable.userId, user.id)),
+        .where(eq(certificatesTable.userId, user.id))
+        .orderBy(desc(certificatesTable.issuedAt)),
     );
     return;
   }
   res.json([]);
+});
+
+const TYPE_PREFIX: Record<string, string> = { degree: "DEG", transcript: "TRN" };
+
+router.get("/certificates/eligible", requireStaff, async (_req, res) => {
+  const completed = await db
+    .select({
+      userId: enrollmentsTable.userId,
+      firstName: usersTable.firstName,
+      lastName: usersTable.lastName,
+      email: usersTable.email,
+      courseId: enrollmentsTable.courseId,
+      courseTitle: coursesTable.title,
+    })
+    .from(enrollmentsTable)
+    .innerJoin(usersTable, eq(usersTable.id, enrollmentsTable.userId))
+    .innerJoin(coursesTable, eq(coursesTable.id, enrollmentsTable.courseId))
+    .where(eq(enrollmentsTable.status, "completed"));
+
+  const issued = await db
+    .select()
+    .from(certificatesTable)
+    .where(eq(certificatesTable.status, "issued"));
+  const issuedKeys = new Set(
+    issued.map((c) => `${c.userId}:${c.courseId}:${c.type}`),
+  );
+
+  res.json(
+    completed.map((row) => ({
+      userId: row.userId,
+      fullName:
+        [row.firstName, row.lastName].filter(Boolean).join(" ") || row.email,
+      email: row.email,
+      courseId: row.courseId,
+      courseTitle: row.courseTitle,
+      hasDegree: issuedKeys.has(`${row.userId}:${row.courseId}:degree`),
+      hasTranscript: issuedKeys.has(`${row.userId}:${row.courseId}:transcript`),
+    })),
+  );
+});
+
+router.post("/certificates", requireStaff, async (req, res) => {
+  const parsed = IssueCertificateBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid certificate payload" });
+    return;
+  }
+  const { userId, courseId, type } = parsed.data;
+
+  const [student] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+  if (!student) {
+    res.status(404).json({ error: "Student not found" });
+    return;
+  }
+  const [course] = await db
+    .select()
+    .from(coursesTable)
+    .where(eq(coursesTable.id, courseId));
+  if (!course) {
+    res.status(404).json({ error: "Course not found" });
+    return;
+  }
+
+  const [existing] = await db
+    .select()
+    .from(certificatesTable)
+    .where(
+      and(
+        eq(certificatesTable.userId, userId),
+        eq(certificatesTable.courseId, courseId),
+        eq(certificatesTable.type, type),
+        eq(certificatesTable.status, "issued"),
+      ),
+    );
+  if (existing) {
+    res.status(409).json({ error: "Certificate already issued for this student and course" });
+    return;
+  }
+
+  const provisional = `pending-${crypto.randomUUID()}`;
+  const [created] = await db
+    .insert(certificatesTable)
+    .values({ userId, courseId, type, certificateNumber: provisional })
+    .returning();
+
+  const prefix = TYPE_PREFIX[type] ?? "CGU";
+  const number = `CGU-${prefix}-${created.issuedAt.getFullYear()}-${String(created.id).padStart(5, "0")}`;
+  const [certificate] = await db
+    .update(certificatesTable)
+    .set({ certificateNumber: number })
+    .where(eq(certificatesTable.id, created.id))
+    .returning();
+
+  const fullName =
+    [student.firstName, student.lastName].filter(Boolean).join(" ") || student.email;
+  await sendEmail({
+    ...buildCertificateIssued({
+      fullName,
+      courseTitle: course.title,
+      certificateType: type,
+      certificateNumber: number,
+    }),
+    to: student.email,
+  });
+
+  res.status(201).json(certificate);
+});
+
+router.post("/certificates/:id/revoke", requireStaff, async (req, res) => {
+  const id = Number(req.params.id);
+  const [certificate] = await db
+    .select()
+    .from(certificatesTable)
+    .where(eq(certificatesTable.id, id));
+  if (!certificate) {
+    res.status(404).json({ error: "Certificate not found" });
+    return;
+  }
+  const [updated] = await db
+    .update(certificatesTable)
+    .set({ status: "revoked", revokedAt: new Date() })
+    .where(eq(certificatesTable.id, id))
+    .returning();
+  res.json(updated);
+});
+
+async function buildTranscriptRows(
+  userId: number,
+  courseId: number,
+): Promise<TranscriptRow[]> {
+  const subjects = await db
+    .select()
+    .from(subjectsTable)
+    .where(eq(subjectsTable.courseId, courseId));
+  if (subjects.length === 0) return [];
+  const subjectMap = new Map(subjects.map((s) => [s.id, s]));
+  const subjectIds = subjects.map((s) => s.id);
+
+  const exams = await db
+    .select()
+    .from(examsTable)
+    .where(inArray(examsTable.subjectId, subjectIds));
+  if (exams.length === 0) return [];
+  const examMap = new Map(exams.map((e) => [e.id, e]));
+  const examIds = exams.map((e) => e.id);
+
+  const results = await db
+    .select()
+    .from(resultsTable)
+    .where(
+      and(
+        eq(resultsTable.userId, userId),
+        inArray(resultsTable.examId, examIds),
+        eq(resultsTable.published, true),
+      ),
+    );
+
+  return results.map((r) => {
+    const exam = examMap.get(r.examId);
+    const subject = exam ? subjectMap.get(exam.subjectId) : undefined;
+    return {
+      subjectTitle: subject?.title ?? "Subject",
+      examTitle: exam?.title ?? "Examination",
+      score: r.score,
+      totalMarks: exam?.totalMarks ?? 100,
+      grade: r.grade,
+      passed: r.passed,
+    };
+  });
+}
+
+router.get("/certificates/:id/download", async (req, res) => {
+  const user = await resolveCurrentUser(req);
+  if (!user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const id = Number(req.params.id);
+  const [certificate] = await db
+    .select()
+    .from(certificatesTable)
+    .where(eq(certificatesTable.id, id));
+  if (!certificate) {
+    res.status(404).json({ error: "Certificate not found" });
+    return;
+  }
+  if (certificate.userId !== user.id && !isStaff(user)) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  if (certificate.status === "revoked") {
+    res.status(410).json({ error: "This certificate has been revoked" });
+    return;
+  }
+
+  const [student] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, certificate.userId));
+  const [course] = await db
+    .select()
+    .from(coursesTable)
+    .where(eq(coursesTable.id, certificate.courseId));
+  const studentName =
+    [student?.firstName, student?.lastName].filter(Boolean).join(" ") ||
+    student?.email ||
+    "Student";
+
+  let pdf: Uint8Array;
+  if (certificate.type === "transcript") {
+    const rows = await buildTranscriptRows(certificate.userId, certificate.courseId);
+    pdf = await generateTranscript({
+      studentName,
+      studentEmail: student?.email ?? "",
+      courseTitle: course?.title ?? "Programme",
+      courseLevel: course?.level ?? "certificate",
+      certificateNumber: certificate.certificateNumber,
+      issuedAt: certificate.issuedAt,
+      rows,
+    });
+  } else {
+    pdf = await generateDegreeCertificate({
+      studentName,
+      courseTitle: course?.title ?? "Programme",
+      courseLevel: course?.level ?? "certificate",
+      certificateNumber: certificate.certificateNumber,
+      issuedAt: certificate.issuedAt,
+    });
+  }
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader(
+    "Content-Disposition",
+    `inline; filename="${certificate.certificateNumber}.pdf"`,
+  );
+  res.send(Buffer.from(pdf));
 });
 
 router.get("/email-logs", requireStaff, async (_req, res) => {
@@ -286,7 +542,12 @@ router.get("/email-logs", requireStaff, async (_req, res) => {
 router.get("/courier", async (req, res) => {
   const user = await resolveCurrentUser(req);
   if (isStaff(user)) {
-    res.json(await db.select().from(courierTrackingTable));
+    res.json(
+      await db
+        .select()
+        .from(courierTrackingTable)
+        .orderBy(desc(courierTrackingTable.requestedAt)),
+    );
     return;
   }
   if (user) {
@@ -294,11 +555,120 @@ router.get("/courier", async (req, res) => {
       await db
         .select()
         .from(courierTrackingTable)
-        .where(eq(courierTrackingTable.userId, user.id)),
+        .where(eq(courierTrackingTable.userId, user.id))
+        .orderBy(desc(courierTrackingTable.requestedAt)),
     );
     return;
   }
   res.json([]);
+});
+
+router.post("/courier", requireUser, async (req: AuthedRequest, res) => {
+  const parsed = RequestCourierBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid courier request" });
+    return;
+  }
+  const user = req.currentUser!;
+  const { certificateId, shippingAddress } = parsed.data;
+
+  if (certificateId != null) {
+    const [certificate] = await db
+      .select()
+      .from(certificatesTable)
+      .where(eq(certificatesTable.id, certificateId));
+    if (!certificate || certificate.userId !== user.id) {
+      res.status(404).json({ error: "Certificate not found" });
+      return;
+    }
+    if (certificate.status === "revoked") {
+      res.status(400).json({ error: "Cannot request a copy of a revoked certificate" });
+      return;
+    }
+    const [existing] = await db
+      .select()
+      .from(courierTrackingTable)
+      .where(
+        and(
+          eq(courierTrackingTable.userId, user.id),
+          eq(courierTrackingTable.certificateId, certificateId),
+        ),
+      );
+    if (existing && existing.status !== "delivered" && existing.status !== "returned") {
+      res.status(409).json({ error: "A courier request for this certificate is already in progress" });
+      return;
+    }
+  }
+
+  const [created] = await db
+    .insert(courierTrackingTable)
+    .values({
+      userId: user.id,
+      certificateId: certificateId ?? null,
+      shippingAddress,
+      status: "requested",
+    })
+    .returning();
+  res.status(201).json(created);
+});
+
+router.patch("/courier/:id", requireStaff, async (req, res) => {
+  const parsed = UpdateCourierBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid courier update" });
+    return;
+  }
+  const id = Number(req.params.id);
+  const [record] = await db
+    .select()
+    .from(courierTrackingTable)
+    .where(eq(courierTrackingTable.id, id));
+  if (!record) {
+    res.status(404).json({ error: "Courier record not found" });
+    return;
+  }
+
+  const { carrier, trackingNumber, status } = parsed.data;
+  const updates: Partial<typeof courierTrackingTable.$inferInsert> = {};
+  if (carrier !== undefined) updates.carrier = carrier;
+  if (trackingNumber !== undefined) updates.trackingNumber = trackingNumber;
+  if (status !== undefined) updates.status = status;
+
+  const nextStatus = status ?? record.status;
+  if (nextStatus === "shipped" && !record.shippedAt) {
+    updates.shippedAt = new Date();
+  }
+  if (nextStatus === "delivered" && !record.deliveredAt) {
+    updates.deliveredAt = new Date();
+  }
+
+  const [updated] = await db
+    .update(courierTrackingTable)
+    .set(updates)
+    .where(eq(courierTrackingTable.id, id))
+    .returning();
+
+  const justShipped = record.status !== "shipped" && nextStatus === "shipped";
+  if (justShipped && updated.carrier && updated.trackingNumber) {
+    const [student] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, updated.userId));
+    if (student) {
+      const fullName =
+        [student.firstName, student.lastName].filter(Boolean).join(" ") || student.email;
+      await sendEmail({
+        ...buildCourierDispatched({
+          fullName,
+          carrier: updated.carrier,
+          trackingNumber: updated.trackingNumber,
+        }),
+        to: student.email,
+      });
+    }
+  }
+
+  res.json(updated);
 });
 
 export default router;

@@ -1358,10 +1358,70 @@ export const ListCertificatesResponseItem = zod.object({
   "userId": zod.number(),
   "courseId": zod.number(),
   "certificateNumber": zod.string(),
+  "type": zod.enum(['degree', 'transcript']),
+  "status": zod.enum(['issued', 'revoked']),
   "issuedAt": zod.coerce.date(),
+  "revokedAt": zod.coerce.date().nullish(),
   "fileUrl": zod.string().nullish()
 })
 export const ListCertificatesResponse = zod.array(ListCertificatesResponseItem)
+
+
+/**
+ * @summary Issue a certificate to a student (admin)
+ */
+export const IssueCertificateBody = zod.object({
+  "userId": zod.number(),
+  "courseId": zod.number(),
+  "type": zod.enum(['degree', 'transcript'])
+})
+
+export const IssueCertificateResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "courseId": zod.number(),
+  "certificateNumber": zod.string(),
+  "type": zod.enum(['degree', 'transcript']),
+  "status": zod.enum(['issued', 'revoked']),
+  "issuedAt": zod.coerce.date(),
+  "revokedAt": zod.coerce.date().nullish(),
+  "fileUrl": zod.string().nullish()
+})
+
+
+/**
+ * @summary List students eligible for certificate issuance (admin)
+ */
+export const ListEligibleRecipientsResponseItem = zod.object({
+  "userId": zod.number(),
+  "fullName": zod.string(),
+  "email": zod.string(),
+  "courseId": zod.number(),
+  "courseTitle": zod.string(),
+  "hasDegree": zod.boolean().optional(),
+  "hasTranscript": zod.boolean().optional()
+})
+export const ListEligibleRecipientsResponse = zod.array(ListEligibleRecipientsResponseItem)
+
+
+/**
+ * @summary Revoke an issued certificate (admin)
+ */
+export const RevokeCertificateParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const RevokeCertificateResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "courseId": zod.number(),
+  "certificateNumber": zod.string(),
+  "type": zod.enum(['degree', 'transcript']),
+  "status": zod.enum(['issued', 'revoked']),
+  "issuedAt": zod.coerce.date(),
+  "revokedAt": zod.coerce.date().nullish(),
+  "fileUrl": zod.string().nullish()
+})
 
 
 /**
@@ -1386,13 +1446,67 @@ export const ListCourierTrackingResponseItem = zod.object({
   "id": zod.number(),
   "userId": zod.number(),
   "certificateId": zod.number().nullish(),
-  "trackingNumber": zod.string(),
-  "carrier": zod.string(),
-  "status": zod.enum(['pending', 'shipped', 'in_transit', 'delivered', 'returned']),
+  "trackingNumber": zod.string().nullish(),
+  "carrier": zod.string().nullish(),
+  "status": zod.enum(['requested', 'shipped', 'in_transit', 'delivered', 'returned']),
+  "shippingAddress": zod.string().nullish(),
+  "requestedAt": zod.coerce.date(),
   "shippedAt": zod.coerce.date().nullish(),
   "deliveredAt": zod.coerce.date().nullish()
 })
 export const ListCourierTrackingResponse = zod.array(ListCourierTrackingResponseItem)
+
+
+/**
+ * @summary Request a physical copy of a certificate (student)
+ */
+
+
+
+export const RequestCourierBody = zod.object({
+  "certificateId": zod.number().optional(),
+  "shippingAddress": zod.string().min(1)
+})
+
+export const RequestCourierResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "certificateId": zod.number().nullish(),
+  "trackingNumber": zod.string().nullish(),
+  "carrier": zod.string().nullish(),
+  "status": zod.enum(['requested', 'shipped', 'in_transit', 'delivered', 'returned']),
+  "shippingAddress": zod.string().nullish(),
+  "requestedAt": zod.coerce.date(),
+  "shippedAt": zod.coerce.date().nullish(),
+  "deliveredAt": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary Update a courier request (admin dispatch / status)
+ */
+export const UpdateCourierParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateCourierBody = zod.object({
+  "carrier": zod.string().optional(),
+  "trackingNumber": zod.string().optional(),
+  "status": zod.enum(['requested', 'shipped', 'in_transit', 'delivered', 'returned']).optional()
+})
+
+export const UpdateCourierResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "certificateId": zod.number().nullish(),
+  "trackingNumber": zod.string().nullish(),
+  "carrier": zod.string().nullish(),
+  "status": zod.enum(['requested', 'shipped', 'in_transit', 'delivered', 'returned']),
+  "shippingAddress": zod.string().nullish(),
+  "requestedAt": zod.coerce.date(),
+  "shippedAt": zod.coerce.date().nullish(),
+  "deliveredAt": zod.coerce.date().nullish()
+})
 
 
 /**
@@ -1416,6 +1530,35 @@ export const GetAdminDashboardResponse = zod.object({
   "totalCourses": zod.number(),
   "activeEnrollments": zod.number(),
   "totalRevenue": zod.number()
+})
+
+
+/**
+ * @summary Admin analytics charts data
+ */
+export const GetAdminAnalyticsResponse = zod.object({
+  "applicationsByStatus": zod.array(zod.object({
+  "name": zod.string(),
+  "value": zod.number()
+})),
+  "revenueByMonth": zod.array(zod.object({
+  "name": zod.string(),
+  "value": zod.number()
+})),
+  "enrollmentsByCourse": zod.array(zod.object({
+  "name": zod.string(),
+  "value": zod.number()
+})),
+  "examPassRates": zod.array(zod.object({
+  "name": zod.string(),
+  "passed": zod.number(),
+  "failed": zod.number()
+})),
+  "assignmentCompletion": zod.object({
+  "graded": zod.number(),
+  "submitted": zod.number(),
+  "pending": zod.number()
+})
 })
 
 
