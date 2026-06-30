@@ -81,18 +81,34 @@ const clerkAppearance = {
   },
 };
 
+const CGU_NAME = "Central Global University";
+const CGU_CONTINUE = `to continue to ${CGU_NAME}`;
+
+// Override every Clerk sign-in/sign-up string that would otherwise render the
+// Clerk instance application name ("Coursera Clone") so applicants only ever
+// see "Central Global University" on the sign-in screen and its sub-steps.
 const clerkLocalization = {
   signIn: {
     start: {
-      title: "Welcome to Central Global University",
+      title: `Welcome to ${CGU_NAME}`,
       subtitle: "Sign in to access your student portal",
     },
+    emailCode: { title: "Check your email", subtitle: CGU_CONTINUE },
+    emailLink: { title: "Check your email", subtitle: CGU_CONTINUE },
+    password: { title: "Enter your password", subtitle: CGU_CONTINUE },
+    phoneCode: { title: "Check your phone", subtitle: CGU_CONTINUE },
+    alternativeMethods: { subtitle: CGU_CONTINUE },
+    forgotPassword: { subtitle_email: CGU_CONTINUE, subtitle_phone: CGU_CONTINUE },
   },
   signUp: {
     start: {
       title: "Create your CGU account",
-      subtitle: "Begin your journey with Central Global University",
+      subtitle: `Begin your journey with ${CGU_NAME}`,
     },
+    emailCode: { title: "Verify your email", subtitle: CGU_CONTINUE },
+    emailLink: { title: "Verify your email", subtitle: CGU_CONTINUE },
+    phoneCode: { title: "Verify your phone", subtitle: CGU_CONTINUE },
+    continue: { title: "Fill in missing fields", subtitle: CGU_CONTINUE },
   },
 };
 
