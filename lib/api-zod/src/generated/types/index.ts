@@ -51,6 +51,8 @@ export * from './examSubmission';
 export * from './examSubmissionInput';
 export * from './examSubmissionStatus';
 export * from './examUpdate';
+export * from './explainLessonInput';
+export * from './explainLessonInputMode';
 export * from './healthStatus';
 export * from './listProgressParams';
 export * from './loginInput';

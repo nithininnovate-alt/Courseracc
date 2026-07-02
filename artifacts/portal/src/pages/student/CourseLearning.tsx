@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "wouter";
 import {
   useListCourses,
@@ -37,6 +37,8 @@ import {
   Download,
   Lock,
   PlayCircle,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 
 function mediaUrl(url: string) {
@@ -443,7 +445,169 @@ function MaterialViewer({
             {completed ? "Completed" : "Mark as complete"}
           </Button>
         </div>
+
+        <LessonExplainer material={material} />
       </CardContent>
     </Card>
+  );
+}
+
+type ExplainMode = "explain" | "simpler" | "example" | "summary" | "quiz";
+
+const FOLLOW_UPS: { mode: ExplainMode; label: string }[] = [
+  { mode: "simpler", label: "Explain more simply" },
+  { mode: "example", label: "Give an example" },
+  { mode: "summary", label: "Summarize key points" },
+  { mode: "quiz", label: "Quiz me on this" },
+];
+
+function LessonExplainer({ material }: { material: StudyMaterial }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [streaming, setStreaming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Reset the panel whenever the student switches lessons.
+  useEffect(() => {
+    abortRef.current?.abort();
+    setOpen(false);
+    setText("");
+    setError(null);
+    setStreaming(false);
+  }, [material.id]);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [text]);
+
+  // Abort any in-flight stream when the viewer unmounts.
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  async function explain(mode: ExplainMode) {
+    if (streaming) return;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    setOpen(true);
+    setText("");
+    setError(null);
+    setStreaming(true);
+
+    try {
+      const res = await fetch("/api/ai/explain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        signal: controller.signal,
+        body: JSON.stringify({ materialId: material.id, mode }),
+      });
+
+      if (!res.ok || !res.body) {
+        throw new Error("Request failed");
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const events = buffer.split("\n\n");
+        buffer = events.pop() ?? "";
+
+        for (const event of events) {
+          const line = event.trim();
+          if (!line.startsWith("data:")) continue;
+          const payload = line.slice(5).trim();
+          if (!payload) continue;
+          try {
+            const parsed = JSON.parse(payload);
+            if (parsed.content) {
+              setText((prev) => prev + parsed.content);
+            } else if (parsed.error) {
+              setError(parsed.error);
+            }
+          } catch {
+            // Ignore malformed chunks.
+          }
+        }
+      }
+    } catch (err) {
+      if ((err as Error)?.name === "AbortError") return;
+      setError(
+        "Sorry, the explanation is unavailable right now. Please try again.",
+      );
+    } finally {
+      setStreaming(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-primary/20 bg-primary/5">
+      {!open ? (
+        <div className="flex items-center justify-between gap-3 p-4">
+          <div className="flex items-center gap-2 text-sm">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <span className="text-muted-foreground">
+              Stuck? Let the AI tutor break this lesson down for you.
+            </span>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => void explain("explain")}
+            className="shrink-0"
+          >
+            <Sparkles className="w-4 h-4 mr-2" /> Explain this lesson
+          </Button>
+        </div>
+      ) : (
+        <div className="p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-primary">
+            <Sparkles className="w-4 h-4" /> AI explanation
+          </div>
+
+          <div
+            ref={scrollRef}
+            className="max-h-80 overflow-y-auto whitespace-pre-wrap rounded-lg bg-background/70 p-3 text-sm text-foreground"
+          >
+            {error ? (
+              <span className="text-destructive">{error}</span>
+            ) : text ? (
+              text
+            ) : (
+              <span className="inline-flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" /> Thinking…
+              </span>
+            )}
+            {streaming && text && (
+              <Loader2 className="ml-1 inline w-3 h-3 animate-spin text-muted-foreground" />
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {FOLLOW_UPS.map((f) => (
+              <Button
+                key={f.mode}
+                variant="outline"
+                size="sm"
+                disabled={streaming}
+                onClick={() => void explain(f.mode)}
+              >
+                {f.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

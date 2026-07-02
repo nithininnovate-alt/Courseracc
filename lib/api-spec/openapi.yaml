@@ -1280,6 +1280,30 @@ paths:
               schema:
                 type: string
 
+  /ai/explain:
+    post:
+      operationId: explainLesson
+      tags: [ai]
+      summary: Stream an AI explanation of a specific study material (student)
+      description: >-
+        Returns a Server-Sent Events stream of an assistant explanation focused
+        on a single study material the student is currently viewing. The student
+        must have access to the course that owns the material (free courses, or a
+        completed payment for paid courses).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExplainLessonInput"
+      responses:
+        "200":
+          description: SSE stream of explanation tokens
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
   /courier:
     get:
       operationId: listCourierTracking
@@ -1885,6 +1909,17 @@ components:
           minItems: 1
           items:
             $ref: "#/components/schemas/ChatMessage"
+
+    ExplainLessonInput:
+      type: object
+      required: [materialId]
+      properties:
+        materialId:
+          type: integer
+        mode:
+          type: string
+          enum: [explain, simpler, example, summary, quiz]
+          default: explain
 
     CourierTracking:
       type: object

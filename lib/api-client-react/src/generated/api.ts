@@ -47,6 +47,7 @@ import type {
   ExamSubmission,
   ExamSubmissionInput,
   ExamUpdate,
+  ExplainLessonInput,
   HealthStatus,
   ListProgressParams,
   LoginInput,
@@ -4948,6 +4949,77 @@ export const useSendChatMessage = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getSendChatMessageMutationOptions(options));
+    }
+
+export const getExplainLessonUrl = () => {
+
+
+
+
+  return `/api/ai/explain`
+}
+
+/**
+ * Returns a Server-Sent Events stream of an assistant explanation focused on a single study material the student is currently viewing. The student must have access to the course that owns the material (free courses, or a completed payment for paid courses).
+ * @summary Stream an AI explanation of a specific study material (student)
+ */
+export const explainLesson = async (explainLessonInput: ExplainLessonInput, options?: RequestInit): Promise<string> => {
+
+  return customFetch<string>(getExplainLessonUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(explainLessonInput)
+  }
+);}
+
+
+
+
+export const getExplainLessonMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof explainLesson>>, TError,{data: BodyType<ExplainLessonInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof explainLesson>>, TError,{data: BodyType<ExplainLessonInput>}, TContext> => {
+
+const mutationKey = ['explainLesson'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof explainLesson>>, {data: BodyType<ExplainLessonInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  explainLesson(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExplainLessonMutationResult = NonNullable<Awaited<ReturnType<typeof explainLesson>>>
+    export type ExplainLessonMutationBody = BodyType<ExplainLessonInput>
+    export type ExplainLessonMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Stream an AI explanation of a specific study material (student)
+ */
+export const useExplainLesson = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof explainLesson>>, TError,{data: BodyType<ExplainLessonInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof explainLesson>>,
+        TError,
+        {data: BodyType<ExplainLessonInput>},
+        TContext
+      > => {
+      return useMutation(getExplainLessonMutationOptions(options));
     }
 
 export const getListCourierTrackingUrl = () => {

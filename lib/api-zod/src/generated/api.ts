@@ -1480,6 +1480,20 @@ export const SendChatMessageResponse = zod.unknown()
 
 
 /**
+ * Returns a Server-Sent Events stream of an assistant explanation focused on a single study material the student is currently viewing. The student must have access to the course that owns the material (free courses, or a completed payment for paid courses).
+ * @summary Stream an AI explanation of a specific study material (student)
+ */
+export const explainLessonBodyModeDefault = `explain`;
+
+export const ExplainLessonBody = zod.object({
+  "materialId": zod.number(),
+  "mode": zod.enum(['explain', 'simpler', 'example', 'summary', 'quiz']).default(explainLessonBodyModeDefault)
+})
+
+export const ExplainLessonResponse = zod.unknown()
+
+
+/**
  * @summary List certificate courier tracking records
  */
 export const ListCourierTrackingResponseItem = zod.object({

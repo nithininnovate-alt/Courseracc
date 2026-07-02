@@ -700,6 +700,22 @@ export interface SendChatMessageInput {
   messages: ChatMessage[];
 }
 
+export type ExplainLessonInputMode = typeof ExplainLessonInputMode[keyof typeof ExplainLessonInputMode];
+
+
+export const ExplainLessonInputMode = {
+  explain: 'explain',
+  simpler: 'simpler',
+  example: 'example',
+  summary: 'summary',
+  quiz: 'quiz',
+} as const;
+
+export interface ExplainLessonInput {
+  materialId: number;
+  mode?: ExplainLessonInputMode;
+}
+
 export type CourierTrackingStatus = typeof CourierTrackingStatus[keyof typeof CourierTrackingStatus];
 
 
