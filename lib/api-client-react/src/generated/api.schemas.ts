@@ -716,6 +716,20 @@ export interface ExplainLessonInput {
   mode?: ExplainLessonInputMode;
 }
 
+export interface LessonExplanation {
+  id: number;
+  userId: number;
+  materialId: number;
+  courseId: number;
+  mode: string;
+  content: string;
+  updatedAt: string;
+}
+
+export interface LessonExplanationResult {
+  explanation?: LessonExplanation;
+}
+
 export type CourierTrackingStatus = typeof CourierTrackingStatus[keyof typeof CourierTrackingStatus];
 
 

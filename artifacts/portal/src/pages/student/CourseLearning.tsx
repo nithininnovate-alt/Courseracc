@@ -10,6 +10,8 @@ import {
   useListEnrollments,
   useCreatePaypalOrder,
   useCapturePaypalOrder,
+  useGetLessonExplanation,
+  getGetLessonExplanationQueryKey,
   type Subject,
   type StudyMaterial,
 } from "@workspace/api-client-react";
@@ -39,6 +41,7 @@ import {
   PlayCircle,
   Sparkles,
   Loader2,
+  RotateCw,
 } from "lucide-react";
 
 function mediaUrl(url: string) {
@@ -461,22 +464,48 @@ const FOLLOW_UPS: { mode: ExplainMode; label: string }[] = [
   { mode: "quiz", label: "Quiz me on this" },
 ];
 
+const MODE_LABELS: Record<ExplainMode, string> = {
+  explain: "Explanation",
+  simpler: "Simpler explanation",
+  example: "Worked example",
+  summary: "Key points",
+  quiz: "Quiz",
+};
+
 function LessonExplainer({ material }: { material: StudyMaterial }) {
+  const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
+  const [mode, setMode] = useState<ExplainMode>("explain");
   const [streaming, setStreaming] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Reset the panel whenever the student switches lessons.
+  // Load any previously saved explanation for this lesson so it survives
+  // refresh and lesson navigation without re-calling the AI.
+  const { data: savedData } = useGetLessonExplanation(material.id);
+  const savedExplanation = savedData?.explanation;
+
+  // Reset the panel whenever the student switches lessons, then rehydrate
+  // from the saved explanation if one exists.
   useEffect(() => {
     abortRef.current?.abort();
-    setOpen(false);
-    setText("");
     setError(null);
     setStreaming(false);
-  }, [material.id]);
+    if (savedExplanation && savedExplanation.materialId === material.id) {
+      setText(savedExplanation.content);
+      setMode((savedExplanation.mode as ExplainMode) ?? "explain");
+      setSaved(true);
+      setOpen(true);
+    } else {
+      setText("");
+      setMode("explain");
+      setSaved(false);
+      setOpen(false);
+    }
+  }, [material.id, savedExplanation]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -487,7 +516,7 @@ function LessonExplainer({ material }: { material: StudyMaterial }) {
   // Abort any in-flight stream when the viewer unmounts.
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  async function explain(mode: ExplainMode) {
+  async function explain(requestedMode: ExplainMode) {
     if (streaming) return;
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -495,16 +524,19 @@ function LessonExplainer({ material }: { material: StudyMaterial }) {
 
     setOpen(true);
     setText("");
+    setMode(requestedMode);
+    setSaved(false);
     setError(null);
     setStreaming(true);
 
+    let ok = false;
     try {
       const res = await fetch("/api/ai/explain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         signal: controller.signal,
-        body: JSON.stringify({ materialId: material.id, mode }),
+        body: JSON.stringify({ materialId: material.id, mode: requestedMode }),
       });
 
       if (!res.ok || !res.body) {
@@ -533,6 +565,8 @@ function LessonExplainer({ material }: { material: StudyMaterial }) {
             const parsed = JSON.parse(payload);
             if (parsed.content) {
               setText((prev) => prev + parsed.content);
+            } else if (parsed.done) {
+              ok = true;
             } else if (parsed.error) {
               setError(parsed.error);
             }
@@ -548,6 +582,14 @@ function LessonExplainer({ material }: { material: StudyMaterial }) {
       );
     } finally {
       setStreaming(false);
+      if (ok) {
+        setSaved(true);
+        // The server persisted the explanation; refresh the cached copy so it
+        // is available on the next visit without another AI call.
+        void qc.invalidateQueries({
+          queryKey: getGetLessonExplanationQueryKey(material.id),
+        });
+      }
     }
   }
 
@@ -571,8 +613,23 @@ function LessonExplainer({ material }: { material: StudyMaterial }) {
         </div>
       ) : (
         <div className="p-4 space-y-3">
-          <div className="flex items-center gap-2 text-sm font-medium text-primary">
-            <Sparkles className="w-4 h-4" /> AI explanation
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-primary">
+              <Sparkles className="w-4 h-4" /> AI explanation
+              <Badge variant="secondary" className="font-normal">
+                {MODE_LABELS[mode]}
+              </Badge>
+            </div>
+            {saved && !streaming && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => void explain(mode)}
+                className="shrink-0 text-muted-foreground"
+              >
+                <RotateCw className="w-3.5 h-3.5 mr-1.5" /> Regenerate
+              </Button>
+            )}
           </div>
 
           <div

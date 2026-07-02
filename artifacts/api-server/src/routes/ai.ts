@@ -1,11 +1,12 @@
 import { Router, type IRouter } from "express";
-import { eq, inArray } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import {
   db,
   enrollmentsTable,
   coursesTable,
   subjectsTable,
   studyMaterialsTable,
+  lessonExplanationsTable,
 } from "@workspace/db";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { SendChatMessageBody, ExplainLessonBody } from "@workspace/api-zod";
@@ -250,6 +251,8 @@ router.post("/ai/explain", requireUser, async (req: AuthedRequest, res) => {
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
 
+  let fullText = "";
+
   try {
     const stream = await openai.chat.completions.create({
       model: "gpt-5.4",
@@ -267,9 +270,41 @@ router.post("/ai/explain", requireUser, async (req: AuthedRequest, res) => {
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content;
       if (content) {
+        fullText += content;
         res.write(`data: ${JSON.stringify({ content })}\n\n`);
       }
     }
+
+    // Persist the completed explanation per user + material so it can be
+    // revisited without re-calling the AI. Overwrites any prior explanation.
+    if (fullText.trim()) {
+      try {
+        await db
+          .insert(lessonExplanationsTable)
+          .values({
+            userId: req.currentUser!.id,
+            materialId,
+            courseId,
+            mode,
+            content: fullText,
+          })
+          .onConflictDoUpdate({
+            target: [
+              lessonExplanationsTable.userId,
+              lessonExplanationsTable.materialId,
+            ],
+            set: {
+              courseId,
+              mode,
+              content: fullText,
+              updatedAt: new Date(),
+            },
+          });
+      } catch (saveErr) {
+        logger.error({ err: saveErr }, "Failed to persist AI explanation");
+      }
+    }
+
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
   } catch (err) {
     logger.error({ err }, "AI lesson explanation stream failed");
@@ -282,5 +317,30 @@ router.post("/ai/explain", requireUser, async (req: AuthedRequest, res) => {
     res.end();
   }
 });
+
+router.get(
+  "/ai/explanations/:materialId",
+  requireUser,
+  async (req: AuthedRequest, res) => {
+    const materialId = Number(req.params.materialId);
+    if (!Number.isInteger(materialId)) {
+      res.status(400).json({ error: "Invalid material id" });
+      return;
+    }
+
+    const [explanation] = await db
+      .select()
+      .from(lessonExplanationsTable)
+      .where(
+        and(
+          eq(lessonExplanationsTable.userId, req.currentUser!.id),
+          eq(lessonExplanationsTable.materialId, materialId),
+        ),
+      )
+      .limit(1);
+
+    res.json({ explanation: explanation ?? undefined });
+  },
+);
 
 export default router;

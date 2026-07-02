@@ -54,6 +54,8 @@ export * from './examUpdate';
 export * from './explainLessonInput';
 export * from './explainLessonInputMode';
 export * from './healthStatus';
+export * from './lessonExplanation';
+export * from './lessonExplanationResult';
 export * from './listProgressParams';
 export * from './loginInput';
 export * from './materialInput';

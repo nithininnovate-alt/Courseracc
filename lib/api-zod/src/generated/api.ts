@@ -1494,6 +1494,27 @@ export const ExplainLessonResponse = zod.unknown()
 
 
 /**
+ * Returns the last AI explanation the current student generated for the given study material, if any, so it can be shown again without re-calling the AI. Returns an empty result when none has been saved.
+ * @summary Fetch the student's most recent saved AI explanation for a material
+ */
+export const GetLessonExplanationParams = zod.object({
+  "materialId": zod.coerce.number()
+})
+
+export const GetLessonExplanationResponse = zod.object({
+  "explanation": zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "materialId": zod.number(),
+  "courseId": zod.number(),
+  "mode": zod.string(),
+  "content": zod.string(),
+  "updatedAt": zod.coerce.date()
+}).optional()
+})
+
+
+/**
  * @summary List certificate courier tracking records
  */
 export const ListCourierTrackingResponseItem = zod.object({

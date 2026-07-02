@@ -49,6 +49,7 @@ import type {
   ExamUpdate,
   ExplainLessonInput,
   HealthStatus,
+  LessonExplanationResult,
   ListProgressParams,
   LoginInput,
   MaterialInput,
@@ -5021,6 +5022,84 @@ export const useExplainLesson = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getExplainLessonMutationOptions(options));
     }
+
+export const getGetLessonExplanationUrl = (materialId: number,) => {
+
+
+
+
+  return `/api/ai/explanations/${materialId}`
+}
+
+/**
+ * Returns the last AI explanation the current student generated for the given study material, if any, so it can be shown again without re-calling the AI. Returns an empty result when none has been saved.
+ * @summary Fetch the student's most recent saved AI explanation for a material
+ */
+export const getLessonExplanation = async (materialId: number, options?: RequestInit): Promise<LessonExplanationResult> => {
+
+  return customFetch<LessonExplanationResult>(getGetLessonExplanationUrl(materialId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLessonExplanationQueryKey = (materialId: number,) => {
+    return [
+    `/api/ai/explanations/${materialId}`
+    ] as const;
+    }
+
+
+export const getGetLessonExplanationQueryOptions = <TData = Awaited<ReturnType<typeof getLessonExplanation>>, TError = ErrorType<unknown>>(materialId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLessonExplanation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLessonExplanationQueryKey(materialId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLessonExplanation>>> = ({ signal }) => getLessonExplanation(materialId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: materialId !== null && materialId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLessonExplanation>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLessonExplanationQueryResult = NonNullable<Awaited<ReturnType<typeof getLessonExplanation>>>
+export type GetLessonExplanationQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Fetch the student's most recent saved AI explanation for a material
+ */
+
+export function useGetLessonExplanation<TData = Awaited<ReturnType<typeof getLessonExplanation>>, TError = ErrorType<unknown>>(
+ materialId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLessonExplanation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLessonExplanationQueryOptions(materialId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListCourierTrackingUrl = () => {
 

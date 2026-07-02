@@ -1304,6 +1304,29 @@ paths:
               schema:
                 type: string
 
+  /ai/explanations/{materialId}:
+    get:
+      operationId: getLessonExplanation
+      tags: [ai]
+      summary: Fetch the student's most recent saved AI explanation for a material
+      description: >-
+        Returns the last AI explanation the current student generated for the
+        given study material, if any, so it can be shown again without
+        re-calling the AI. Returns an empty result when none has been saved.
+      parameters:
+        - name: materialId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: The saved explanation, if any
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonExplanationResult"
+
   /courier:
     get:
       operationId: listCourierTracking
@@ -1920,6 +1943,24 @@ components:
           type: string
           enum: [explain, simpler, example, summary, quiz]
           default: explain
+
+    LessonExplanation:
+      type: object
+      required: [id, userId, materialId, courseId, mode, content, updatedAt]
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        materialId: { type: integer }
+        courseId: { type: integer }
+        mode: { type: string }
+        content: { type: string }
+        updatedAt: { type: string, format: date-time }
+
+    LessonExplanationResult:
+      type: object
+      properties:
+        explanation:
+          $ref: "#/components/schemas/LessonExplanation"
 
     CourierTracking:
       type: object
