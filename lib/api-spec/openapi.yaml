@@ -1288,8 +1288,8 @@ paths:
       description: >-
         Returns a Server-Sent Events stream of an assistant explanation focused
         on a single study material the student is currently viewing. The student
-        must have access to the course that owns the material (free courses, or a
-        completed payment for paid courses).
+        must be enrolled in and have access to the course that owns the material
+        (free courses, or a completed payment for paid courses).
       requestBody:
         required: true
         content:

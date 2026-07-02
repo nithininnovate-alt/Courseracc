@@ -1480,7 +1480,7 @@ export const SendChatMessageResponse = zod.unknown()
 
 
 /**
- * Returns a Server-Sent Events stream of an assistant explanation focused on a single study material the student is currently viewing. The student must have access to the course that owns the material (free courses, or a completed payment for paid courses).
+ * Returns a Server-Sent Events stream of an assistant explanation focused on a single study material the student is currently viewing. The student must be enrolled in and have access to the course that owns the material (free courses, or a completed payment for paid courses).
  * @summary Stream an AI explanation of a specific study material (student)
  */
 export const explainLessonBodyModeDefault = `explain`;

@@ -141,6 +141,24 @@ export async function userCanAccessMaterialObject(
   return Boolean(access?.hasAccess);
 }
 
+/** Whether the user has an enrollment record for the given course. */
+export async function isUserEnrolled(
+  userId: number,
+  courseId: number,
+): Promise<boolean> {
+  const [row] = await db
+    .select({ id: enrollmentsTable.id })
+    .from(enrollmentsTable)
+    .where(
+      and(
+        eq(enrollmentsTable.userId, userId),
+        eq(enrollmentsTable.courseId, courseId),
+      ),
+    )
+    .limit(1);
+  return Boolean(row);
+}
+
 /** Resolve the courseId that a given material belongs to (via its subject). */
 export async function getCourseIdForMaterial(
   materialId: number,

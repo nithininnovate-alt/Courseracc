@@ -10,7 +10,11 @@ import {
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { SendChatMessageBody, ExplainLessonBody } from "@workspace/api-zod";
 import { requireUser, type AuthedRequest } from "../lib/auth";
-import { getCourseIdForMaterial, getCourseAccess } from "../lib/access";
+import {
+  getCourseIdForMaterial,
+  getCourseAccess,
+  isUserEnrolled,
+} from "../lib/access";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
@@ -180,8 +184,11 @@ router.post("/ai/explain", requireUser, async (req: AuthedRequest, res) => {
     return;
   }
 
-  const access = await getCourseAccess(req.currentUser!.id, courseId);
-  if (!access?.hasAccess) {
+  const [enrolled, access] = await Promise.all([
+    isUserEnrolled(req.currentUser!.id, courseId),
+    getCourseAccess(req.currentUser!.id, courseId),
+  ]);
+  if (!enrolled || !access?.hasAccess) {
     res
       .status(403)
       .json({ error: "You do not have access to this lesson." });
