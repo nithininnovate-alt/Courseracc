@@ -14,4 +14,5 @@ export const CourseLevel = {
   postgraduate: 'postgraduate',
   diploma: 'diploma',
   certificate: 'certificate',
+  doctorate: 'doctorate',
 } as const;

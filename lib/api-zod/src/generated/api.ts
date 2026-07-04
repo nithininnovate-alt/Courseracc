@@ -409,7 +409,7 @@ export const ListCoursesResponseItem = zod.object({
   "title": zod.string(),
   "slug": zod.string(),
   "description": zod.string().nullish(),
-  "level": zod.enum(['undergraduate', 'postgraduate', 'diploma', 'certificate']),
+  "level": zod.enum(['undergraduate', 'postgraduate', 'diploma', 'certificate', 'doctorate']),
   "durationWeeks": zod.number(),
   "price": zod.number(),
   "thumbnailUrl": zod.string().nullish(),
@@ -427,7 +427,7 @@ export const ListCoursesResponse = zod.array(ListCoursesResponseItem)
 export const CreateCourseBody = zod.object({
   "title": zod.string().min(1),
   "description": zod.string().optional(),
-  "level": zod.enum(['undergraduate', 'postgraduate', 'diploma', 'certificate']),
+  "level": zod.enum(['undergraduate', 'postgraduate', 'diploma', 'certificate', 'doctorate']),
   "durationWeeks": zod.number(),
   "price": zod.number(),
   "thumbnailUrl": zod.string().optional()
@@ -438,7 +438,7 @@ export const CreateCourseResponse = zod.object({
   "title": zod.string(),
   "slug": zod.string(),
   "description": zod.string().nullish(),
-  "level": zod.enum(['undergraduate', 'postgraduate', 'diploma', 'certificate']),
+  "level": zod.enum(['undergraduate', 'postgraduate', 'diploma', 'certificate', 'doctorate']),
   "durationWeeks": zod.number(),
   "price": zod.number(),
   "thumbnailUrl": zod.string().nullish(),
@@ -458,7 +458,7 @@ export const GetCourseResponse = zod.object({
   "title": zod.string(),
   "slug": zod.string(),
   "description": zod.string().nullish(),
-  "level": zod.enum(['undergraduate', 'postgraduate', 'diploma', 'certificate']),
+  "level": zod.enum(['undergraduate', 'postgraduate', 'diploma', 'certificate', 'doctorate']),
   "durationWeeks": zod.number(),
   "price": zod.number(),
   "thumbnailUrl": zod.string().nullish(),
@@ -479,7 +479,7 @@ export const UpdateCourseParams = zod.object({
 export const UpdateCourseBody = zod.object({
   "title": zod.string().min(1),
   "description": zod.string().optional(),
-  "level": zod.enum(['undergraduate', 'postgraduate', 'diploma', 'certificate']),
+  "level": zod.enum(['undergraduate', 'postgraduate', 'diploma', 'certificate', 'doctorate']),
   "durationWeeks": zod.number(),
   "price": zod.number(),
   "thumbnailUrl": zod.string().optional()
@@ -490,7 +490,7 @@ export const UpdateCourseResponse = zod.object({
   "title": zod.string(),
   "slug": zod.string(),
   "description": zod.string().nullish(),
-  "level": zod.enum(['undergraduate', 'postgraduate', 'diploma', 'certificate']),
+  "level": zod.enum(['undergraduate', 'postgraduate', 'diploma', 'certificate', 'doctorate']),
   "durationWeeks": zod.number(),
   "price": zod.number(),
   "thumbnailUrl": zod.string().nullish(),

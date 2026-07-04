@@ -194,6 +194,7 @@ export const CourseLevel = {
   postgraduate: 'postgraduate',
   diploma: 'diploma',
   certificate: 'certificate',
+  doctorate: 'doctorate',
 } as const;
 
 export interface Course {
@@ -218,6 +219,7 @@ export const CourseInputLevel = {
   postgraduate: 'postgraduate',
   diploma: 'diploma',
   certificate: 'certificate',
+  doctorate: 'doctorate',
 } as const;
 
 export interface CourseInput {

@@ -1562,7 +1562,7 @@ components:
         title: { type: string }
         slug: { type: string }
         description: { type: ["string", "null"] }
-        level: { type: string, enum: [undergraduate, postgraduate, diploma, certificate] }
+        level: { type: string, enum: [undergraduate, postgraduate, diploma, certificate, doctorate] }
         durationWeeks: { type: integer }
         price: { type: number }
         thumbnailUrl: { type: ["string", "null"] }
@@ -1573,7 +1573,7 @@ components:
       properties:
         title: { type: string, minLength: 1 }
         description: { type: string }
-        level: { type: string, enum: [undergraduate, postgraduate, diploma, certificate] }
+        level: { type: string, enum: [undergraduate, postgraduate, diploma, certificate, doctorate] }
         durationWeeks: { type: integer }
         price: { type: number }
         thumbnailUrl: { type: string }
