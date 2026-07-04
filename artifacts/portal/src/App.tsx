@@ -126,7 +126,15 @@ const staggerContainer: Variants = {
   visible: { opacity: 1, transition: { staggerChildren: 0.2 } }
 };
 
-const heroSlides = [
+type HeroSlide = {
+  img: string;
+  eyebrow: string;
+  title: string;
+  text: string;
+  primary: { label: string; to?: string; section?: string };
+};
+
+const heroSlides: HeroSlide[] = [
   {
     img: slide1Img,
     eyebrow: "Shape Your Tomorrow",
@@ -139,7 +147,7 @@ const heroSlides = [
     eyebrow: "ACBSP Candidacy Programs",
     title: "Globally Respected Business Degrees",
     text: "Our candidacy programs prepare future leaders with internationally recognized BBA, MBA, and DBA degrees that open doors across industries and continents.",
-    primary: { label: "Explore Programs", to: "/apply" },
+    primary: { label: "Explore Programs", section: "programs" },
   },
   {
     img: slide3Img,
@@ -203,7 +211,15 @@ function HeroSlider() {
             <Button
               size="lg"
               className="bg-primary text-primary-foreground hover:bg-primary/90 text-base h-14 px-8 shadow-xl rounded-xl"
-              onClick={() => setLocation(slide.primary.to)}
+              onClick={() => {
+                if (slide.primary.section) {
+                  document
+                    .getElementById(slide.primary.section)
+                    ?.scrollIntoView({ behavior: "smooth" });
+                } else if (slide.primary.to) {
+                  setLocation(slide.primary.to);
+                }
+              }}
             >
               {slide.primary.label} <ChevronRight className="ml-2 w-5 h-5" />
             </Button>
@@ -261,6 +277,10 @@ function Home() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const scrollToSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans selection:bg-secondary selection:text-secondary-foreground">
       {/* 1. Header */}
@@ -275,10 +295,10 @@ function Home() {
           </div>
           
           <nav className="hidden md:flex items-center gap-8">
-            <a href="#programs" className={`text-sm font-semibold transition-colors ${isScrolled ? 'text-foreground/80 hover:text-primary' : 'text-white/90 hover:text-white'}`}>Programs</a>
-            <a href="#platform" className={`text-sm font-semibold transition-colors ${isScrolled ? 'text-foreground/80 hover:text-primary' : 'text-white/90 hover:text-white'}`}>Platform</a>
-            <a href="#faculty" className={`text-sm font-semibold transition-colors ${isScrolled ? 'text-foreground/80 hover:text-primary' : 'text-white/90 hover:text-white'}`}>Faculty</a>
-            <a href="#about" className={`text-sm font-semibold transition-colors ${isScrolled ? 'text-foreground/80 hover:text-primary' : 'text-white/90 hover:text-white'}`}>About</a>
+            <a href="#programs" onClick={(e) => { e.preventDefault(); scrollToSection('programs'); }} className={`text-sm font-semibold transition-colors cursor-pointer ${isScrolled ? 'text-foreground/80 hover:text-primary' : 'text-white/90 hover:text-white'}`}>Programs</a>
+            <a href="#platform" onClick={(e) => { e.preventDefault(); scrollToSection('platform'); }} className={`text-sm font-semibold transition-colors cursor-pointer ${isScrolled ? 'text-foreground/80 hover:text-primary' : 'text-white/90 hover:text-white'}`}>Platform</a>
+            <a href="#faculty" onClick={(e) => { e.preventDefault(); scrollToSection('faculty'); }} className={`text-sm font-semibold transition-colors cursor-pointer ${isScrolled ? 'text-foreground/80 hover:text-primary' : 'text-white/90 hover:text-white'}`}>Faculty</a>
+            <a href="#about" onClick={(e) => { e.preventDefault(); scrollToSection('about'); }} className={`text-sm font-semibold transition-colors cursor-pointer ${isScrolled ? 'text-foreground/80 hover:text-primary' : 'text-white/90 hover:text-white'}`}>About</a>
             <div className="flex items-center gap-4 ml-4">
               <Button variant="ghost" className={`font-semibold ${isScrolled ? 'hover:bg-primary/5 hover:text-primary' : 'text-white hover:bg-white/10 hover:text-white'}`} onClick={() => setLocation('/sign-in')}>Log In</Button>
               <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-lg shadow-primary/20" onClick={() => setLocation('/apply')}>Apply Now</Button>
@@ -295,10 +315,10 @@ function Home() {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-40 bg-background/95 backdrop-blur-xl pt-24 px-6 border-b border-border">
           <div className="flex flex-col gap-6 text-lg">
-            <a href="#programs" className="font-serif font-bold text-2xl text-primary" onClick={() => setMobileMenuOpen(false)}>Programs</a>
-            <a href="#platform" className="font-serif font-bold text-2xl text-primary" onClick={() => setMobileMenuOpen(false)}>Platform</a>
-            <a href="#faculty" className="font-serif font-bold text-2xl text-primary" onClick={() => setMobileMenuOpen(false)}>Faculty</a>
-            <a href="#about" className="font-serif font-bold text-2xl text-primary" onClick={() => setMobileMenuOpen(false)}>About</a>
+            <a href="#programs" className="font-serif font-bold text-2xl text-primary" onClick={(e) => { e.preventDefault(); setMobileMenuOpen(false); scrollToSection('programs'); }}>Programs</a>
+            <a href="#platform" className="font-serif font-bold text-2xl text-primary" onClick={(e) => { e.preventDefault(); setMobileMenuOpen(false); scrollToSection('platform'); }}>Platform</a>
+            <a href="#faculty" className="font-serif font-bold text-2xl text-primary" onClick={(e) => { e.preventDefault(); setMobileMenuOpen(false); scrollToSection('faculty'); }}>Faculty</a>
+            <a href="#about" className="font-serif font-bold text-2xl text-primary" onClick={(e) => { e.preventDefault(); setMobileMenuOpen(false); scrollToSection('about'); }}>About</a>
             <hr className="my-4 border-border" />
             <Button variant="outline" size="lg" className="w-full justify-center border-primary/20 text-primary" onClick={() => { setMobileMenuOpen(false); setLocation('/sign-in'); }}>Log In</Button>
             <Button size="lg" className="w-full justify-center bg-primary text-primary-foreground" onClick={() => { setMobileMenuOpen(false); setLocation('/apply'); }}>Apply Now</Button>
