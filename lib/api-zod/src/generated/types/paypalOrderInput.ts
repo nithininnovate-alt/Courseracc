@@ -8,6 +8,7 @@
 
 export interface PaypalOrderInput {
   courseId: number;
+  planId?: number;
   returnUrl: string;
   cancelUrl: string;
 }

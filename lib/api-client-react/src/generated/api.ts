@@ -58,9 +58,12 @@ import type {
   MaterialUpdate,
   Payment,
   PaymentInput,
+  PaymentPlan,
+  PaymentPlanInput,
   PaypalCaptureInput,
   PaypalOrderInput,
   PaypalOrderResponse,
+  PlanStatus,
   Result,
   ResultInput,
   ResultUpdate,
@@ -4299,6 +4302,372 @@ export const useCreatePayment = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getCreatePaymentMutationOptions(options));
     }
+
+export const getListPaymentPlansUrl = (courseId: number,) => {
+
+
+
+
+  return `/api/courses/${courseId}/payment-plans`
+}
+
+/**
+ * @summary List a course's payment plans
+ */
+export const listPaymentPlans = async (courseId: number, options?: RequestInit): Promise<PaymentPlan[]> => {
+
+  return customFetch<PaymentPlan[]>(getListPaymentPlansUrl(courseId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPaymentPlansQueryKey = (courseId: number,) => {
+    return [
+    `/api/courses/${courseId}/payment-plans`
+    ] as const;
+    }
+
+
+export const getListPaymentPlansQueryOptions = <TData = Awaited<ReturnType<typeof listPaymentPlans>>, TError = ErrorType<unknown>>(courseId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPaymentPlans>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPaymentPlansQueryKey(courseId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPaymentPlans>>> = ({ signal }) => listPaymentPlans(courseId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: courseId !== null && courseId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPaymentPlans>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPaymentPlansQueryResult = NonNullable<Awaited<ReturnType<typeof listPaymentPlans>>>
+export type ListPaymentPlansQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List a course's payment plans
+ */
+
+export function useListPaymentPlans<TData = Awaited<ReturnType<typeof listPaymentPlans>>, TError = ErrorType<unknown>>(
+ courseId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPaymentPlans>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPaymentPlansQueryOptions(courseId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreatePaymentPlanUrl = (courseId: number,) => {
+
+
+
+
+  return `/api/courses/${courseId}/payment-plans`
+}
+
+/**
+ * @summary Create a payment plan for a course (admin)
+ */
+export const createPaymentPlan = async (courseId: number,
+    paymentPlanInput: PaymentPlanInput, options?: RequestInit): Promise<PaymentPlan> => {
+
+  return customFetch<PaymentPlan>(getCreatePaymentPlanUrl(courseId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(paymentPlanInput)
+  }
+);}
+
+
+
+
+export const getCreatePaymentPlanMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPaymentPlan>>, TError,{courseId: number;data: BodyType<PaymentPlanInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPaymentPlan>>, TError,{courseId: number;data: BodyType<PaymentPlanInput>}, TContext> => {
+
+const mutationKey = ['createPaymentPlan'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPaymentPlan>>, {courseId: number;data: BodyType<PaymentPlanInput>}> = (props) => {
+          const {courseId,data} = props ?? {};
+
+          return  createPaymentPlan(courseId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePaymentPlanMutationResult = NonNullable<Awaited<ReturnType<typeof createPaymentPlan>>>
+    export type CreatePaymentPlanMutationBody = BodyType<PaymentPlanInput>
+    export type CreatePaymentPlanMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a payment plan for a course (admin)
+ */
+export const useCreatePaymentPlan = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPaymentPlan>>, TError,{courseId: number;data: BodyType<PaymentPlanInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPaymentPlan>>,
+        TError,
+        {courseId: number;data: BodyType<PaymentPlanInput>},
+        TContext
+      > => {
+      return useMutation(getCreatePaymentPlanMutationOptions(options));
+    }
+
+export const getUpdatePaymentPlanUrl = (id: number,) => {
+
+
+
+
+  return `/api/payment-plans/${id}`
+}
+
+/**
+ * @summary Update a payment plan (admin)
+ */
+export const updatePaymentPlan = async (id: number,
+    paymentPlanInput: PaymentPlanInput, options?: RequestInit): Promise<PaymentPlan> => {
+
+  return customFetch<PaymentPlan>(getUpdatePaymentPlanUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(paymentPlanInput)
+  }
+);}
+
+
+
+
+export const getUpdatePaymentPlanMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePaymentPlan>>, TError,{id: number;data: BodyType<PaymentPlanInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePaymentPlan>>, TError,{id: number;data: BodyType<PaymentPlanInput>}, TContext> => {
+
+const mutationKey = ['updatePaymentPlan'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePaymentPlan>>, {id: number;data: BodyType<PaymentPlanInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updatePaymentPlan(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePaymentPlanMutationResult = NonNullable<Awaited<ReturnType<typeof updatePaymentPlan>>>
+    export type UpdatePaymentPlanMutationBody = BodyType<PaymentPlanInput>
+    export type UpdatePaymentPlanMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update a payment plan (admin)
+ */
+export const useUpdatePaymentPlan = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePaymentPlan>>, TError,{id: number;data: BodyType<PaymentPlanInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePaymentPlan>>,
+        TError,
+        {id: number;data: BodyType<PaymentPlanInput>},
+        TContext
+      > => {
+      return useMutation(getUpdatePaymentPlanMutationOptions(options));
+    }
+
+export const getDeletePaymentPlanUrl = (id: number,) => {
+
+
+
+
+  return `/api/payment-plans/${id}`
+}
+
+/**
+ * @summary Delete a payment plan (admin)
+ */
+export const deletePaymentPlan = async (id: number, options?: RequestInit): Promise<AuthMessage> => {
+
+  return customFetch<AuthMessage>(getDeletePaymentPlanUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeletePaymentPlanMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePaymentPlan>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deletePaymentPlan>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deletePaymentPlan'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deletePaymentPlan>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deletePaymentPlan(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeletePaymentPlanMutationResult = NonNullable<Awaited<ReturnType<typeof deletePaymentPlan>>>
+
+    export type DeletePaymentPlanMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete a payment plan (admin)
+ */
+export const useDeletePaymentPlan = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePaymentPlan>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deletePaymentPlan>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeletePaymentPlanMutationOptions(options));
+    }
+
+export const getGetPlanStatusUrl = (courseId: number,) => {
+
+
+
+
+  return `/api/courses/${courseId}/plan-status`
+}
+
+/**
+ * @summary Get the current student's payment plan status for a course
+ */
+export const getPlanStatus = async (courseId: number, options?: RequestInit): Promise<PlanStatus> => {
+
+  return customFetch<PlanStatus>(getGetPlanStatusUrl(courseId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlanStatusQueryKey = (courseId: number,) => {
+    return [
+    `/api/courses/${courseId}/plan-status`
+    ] as const;
+    }
+
+
+export const getGetPlanStatusQueryOptions = <TData = Awaited<ReturnType<typeof getPlanStatus>>, TError = ErrorType<unknown>>(courseId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlanStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlanStatusQueryKey(courseId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlanStatus>>> = ({ signal }) => getPlanStatus(courseId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: courseId !== null && courseId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlanStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlanStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getPlanStatus>>>
+export type GetPlanStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the current student's payment plan status for a course
+ */
+
+export function useGetPlanStatus<TData = Awaited<ReturnType<typeof getPlanStatus>>, TError = ErrorType<unknown>>(
+ courseId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlanStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlanStatusQueryOptions(courseId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getCreatePaypalOrderUrl = () => {
 

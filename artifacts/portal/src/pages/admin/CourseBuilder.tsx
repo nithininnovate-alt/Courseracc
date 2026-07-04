@@ -10,9 +10,15 @@ import {
   useCreateMaterial,
   useUpdateMaterial,
   useDeleteMaterial,
+  useListPaymentPlans,
+  useCreatePaymentPlan,
+  useUpdatePaymentPlan,
+  useDeletePaymentPlan,
   MaterialInputType,
+  PaymentPlanInputType,
   type Subject,
   type StudyMaterial,
+  type PaymentPlan,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUpload } from "@workspace/object-storage-web";
@@ -53,6 +59,7 @@ import {
   FileText,
   LinkIcon,
   BookOpen,
+  CreditCard,
 } from "lucide-react";
 
 const MATERIAL_TYPES = Object.values(MaterialInputType);
@@ -175,6 +182,8 @@ export default function AdminCourseBuilder() {
           </Button>
         }
       />
+
+      <PaymentPlansManager courseId={courseId} />
 
       {isLoading ? (
         <LoadingCard />
@@ -339,6 +348,274 @@ function groupByYearSemester(subjects: Subject[]) {
           items: items.sort((a, b) => a.orderIndex - b.orderIndex),
         })),
     }));
+}
+
+interface PlanForm {
+  type: PaymentPlanInputType;
+  name: string;
+  installmentCount: string;
+  installmentAmount: string;
+  orderIndex: string;
+}
+
+const emptyPlan: PlanForm = {
+  type: "installment",
+  name: "",
+  installmentCount: "3",
+  installmentAmount: "0",
+  orderIndex: "0",
+};
+
+function PaymentPlansManager({ courseId }: { courseId: number }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const { data: plans, isLoading } = useListPaymentPlans(courseId);
+  const createPlan = useCreatePaymentPlan();
+  const updatePlan = useUpdatePaymentPlan();
+  const deletePlan = useDeletePaymentPlan();
+
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<PaymentPlan | null>(null);
+  const [form, setForm] = useState<PlanForm>(emptyPlan);
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm({ ...emptyPlan, orderIndex: String(plans?.length ?? 0) });
+    setOpen(true);
+  };
+  const openEdit = (p: PaymentPlan) => {
+    setEditing(p);
+    setForm({
+      type: p.type as PaymentPlanInputType,
+      name: p.name ?? "",
+      installmentCount: String(p.installmentCount),
+      installmentAmount: String(p.installmentAmount),
+      orderIndex: String(p.orderIndex),
+    });
+    setOpen(true);
+  };
+
+  const isOneTime = form.type === "one-time";
+  const count = isOneTime ? 1 : Number(form.installmentCount) || 1;
+  const perAmount = Number(form.installmentAmount) || 0;
+  const previewTotal = perAmount * count;
+
+  const handleSave = () => {
+    if (perAmount <= 0) {
+      toast({ title: "Enter a payment amount", variant: "destructive" });
+      return;
+    }
+    if (!isOneTime && count < 1) {
+      toast({ title: "Enter installment count", variant: "destructive" });
+      return;
+    }
+    const data = {
+      type: form.type,
+      name: form.name.trim() || undefined,
+      installmentCount: count,
+      installmentAmount: perAmount,
+      orderIndex: Number(form.orderIndex) || 0,
+    };
+    const onSuccess = () => {
+      toast({ title: editing ? "Plan updated" : "Plan added" });
+      qc.invalidateQueries();
+      setOpen(false);
+    };
+    const onError = () =>
+      toast({ title: "Error saving plan", variant: "destructive" });
+
+    if (editing) {
+      updatePlan.mutate({ id: editing.id, data }, { onSuccess, onError });
+    } else {
+      createPlan.mutate({ courseId, data }, { onSuccess, onError });
+    }
+  };
+
+  const handleDelete = (p: PaymentPlan) => {
+    if (!confirm("Delete this payment plan?")) return;
+    deletePlan.mutate(
+      { id: p.id },
+      {
+        onSuccess: () => {
+          toast({ title: "Plan deleted" });
+          qc.invalidateQueries();
+        },
+        onError: () => toast({ title: "Error deleting", variant: "destructive" }),
+      },
+    );
+  };
+
+  const sorted = (plans ?? []).slice();
+
+  return (
+    <Card className="rounded-2xl">
+      <CardContent className="py-5 space-y-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-primary" />
+            <h2 className="font-serif text-xl font-semibold">Payment plans</h2>
+          </div>
+          <Button size="sm" variant="outline" onClick={openCreate}>
+            <Plus className="w-4 h-4 mr-2" /> Add Plan
+          </Button>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Configure how students can pay for this course. With no plans, students
+          pay the one-time course price. Installment plans let students pay a
+          first installment to unlock the course, then pay the rest monthly.
+        </p>
+
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading plans…</p>
+        ) : sorted.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No plans configured. Students pay the default course price.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {sorted.map((p) => (
+              <div
+                key={p.id}
+                className="flex items-center justify-between gap-3 rounded-xl border p-3"
+              >
+                <div>
+                  <div className="font-medium">
+                    {p.name ??
+                      (p.type === "installment"
+                        ? `${p.installmentCount} monthly installments`
+                        : "Pay in full")}
+                    <Badge variant="secondary" className="ml-2">
+                      {p.type}
+                    </Badge>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {p.type === "installment"
+                      ? `${p.installmentCount} × $${p.installmentAmount.toLocaleString()} = $${p.totalAmount.toLocaleString()}`
+                      : `$${p.totalAmount.toLocaleString()}`}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => openEdit(p)}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(p)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit Plan" : "Add Plan"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Select
+                value={form.type}
+                onValueChange={(v) =>
+                  setForm({ ...form, type: v as PaymentPlanInputType })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="one-time">One-time</SelectItem>
+                  <SelectItem value="installment">Installment</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="p-name">Name (optional)</Label>
+              <Input
+                id="p-name"
+                value={form.name}
+                placeholder={
+                  isOneTime ? "Pay in full" : "e.g. 3-month plan"
+                }
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {!isOneTime && (
+                <div className="space-y-2">
+                  <Label htmlFor="p-count">Installments</Label>
+                  <Input
+                    id="p-count"
+                    type="number"
+                    min="1"
+                    value={form.installmentCount}
+                    onChange={(e) =>
+                      setForm({ ...form, installmentCount: e.target.value })
+                    }
+                  />
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="p-amount">
+                  {isOneTime ? "Amount ($)" : "Amount per installment ($)"}
+                </Label>
+                <Input
+                  id="p-amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.installmentAmount}
+                  onChange={(e) =>
+                    setForm({ ...form, installmentAmount: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="p-order">Order</Label>
+              <Input
+                id="p-order"
+                type="number"
+                min="0"
+                value={form.orderIndex}
+                onChange={(e) =>
+                  setForm({ ...form, orderIndex: e.target.value })
+                }
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Total charged to student:{" "}
+              <span className="font-semibold text-foreground">
+                ${previewTotal.toLocaleString()}
+              </span>
+              {!isOneTime && ` (${count} × $${perAmount.toLocaleString()})`}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={createPlan.isPending || updatePlan.isPending}
+            >
+              {editing ? "Save" : "Add Plan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
 }
 
 interface MaterialForm {

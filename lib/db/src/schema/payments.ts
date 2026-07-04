@@ -12,6 +12,8 @@ export const paymentsTable = pgTable("payments", {
   provider: text("provider").notNull().default("manual"),
   reference: text("reference"),
   invoiceNumber: text("invoice_number"),
+  planId: integer("plan_id"),
+  installmentIndex: integer("installment_index"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

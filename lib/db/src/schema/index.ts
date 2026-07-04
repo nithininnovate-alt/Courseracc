@@ -13,6 +13,7 @@ export * from "./exams";
 export * from "./exam-submissions";
 export * from "./results";
 export * from "./payments";
+export * from "./payment-plans";
 export * from "./certificates";
 export * from "./email-logs";
 export * from "./courier-tracking";

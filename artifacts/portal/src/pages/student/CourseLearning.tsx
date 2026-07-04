@@ -8,12 +8,15 @@ import {
   useListProgress,
   useRecordProgress,
   useListEnrollments,
+  useListPaymentPlans,
+  useGetPlanStatus,
   useCreatePaypalOrder,
   useCapturePaypalOrder,
   useGetLessonExplanation,
   getGetLessonExplanationQueryKey,
   type Subject,
   type StudyMaterial,
+  type PaymentPlan,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,11 +81,17 @@ export default function StudentCourseLearning() {
   const { data: progress } = useListProgress({ courseId });
   const completedSet = new Set((progress ?? []).map((p) => p.materialId));
 
+  const { data: plans } = useListPaymentPlans(courseId);
+  const configuredPlans = (plans ?? []).slice();
+  const { data: planStatus } = useGetPlanStatus(courseId);
+
   const createOrder = useCreatePaypalOrder();
   const captureOrder = useCapturePaypalOrder();
   const record = useRecordProgress();
 
   const [selected, setSelected] = useState<StudyMaterial | null>(null);
+  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
+  const effectivePlanId = selectedPlanId ?? configuredPlans[0]?.id ?? null;
 
   // Capture a PayPal order when returning from approval (?token=ORDER_ID).
   useEffect(() => {
@@ -111,11 +120,12 @@ export default function StudentCourseLearning() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handlePay = () => {
+  const handlePay = (planId?: number) => {
     createOrder.mutate(
       {
         data: {
           courseId,
+          ...(planId != null ? { planId } : {}),
           returnUrl: appUrl(courseId),
           cancelUrl: appUrl(courseId),
         },
@@ -175,9 +185,56 @@ export default function StudentCourseLearning() {
         </Card>
       )}
 
+      {hasAccess &&
+        planStatus?.hasPlan &&
+        !planStatus.isComplete &&
+        planStatus.installmentsRemaining > 0 && (
+          <Card className="rounded-2xl border-primary/30">
+            <CardContent className="py-5 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-serif text-lg font-semibold">
+                    Installment plan
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {planStatus.installmentsPaid} of{" "}
+                    {planStatus.installmentCount} payments made
+                    {planStatus.totalAmount != null
+                      ? ` · $${planStatus.totalPaid.toLocaleString()} of $${planStatus.totalAmount.toLocaleString()} paid`
+                      : ""}
+                  </p>
+                </div>
+                <Button
+                  onClick={() => handlePay()}
+                  disabled={createOrder.isPending}
+                >
+                  {createOrder.isPending
+                    ? "Starting checkout…"
+                    : `Pay next installment${
+                        planStatus.nextAmountDue != null
+                          ? ` — $${planStatus.nextAmountDue.toLocaleString()}`
+                          : ""
+                      }`}
+                </Button>
+              </div>
+              <Progress
+                value={
+                  planStatus.installmentCount
+                    ? Math.round(
+                        (planStatus.installmentsPaid /
+                          planStatus.installmentCount) *
+                          100,
+                      )
+                    : 0
+                }
+              />
+            </CardContent>
+          </Card>
+        )}
+
       {!hasAccess ? (
         <Card className="rounded-2xl border-primary/30">
-          <CardContent className="py-12 flex flex-col items-center text-center gap-4">
+          <CardContent className="py-12 flex flex-col items-center text-center gap-5">
             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
               <Lock className="w-7 h-7 text-primary" />
             </div>
@@ -186,20 +243,73 @@ export default function StudentCourseLearning() {
                 Unlock this course
               </h3>
               <p className="text-muted-foreground mt-1">
-                Complete your tuition payment to access all lectures and study
-                materials.
+                {configuredPlans.length > 0
+                  ? "Choose how you would like to pay. Your first payment unlocks all lectures and study materials."
+                  : "Complete your tuition payment to access all lectures and study materials."}
               </p>
             </div>
-            <div className="text-3xl font-bold text-primary">
-              ${access?.price.toLocaleString()}
-            </div>
-            <Button
-              size="lg"
-              onClick={handlePay}
-              disabled={createOrder.isPending}
-            >
-              {createOrder.isPending ? "Starting checkout…" : "Pay with PayPal"}
-            </Button>
+
+            {configuredPlans.length > 0 ? (
+              <>
+                <div className="w-full max-w-md space-y-3 text-left">
+                  {configuredPlans.map((plan) => {
+                    const active = effectivePlanId === plan.id;
+                    return (
+                      <button
+                        key={plan.id}
+                        type="button"
+                        onClick={() => setSelectedPlanId(plan.id)}
+                        className={`w-full rounded-xl border p-4 text-left transition-colors ${
+                          active
+                            ? "border-primary bg-primary/5 ring-1 ring-primary"
+                            : "hover:bg-muted"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-medium">{planLabel(plan)}</span>
+                          <span className="font-semibold text-primary">
+                            {plan.type === "installment"
+                              ? `$${plan.installmentAmount.toLocaleString()}/mo`
+                              : `$${plan.totalAmount.toLocaleString()}`}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {plan.type === "installment"
+                            ? `${plan.installmentCount} monthly payments · $${plan.totalAmount.toLocaleString()} total`
+                            : "One-time payment"}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+                <Button
+                  size="lg"
+                  onClick={() =>
+                    effectivePlanId != null && handlePay(effectivePlanId)
+                  }
+                  disabled={createOrder.isPending || effectivePlanId == null}
+                >
+                  {createOrder.isPending
+                    ? "Starting checkout…"
+                    : "Continue with PayPal"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="text-3xl font-bold text-primary">
+                  ${access?.price.toLocaleString()}
+                </div>
+                <Button
+                  size="lg"
+                  onClick={() => handlePay()}
+                  disabled={createOrder.isPending}
+                >
+                  {createOrder.isPending
+                    ? "Starting checkout…"
+                    : "Pay with PayPal"}
+                </Button>
+              </>
+            )}
             <p className="text-xs text-muted-foreground">
               You will be redirected to PayPal to complete your payment securely.
             </p>
@@ -272,6 +382,13 @@ export default function StudentCourseLearning() {
       },
     );
   }
+}
+
+function planLabel(plan: PaymentPlan): string {
+  if (plan.name) return plan.name;
+  return plan.type === "installment"
+    ? `${plan.installmentCount} monthly installments`
+    : "Pay in full";
 }
 
 function groupByYearSemester(subjects: Subject[]) {

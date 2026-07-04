@@ -1314,10 +1314,130 @@ export const CreatePaymentResponse = zod.object({
 
 
 /**
+ * @summary List a course's payment plans
+ */
+export const ListPaymentPlansParams = zod.object({
+  "courseId": zod.coerce.number()
+})
+
+export const ListPaymentPlansResponseItem = zod.object({
+  "id": zod.number(),
+  "courseId": zod.number(),
+  "type": zod.enum(['one-time', 'installment']),
+  "name": zod.string().nullish(),
+  "installmentCount": zod.number(),
+  "installmentAmount": zod.number(),
+  "totalAmount": zod.number(),
+  "orderIndex": zod.number()
+})
+export const ListPaymentPlansResponse = zod.array(ListPaymentPlansResponseItem)
+
+
+/**
+ * @summary Create a payment plan for a course (admin)
+ */
+export const CreatePaymentPlanParams = zod.object({
+  "courseId": zod.coerce.number()
+})
+
+
+export const createPaymentPlanBodyInstallmentAmountMin = 0;
+
+
+
+export const CreatePaymentPlanBody = zod.object({
+  "type": zod.enum(['one-time', 'installment']),
+  "name": zod.string().optional(),
+  "installmentCount": zod.number().min(1),
+  "installmentAmount": zod.number().min(createPaymentPlanBodyInstallmentAmountMin),
+  "orderIndex": zod.number().optional()
+})
+
+export const CreatePaymentPlanResponse = zod.object({
+  "id": zod.number(),
+  "courseId": zod.number(),
+  "type": zod.enum(['one-time', 'installment']),
+  "name": zod.string().nullish(),
+  "installmentCount": zod.number(),
+  "installmentAmount": zod.number(),
+  "totalAmount": zod.number(),
+  "orderIndex": zod.number()
+})
+
+
+/**
+ * @summary Update a payment plan (admin)
+ */
+export const UpdatePaymentPlanParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+export const updatePaymentPlanBodyInstallmentAmountMin = 0;
+
+
+
+export const UpdatePaymentPlanBody = zod.object({
+  "type": zod.enum(['one-time', 'installment']),
+  "name": zod.string().optional(),
+  "installmentCount": zod.number().min(1),
+  "installmentAmount": zod.number().min(updatePaymentPlanBodyInstallmentAmountMin),
+  "orderIndex": zod.number().optional()
+})
+
+export const UpdatePaymentPlanResponse = zod.object({
+  "id": zod.number(),
+  "courseId": zod.number(),
+  "type": zod.enum(['one-time', 'installment']),
+  "name": zod.string().nullish(),
+  "installmentCount": zod.number(),
+  "installmentAmount": zod.number(),
+  "totalAmount": zod.number(),
+  "orderIndex": zod.number()
+})
+
+
+/**
+ * @summary Delete a payment plan (admin)
+ */
+export const DeletePaymentPlanParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeletePaymentPlanResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Get the current student's payment plan status for a course
+ */
+export const GetPlanStatusParams = zod.object({
+  "courseId": zod.coerce.number()
+})
+
+export const GetPlanStatusResponse = zod.object({
+  "courseId": zod.number(),
+  "hasPlan": zod.boolean(),
+  "planId": zod.number().nullish(),
+  "planType": zod.string().nullish(),
+  "installmentCount": zod.number().nullish(),
+  "installmentAmount": zod.number().nullish(),
+  "totalAmount": zod.number().nullish(),
+  "installmentsPaid": zod.number(),
+  "installmentsRemaining": zod.number(),
+  "nextAmountDue": zod.number().nullish(),
+  "totalPaid": zod.number(),
+  "isComplete": zod.boolean()
+})
+
+
+/**
  * @summary Create a PayPal order for a course
  */
 export const CreatePaypalOrderBody = zod.object({
   "courseId": zod.number(),
+  "planId": zod.number().optional(),
   "returnUrl": zod.string(),
   "cancelUrl": zod.string()
 })

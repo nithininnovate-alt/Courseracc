@@ -10,6 +10,7 @@ import {
   materialProgressTable,
   assignmentsTable,
   submissionsTable,
+  paymentPlansTable,
 } from "@workspace/db";
 
 const SAMPLE_VIDEO =
@@ -606,12 +607,62 @@ async function main() {
     }
   }
 
+  // Payment plans for the three flagship CGU programs. Idempotent: clear the
+  // plans for these courses, then re-insert. Does not touch payment records.
+  const planSeed: Record<
+    string,
+    Array<{
+      type: "one-time" | "installment";
+      name: string;
+      installmentCount: number;
+      installmentAmount: number;
+    }>
+  > = {
+    "bba-business-administration": [
+      { type: "one-time", name: "Pay in full", installmentCount: 1, installmentAmount: 4500 },
+      { type: "installment", name: "3-month plan", installmentCount: 3, installmentAmount: 1600 },
+      { type: "installment", name: "6-month plan", installmentCount: 6, installmentAmount: 900 },
+    ],
+    "mba-business-administration": [
+      { type: "one-time", name: "Pay in full", installmentCount: 1, installmentAmount: 4000 },
+      { type: "installment", name: "2-month plan", installmentCount: 2, installmentAmount: 2100 },
+      { type: "installment", name: "4-month plan", installmentCount: 4, installmentAmount: 1200 },
+    ],
+    "dba-business-administration": [
+      { type: "one-time", name: "Pay in full", installmentCount: 1, installmentAmount: 5000 },
+      { type: "installment", name: "3-month plan", installmentCount: 3, installmentAmount: 1800 },
+      { type: "installment", name: "6-month plan", installmentCount: 6, installmentAmount: 1000 },
+    ],
+  };
+
+  let planCount = 0;
+  for (const course of allCourses) {
+    const plans = planSeed[course.slug];
+    if (!plans) continue;
+    await db
+      .delete(paymentPlansTable)
+      .where(eq(paymentPlansTable.courseId, course.id));
+    await db.insert(paymentPlansTable).values(
+      plans.map((p, i) => ({
+        courseId: course.id,
+        type: p.type,
+        name: p.name,
+        installmentCount: p.installmentCount,
+        installmentAmount: String(p.installmentAmount),
+        totalAmount: String(p.installmentAmount * p.installmentCount),
+        orderIndex: i,
+      })),
+    );
+    planCount += plans.length;
+  }
+
   console.log("Seed complete.");
   console.log(`  superadmin / ${superadminPassword}`);
   console.log(`  admin / ${adminPassword}`);
   console.log(`  courses: ${allCourses.length}`);
   console.log(`  subjects inserted: ${subjectCount}`);
   console.log(`  materials inserted: ${materialCount}`);
+  console.log(`  payment plans inserted: ${planCount}`);
   console.log(`  assignments inserted: ${assignmentCount}`);
   await pool.end();
 }

@@ -1,8 +1,9 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, sql, asc } from "drizzle-orm";
 import {
   db,
   coursesTable,
   paymentsTable,
+  paymentPlansTable,
   enrollmentsTable,
   subjectsTable,
   studyMaterialsTable,
@@ -14,6 +15,118 @@ export interface CourseAccess {
   hasAccess: boolean;
   price: number;
   paid: boolean;
+}
+
+export interface PlanStatus {
+  courseId: number;
+  hasPlan: boolean;
+  planId: number | null;
+  planType: string | null;
+  installmentCount: number | null;
+  installmentAmount: number | null;
+  totalAmount: number | null;
+  installmentsPaid: number;
+  installmentsRemaining: number;
+  nextAmountDue: number | null;
+  totalPaid: number;
+  isComplete: boolean;
+}
+
+/**
+ * Derive the current student's payment plan status for a course from their
+ * completed payment rows. A student's chosen plan is the planId recorded on
+ * their payments; progress is the count of completed installments for it.
+ */
+export async function getPlanStatus(
+  userId: number,
+  courseId: number,
+): Promise<PlanStatus> {
+  const empty: PlanStatus = {
+    courseId,
+    hasPlan: false,
+    planId: null,
+    planType: null,
+    installmentCount: null,
+    installmentAmount: null,
+    totalAmount: null,
+    installmentsPaid: 0,
+    installmentsRemaining: 0,
+    nextAmountDue: null,
+    totalPaid: 0,
+    isComplete: false,
+  };
+
+  const completed = await db
+    .select()
+    .from(paymentsTable)
+    .where(
+      and(
+        eq(paymentsTable.userId, userId),
+        eq(paymentsTable.courseId, courseId),
+        eq(paymentsTable.status, "completed"),
+      ),
+    )
+    .orderBy(asc(paymentsTable.createdAt));
+
+  if (completed.length === 0) return empty;
+
+  const totalPaid = completed.reduce((sum, p) => sum + Number(p.amount), 0);
+  const planId = completed.find((p) => p.planId != null)?.planId ?? null;
+
+  // Legacy one-time payment (no plan linkage) — treat as fully paid.
+  if (planId == null) {
+    return {
+      ...empty,
+      hasPlan: true,
+      planType: "one-time",
+      installmentCount: 1,
+      installmentAmount: totalPaid,
+      totalAmount: totalPaid,
+      installmentsPaid: 1,
+      installmentsRemaining: 0,
+      nextAmountDue: null,
+      totalPaid,
+      isComplete: true,
+    };
+  }
+
+  const [plan] = await db
+    .select()
+    .from(paymentPlansTable)
+    .where(eq(paymentPlansTable.id, planId));
+  const paidForPlan = completed.filter((p) => p.planId === planId).length;
+
+  if (!plan) {
+    // Plan definition no longer exists (e.g. reconfigured); report what we know.
+    return {
+      ...empty,
+      hasPlan: true,
+      planId,
+      planType: "installment",
+      installmentCount: paidForPlan,
+      installmentsPaid: paidForPlan,
+      installmentsRemaining: 0,
+      totalPaid,
+      isComplete: true,
+    };
+  }
+
+  const perAmount = Number(plan.installmentAmount);
+  const remaining = Math.max(0, plan.installmentCount - paidForPlan);
+  return {
+    courseId,
+    hasPlan: true,
+    planId: plan.id,
+    planType: plan.type,
+    installmentCount: plan.installmentCount,
+    installmentAmount: perAmount,
+    totalAmount: Number(plan.totalAmount),
+    installmentsPaid: paidForPlan,
+    installmentsRemaining: remaining,
+    nextAmountDue: remaining > 0 ? perAmount : null,
+    totalPaid,
+    isComplete: remaining === 0,
+  };
 }
 
 /**

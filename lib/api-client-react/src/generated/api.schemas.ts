@@ -384,8 +384,68 @@ export interface MaterialProgressInput {
 
 export interface PaypalOrderInput {
   courseId: number;
+  planId?: number;
   returnUrl: string;
   cancelUrl: string;
+}
+
+export type PaymentPlanType = typeof PaymentPlanType[keyof typeof PaymentPlanType];
+
+
+export const PaymentPlanType = {
+  'one-time': 'one-time',
+  installment: 'installment',
+} as const;
+
+export interface PaymentPlan {
+  id: number;
+  courseId: number;
+  type: PaymentPlanType;
+  /** @nullable */
+  name?: string | null;
+  installmentCount: number;
+  installmentAmount: number;
+  totalAmount: number;
+  orderIndex: number;
+}
+
+export type PaymentPlanInputType = typeof PaymentPlanInputType[keyof typeof PaymentPlanInputType];
+
+
+export const PaymentPlanInputType = {
+  'one-time': 'one-time',
+  installment: 'installment',
+} as const;
+
+export interface PaymentPlanInput {
+  type: PaymentPlanInputType;
+  name?: string;
+  /** @minimum 1 */
+  installmentCount: number;
+  /** @minimum 0 */
+  installmentAmount: number;
+  orderIndex?: number;
+}
+
+export interface PlanStatus {
+  courseId: number;
+  hasPlan: boolean;
+  /** @nullable */
+  planId?: number | null;
+  /** @nullable */
+  planType?: string | null;
+  /** @nullable */
+  installmentCount?: number | null;
+  /** @nullable */
+  installmentAmount?: number | null;
+  /** @nullable */
+  totalAmount?: number | null;
+  installmentsPaid: number;
+  installmentsRemaining: number;
+  /** @nullable */
+  nextAmountDue?: number | null;
+  totalPaid: number;
+  isComplete: boolean;
 }
 
 export interface PaypalOrderResponse {

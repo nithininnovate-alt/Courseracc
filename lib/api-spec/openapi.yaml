@@ -1122,6 +1122,111 @@ paths:
               schema:
                 $ref: "#/components/schemas/Payment"
 
+  /courses/{courseId}/payment-plans:
+    get:
+      operationId: listPaymentPlans
+      tags: [payments]
+      summary: List a course's payment plans
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Payment plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaymentPlan"
+    post:
+      operationId: createPaymentPlan
+      tags: [payments]
+      summary: Create a payment plan for a course (admin)
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentPlanInput"
+      responses:
+        "201":
+          description: Created payment plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentPlan"
+
+  /payment-plans/{id}:
+    patch:
+      operationId: updatePaymentPlan
+      tags: [payments]
+      summary: Update a payment plan (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentPlanInput"
+      responses:
+        "200":
+          description: Updated payment plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentPlan"
+    delete:
+      operationId: deletePaymentPlan
+      tags: [payments]
+      summary: Delete a payment plan (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthMessage"
+
+  /courses/{courseId}/plan-status:
+    get:
+      operationId: getPlanStatus
+      tags: [payments]
+      summary: Get the current student's payment plan status for a course
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Plan status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanStatus"
+
   /payments/paypal/create-order:
     post:
       operationId: createPaypalOrder
@@ -1684,8 +1789,46 @@ components:
       required: [courseId, returnUrl, cancelUrl]
       properties:
         courseId: { type: integer }
+        planId: { type: integer }
         returnUrl: { type: string }
         cancelUrl: { type: string }
+    PaymentPlan:
+      type: object
+      required: [id, courseId, type, installmentCount, installmentAmount, totalAmount, orderIndex]
+      properties:
+        id: { type: integer }
+        courseId: { type: integer }
+        type: { type: string, enum: [one-time, installment] }
+        name: { type: ["string", "null"] }
+        installmentCount: { type: integer }
+        installmentAmount: { type: number }
+        totalAmount: { type: number }
+        orderIndex: { type: integer }
+    PaymentPlanInput:
+      type: object
+      required: [type, installmentCount, installmentAmount]
+      properties:
+        type: { type: string, enum: [one-time, installment] }
+        name: { type: string }
+        installmentCount: { type: integer, minimum: 1 }
+        installmentAmount: { type: number, minimum: 0 }
+        orderIndex: { type: integer }
+    PlanStatus:
+      type: object
+      required: [courseId, hasPlan, installmentsPaid, installmentsRemaining, totalPaid, isComplete]
+      properties:
+        courseId: { type: integer }
+        hasPlan: { type: boolean }
+        planId: { type: ["integer", "null"] }
+        planType: { type: ["string", "null"] }
+        installmentCount: { type: ["integer", "null"] }
+        installmentAmount: { type: ["number", "null"] }
+        totalAmount: { type: ["number", "null"] }
+        installmentsPaid: { type: integer }
+        installmentsRemaining: { type: integer }
+        nextAmountDue: { type: ["number", "null"] }
+        totalPaid: { type: number }
+        isComplete: { type: boolean }
     PaypalOrderResponse:
       type: object
       required: [paymentId, orderId, approveUrl]

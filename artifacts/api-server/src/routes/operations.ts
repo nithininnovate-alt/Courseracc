@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
-import { and, eq, desc, inArray } from "drizzle-orm";
+import { and, eq, asc, desc, inArray } from "drizzle-orm";
 import {
   db,
   paymentsTable,
+  paymentPlansTable,
   coursesTable,
   usersTable,
   certificatesTable,
@@ -17,6 +18,8 @@ import {
   CreatePaymentBody,
   CreatePaypalOrderBody,
   CapturePaypalOrderBody,
+  CreatePaymentPlanBody,
+  UpdatePaymentPlanBody,
   IssueCertificateBody,
   RequestCourierBody,
   UpdateCourierBody,
@@ -43,13 +46,22 @@ import {
   buildPaymentConfirmation,
   buildCourseActivation,
 } from "../lib/email";
-import { ensureEnrollment } from "../lib/access";
+import { ensureEnrollment, getPlanStatus } from "../lib/access";
 
 const router: IRouter = Router();
 
 type PaymentRow = typeof paymentsTable.$inferSelect;
 function serializePayment(p: PaymentRow) {
   return { ...p, amount: Number(p.amount) };
+}
+
+type PlanRow = typeof paymentPlansTable.$inferSelect;
+function serializePlan(p: PlanRow) {
+  return {
+    ...p,
+    installmentAmount: Number(p.installmentAmount),
+    totalAmount: Number(p.totalAmount),
+  };
 }
 
 function makeInvoiceNumber(id: number, date: Date): string {
@@ -107,7 +119,7 @@ router.post(
       res.status(503).json({ error: "PayPal is not configured" });
       return;
     }
-    const { courseId, returnUrl, cancelUrl } = parsed.data;
+    const { courseId, planId, returnUrl, cancelUrl } = parsed.data;
     const [course] = await db
       .select()
       .from(coursesTable)
@@ -116,30 +128,102 @@ router.post(
       res.status(404).json({ error: "Course not found" });
       return;
     }
-    const amount = Number(course.price);
+
+    const userId = req.currentUser!.id;
+    const completedRows = await db
+      .select()
+      .from(paymentsTable)
+      .where(
+        and(
+          eq(paymentsTable.userId, userId),
+          eq(paymentsTable.courseId, courseId),
+          eq(paymentsTable.status, "completed"),
+        ),
+      );
+
+    let amount: number;
+    let usePlanId: number | null = null;
+    let installmentIndex = 1;
+    let installmentCount = 1;
+
+    if (completedRows.length > 0) {
+      // Continuing an existing purchase — derive the next installment due.
+      const existingPlanId =
+        completedRows.find((p) => p.planId != null)?.planId ?? null;
+      if (existingPlanId == null) {
+        res
+          .status(400)
+          .json({ error: "You already have full access to this course" });
+        return;
+      }
+      const [plan] = await db
+        .select()
+        .from(paymentPlansTable)
+        .where(eq(paymentPlansTable.id, existingPlanId));
+      if (!plan) {
+        res.status(400).json({ error: "Payment plan no longer exists" });
+        return;
+      }
+      const paidForPlan = completedRows.filter(
+        (p) => p.planId === existingPlanId,
+      ).length;
+      if (paidForPlan >= plan.installmentCount) {
+        res.status(400).json({ error: "This plan is already fully paid" });
+        return;
+      }
+      amount = Number(plan.installmentAmount);
+      usePlanId = plan.id;
+      installmentIndex = paidForPlan + 1;
+      installmentCount = plan.installmentCount;
+    } else if (planId != null) {
+      // First payment on a chosen plan.
+      const [plan] = await db
+        .select()
+        .from(paymentPlansTable)
+        .where(eq(paymentPlansTable.id, planId));
+      if (!plan || plan.courseId !== courseId) {
+        res.status(400).json({ error: "Invalid payment plan" });
+        return;
+      }
+      amount = Number(plan.installmentAmount);
+      usePlanId = plan.id;
+      installmentIndex = 1;
+      installmentCount = plan.installmentCount;
+    } else {
+      // Legacy one-time payment at the course price.
+      amount = Number(course.price);
+    }
+
     if (amount <= 0) {
       res.status(400).json({ error: "This course is free" });
       return;
     }
 
+    const description =
+      installmentCount > 1
+        ? `Installment ${installmentIndex}/${installmentCount} — ${course.title}`
+        : `Tuition — ${course.title}`;
+
     try {
       const order = await createOrder({
         amount,
         currency: "USD",
-        description: `Tuition — ${course.title}`,
+        description: description.slice(0, 127),
         returnUrl,
         cancelUrl,
       });
       const [payment] = await db
         .insert(paymentsTable)
         .values({
-          userId: req.currentUser!.id,
+          userId,
           courseId,
           amount: String(amount),
           currency: "USD",
           status: "pending",
           provider: "paypal",
           reference: order.orderId,
+          planId: usePlanId,
+          installmentIndex,
         })
         .returning();
       res.status(201).json({
@@ -185,6 +269,33 @@ router.post(
     if (payment.status === "completed") {
       res.json(serializePayment(payment));
       return;
+    }
+
+    // Guard against double-collection from duplicate/concurrent pending orders
+    // (e.g. double-click, reload). Check BEFORE capturing so no money is taken
+    // if this installment has already been satisfied.
+    if (payment.courseId) {
+      const priorCompleted = await db
+        .select()
+        .from(paymentsTable)
+        .where(
+          and(
+            eq(paymentsTable.userId, req.currentUser!.id),
+            eq(paymentsTable.courseId, payment.courseId),
+            eq(paymentsTable.status, "completed"),
+          ),
+        );
+      const alreadyPaid =
+        payment.planId == null
+          ? priorCompleted.some((p) => p.planId == null)
+          : priorCompleted.filter((p) => p.planId === payment.planId).length >=
+            (payment.installmentIndex ?? 1);
+      if (alreadyPaid) {
+        res
+          .status(409)
+          .json({ error: "This payment has already been completed" });
+        return;
+      }
     }
 
     try {
@@ -246,6 +357,103 @@ router.post(
         .status(502)
         .json({ error: err instanceof Error ? err.message : "PayPal error" });
     }
+  },
+);
+
+// --- Payment plans ---------------------------------------------------------
+
+router.get("/courses/:courseId/payment-plans", async (req, res) => {
+  const courseId = Number(req.params.courseId);
+  const rows = await db
+    .select()
+    .from(paymentPlansTable)
+    .where(eq(paymentPlansTable.courseId, courseId))
+    .orderBy(asc(paymentPlansTable.orderIndex), asc(paymentPlansTable.id));
+  res.json(rows.map(serializePlan));
+});
+
+router.post(
+  "/courses/:courseId/payment-plans",
+  requireStaff,
+  async (req, res) => {
+    const courseId = Number(req.params.courseId);
+    const parsed = CreatePaymentPlanBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid input" });
+      return;
+    }
+    const [course] = await db
+      .select({ id: coursesTable.id })
+      .from(coursesTable)
+      .where(eq(coursesTable.id, courseId));
+    if (!course) {
+      res.status(404).json({ error: "Course not found" });
+      return;
+    }
+    const { type, name, installmentCount, installmentAmount, orderIndex } =
+      parsed.data;
+    const count = type === "one-time" ? 1 : installmentCount;
+    const total = installmentAmount * count;
+    const [created] = await db
+      .insert(paymentPlansTable)
+      .values({
+        courseId,
+        type,
+        name: name ?? null,
+        installmentCount: count,
+        installmentAmount: String(installmentAmount),
+        totalAmount: String(total),
+        orderIndex: orderIndex ?? 0,
+      })
+      .returning();
+    res.status(201).json(serializePlan(created));
+  },
+);
+
+router.patch("/payment-plans/:id", requireStaff, async (req, res) => {
+  const id = Number(req.params.id);
+  const parsed = UpdatePaymentPlanBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid input" });
+    return;
+  }
+  const { type, name, installmentCount, installmentAmount, orderIndex } =
+    parsed.data;
+  const count = type === "one-time" ? 1 : installmentCount;
+  const total = installmentAmount * count;
+  const values: Record<string, unknown> = {
+    type,
+    name: name ?? null,
+    installmentCount: count,
+    installmentAmount: String(installmentAmount),
+    totalAmount: String(total),
+  };
+  if (orderIndex !== undefined) values.orderIndex = orderIndex;
+  const [updated] = await db
+    .update(paymentPlansTable)
+    .set(values)
+    .where(eq(paymentPlansTable.id, id))
+    .returning();
+  if (!updated) {
+    res.status(404).json({ error: "Payment plan not found" });
+    return;
+  }
+  res.json(serializePlan(updated));
+});
+
+router.delete("/payment-plans/:id", requireStaff, async (req, res) => {
+  const id = Number(req.params.id);
+  await db.delete(paymentPlansTable).where(eq(paymentPlansTable.id, id));
+  res.json({ success: true });
+});
+
+router.get(
+  "/courses/:courseId/plan-status",
+  requireUser,
+  async (req: AuthedRequest, res) => {
+    const courseId = Number(req.params.courseId);
+    const status = await getPlanStatus(req.currentUser!.id, courseId);
+    res.json(status);
   },
 );
 
