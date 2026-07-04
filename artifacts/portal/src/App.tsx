@@ -373,7 +373,7 @@ function Home() {
         </section>
 
         {/* 4. Why Choose Us */}
-        <section id="about" className="py-32 bg-muted/30">
+        <section id="about" className="py-32 bg-muted/30 scroll-mt-24">
           <div className="container mx-auto px-6 md:px-12">
             <div className="text-center max-w-3xl mx-auto mb-20">
               <h2 className="text-4xl md:text-5xl font-serif font-bold text-primary mb-6">A Global University for a Global Era</h2>
@@ -403,7 +403,7 @@ function Home() {
         </section>
 
         {/* 5. Platform Showcase */}
-        <section id="platform" className="py-32">
+        <section id="platform" className="py-32 scroll-mt-24">
           <div className="container mx-auto px-6 md:px-12">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }} className="order-2 lg:order-1">
@@ -466,7 +466,7 @@ function Home() {
         </section>
 
         {/* 6. Featured Programs */}
-        <section id="programs" className="py-32 bg-muted/30 border-y border-border/50">
+        <section id="programs" className="py-32 bg-muted/30 border-y border-border/50 scroll-mt-24">
           <div className="container mx-auto px-6 md:px-12">
             <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
               <div className="max-w-2xl">
@@ -510,7 +510,7 @@ function Home() {
         </section>
 
         {/* 7. Faculty Spotlight */}
-        <section id="faculty" className="py-32">
+        <section id="faculty" className="py-32 scroll-mt-24">
           <div className="container mx-auto px-6 md:px-12">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>
