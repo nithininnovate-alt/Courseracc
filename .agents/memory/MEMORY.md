@@ -1,2 +1,3 @@
 - [Orval codegen conventions](orval-codegen.md) — request-body types are named after the OpenAPI schema ref (e.g. CertificateInput), not `<operationId>Body`; query hooks are `export function`, mutations are `export const`.
 - [OpenAI server lib copy](openai-server-lib-copy.md) — codegen chains typecheck:libs, so latent lib type errors fail it; SSE endpoints can't use generated hooks.
+- [api-server testing](api-server-testing.md) — vitest hermetic route tests; openai/db libs throw at import so must be mocked; mount router + real fetch for SSE.
