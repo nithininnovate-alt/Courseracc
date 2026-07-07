@@ -720,7 +720,7 @@ router.post("/certificates/:id/revoke", requireStaff, async (req, res) => {
   res.json(updated);
 });
 
-async function buildTranscriptRows(
+export async function buildTranscriptRows(
   userId: number,
   courseId: number,
 ): Promise<TranscriptRow[]> {

@@ -183,6 +183,33 @@ export const GRADE_POINTS: Record<string, number> = {
   F: 0.0,
 };
 
+export interface TranscriptSummary {
+  totalCredits: number;
+  earnedCredits: number;
+  gradedCredits: number;
+  weightedPoints: number;
+  gpa: number;
+}
+
+/** Credit-weighted GPA + credit totals for a set of transcript rows. */
+export function computeTranscriptSummary(rows: TranscriptRow[]): TranscriptSummary {
+  let totalCredits = 0;
+  let earnedCredits = 0;
+  let weightedPoints = 0;
+  let gradedCredits = 0;
+  for (const row of rows) {
+    totalCredits += row.credits;
+    if (row.passed) earnedCredits += row.credits;
+    const points = GRADE_POINTS[row.grade];
+    if (points !== undefined) {
+      weightedPoints += points * row.credits;
+      gradedCredits += row.credits;
+    }
+  }
+  const gpa = gradedCredits > 0 ? weightedPoints / gradedCredits : 0;
+  return { totalCredits, earnedCredits, gradedCredits, weightedPoints, gpa };
+}
+
 /** Derive a letter grade from a percentage score. */
 export function letterGradeFromPercent(pct: number): string {
   if (pct >= 93) return "A";
@@ -318,10 +345,7 @@ export async function generateTranscript(data: TranscriptData): Promise<Uint8Arr
 
   const years = [...new Set(data.rows.map((r) => r.year))].sort((a, b) => a - b);
   const ordinal = ["FIRST", "SECOND", "THIRD", "FOURTH", "FIFTH"];
-  let totalCredits = 0;
-  let earnedCredits = 0;
-  let weightedPoints = 0;
-  let gradedCredits = 0;
+  const { totalCredits, earnedCredits, gpa } = computeTranscriptSummary(data.rows);
 
   for (const yr of years) {
     ensureSpace(40);
@@ -352,13 +376,6 @@ export async function generateTranscript(data: TranscriptData): Promise<Uint8Arr
         thickness: 0.5,
         color: LINE,
       });
-      totalCredits += row.credits;
-      if (row.passed) earnedCredits += row.credits;
-      const points = GRADE_POINTS[row.grade];
-      if (points !== undefined) {
-        weightedPoints += points * row.credits;
-        gradedCredits += row.credits;
-      }
       y -= 20;
     }
     y -= 6;
@@ -378,7 +395,6 @@ export async function generateTranscript(data: TranscriptData): Promise<Uint8Arr
   // Totals + GPA
   ensureSpace(120);
   y -= 8;
-  const gpa = gradedCredits > 0 ? weightedPoints / gradedCredits : 0;
   page.drawRectangle({
     x: margin,
     y: y - 30,
