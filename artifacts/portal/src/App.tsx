@@ -173,7 +173,7 @@ function HeroSlider() {
   const slide = heroSlides[current];
 
   return (
-    <section className="relative h-[88vh] min-h-[560px] max-h-[820px] w-full overflow-hidden">
+    <section className="relative h-[88vh] min-h-[560px] max-h-[820px] w-full overflow-hidden bg-[#1a1a2e]">
       {heroSlides.map((s, i) => (
         <div
           key={i}
