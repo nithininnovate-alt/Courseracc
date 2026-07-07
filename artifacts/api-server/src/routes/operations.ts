@@ -843,7 +843,10 @@ router.get("/certificates/:id/download", async (req, res) => {
       degreeAwarded: course?.title ?? "Programme",
       certificateNumber: certificate.certificateNumber,
       enrollmentDate: enrollment?.enrolledAt ?? null,
-      completionDate: enrollment?.status === "completed" ? certificate.issuedAt : null,
+      completionDate:
+        enrollment?.status === "completed"
+          ? (enrollment.completedAt ?? certificate.issuedAt)
+          : null,
       issuedAt: certificate.issuedAt,
       rows,
     });

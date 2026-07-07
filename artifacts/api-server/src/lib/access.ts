@@ -216,11 +216,15 @@ export async function recomputeCourseProgress(
   const progress = total > 0 ? Math.round((done / total) * 100) : 0;
 
   await ensureEnrollment(userId, courseId);
+  const completed = progress >= 100;
   await db
     .update(enrollmentsTable)
     .set({
       progress,
-      status: progress >= 100 ? "completed" : "active",
+      status: completed ? "completed" : "active",
+      completedAt: completed
+        ? sql`COALESCE(${enrollmentsTable.completedAt}, NOW())`
+        : null,
     })
     .where(
       and(
