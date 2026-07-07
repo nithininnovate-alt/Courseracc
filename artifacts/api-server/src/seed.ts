@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import {
   db,
   pool,
@@ -10,6 +10,7 @@ import {
   materialProgressTable,
   assignmentsTable,
   submissionsTable,
+  examsTable,
   paymentPlansTable,
 } from "@workspace/db";
 
@@ -935,13 +936,10 @@ async function main() {
 
   const allCourses = await db.select().from(coursesTable);
 
-  // Reset curriculum so subjects/materials/assignments match the current plan.
-  // No DB-level FK constraints exist, so clear dependents first to avoid orphans.
-  await db.delete(submissionsTable);
-  await db.delete(assignmentsTable);
-  await db.delete(materialProgressTable);
-  await db.delete(studyMaterialsTable);
-  await db.delete(subjectsTable);
+  // Curriculum seeding is upsert-based (keyed by module code / title) so that
+  // existing subject IDs — and any exams, results, and submissions attached to
+  // them — are preserved across re-runs. Stale subjects are only removed when
+  // they carry no academic history.
 
   // Generic curriculum for the original sample courses (with demo materials).
   const sampleSubjectPlan = [
@@ -982,36 +980,157 @@ async function main() {
   let materialCount = 0;
   let assignmentCount = 0;
 
+  // Natural key for a module: its code prefix ("MBA510 — X" -> "MBA510"),
+  // falling back to the full title for untitled/sample modules.
+  const moduleKey = (title: string) => title.split(" — ")[0].trim();
+
+  /** True when a subject has attached academic history (exams or submissions). */
+  const subjectHasHistory = async (subjectId: number): Promise<boolean> => {
+    const exams = await db
+      .select({ id: examsTable.id })
+      .from(examsTable)
+      .where(eq(examsTable.subjectId, subjectId));
+    if (exams.length > 0) return true;
+    const assignments = await db
+      .select({ id: assignmentsTable.id })
+      .from(assignmentsTable)
+      .where(eq(assignmentsTable.subjectId, subjectId));
+    if (assignments.length === 0) return false;
+    const submissions = await db
+      .select({ id: submissionsTable.id })
+      .from(submissionsTable)
+      .where(
+        inArray(
+          submissionsTable.assignmentId,
+          assignments.map((a) => a.id),
+        ),
+      );
+    return submissions.length > 0;
+  };
+
+  /** Remove a subject with no history, along with its dependents. */
+  const removeSubject = async (subjectId: number) => {
+    const assignments = await db
+      .select({ id: assignmentsTable.id })
+      .from(assignmentsTable)
+      .where(eq(assignmentsTable.subjectId, subjectId));
+    if (assignments.length > 0) {
+      await db.delete(assignmentsTable).where(
+        inArray(
+          assignmentsTable.id,
+          assignments.map((a) => a.id),
+        ),
+      );
+    }
+    const materials = await db
+      .select({ id: studyMaterialsTable.id })
+      .from(studyMaterialsTable)
+      .where(eq(studyMaterialsTable.subjectId, subjectId));
+    if (materials.length > 0) {
+      await db.delete(materialProgressTable).where(
+        inArray(
+          materialProgressTable.materialId,
+          materials.map((m) => m.id),
+        ),
+      );
+      await db
+        .delete(studyMaterialsTable)
+        .where(eq(studyMaterialsTable.subjectId, subjectId));
+    }
+    await db.delete(subjectsTable).where(eq(subjectsTable.id, subjectId));
+  };
+
+  /** Upsert the single seeded assignment for a subject. */
+  const upsertAssignment = async (
+    subjectId: number,
+    title: string,
+    description: string,
+    dueDate: Date,
+  ) => {
+    const existing = await db
+      .select()
+      .from(assignmentsTable)
+      .where(eq(assignmentsTable.subjectId, subjectId));
+    if (existing.length > 0) {
+      await db
+        .update(assignmentsTable)
+        .set({ title, description, dueDate, maxScore: 100 })
+        .where(eq(assignmentsTable.id, existing[0].id));
+    } else {
+      await db.insert(assignmentsTable).values({
+        subjectId,
+        title,
+        description,
+        dueDate,
+        maxScore: 100,
+      });
+    }
+    assignmentCount++;
+  };
+
   for (const course of allCourses) {
     const curriculum = programCurricula[course.slug];
+    const existingSubjects = await db
+      .select()
+      .from(subjectsTable)
+      .where(eq(subjectsTable.courseId, course.id));
+    const existingByKey = new Map(
+      existingSubjects.map((sub) => [moduleKey(sub.title), sub]),
+    );
 
     if (curriculum) {
-      // Real CGU program: seed modules as subjects + one assignment each.
+      // Real CGU program: upsert modules as subjects + one assignment each.
       // No study materials are seeded — modules start with empty video slots.
+      const plannedKeys = new Set(curriculum.map((m) => moduleKey(m.title)));
       for (let i = 0; i < curriculum.length; i++) {
         const mod = curriculum[i];
-        const [subject] = await db
-          .insert(subjectsTable)
-          .values({
-            courseId: course.id,
-            title: mod.title,
-            description: mod.description ?? null,
-            credits: mod.credits ?? 7.5,
-            year: mod.year,
-            semester: mod.semester,
-            orderIndex: i + 1,
-          })
-          .returning();
+        const key = moduleKey(mod.title);
+        const existing = existingByKey.get(key);
+        let subjectId: number;
+        if (existing) {
+          await db
+            .update(subjectsTable)
+            .set({
+              title: mod.title,
+              description: mod.description ?? null,
+              credits: mod.credits ?? 7.5,
+              year: mod.year,
+              semester: mod.semester,
+              orderIndex: i + 1,
+            })
+            .where(eq(subjectsTable.id, existing.id));
+          subjectId = existing.id;
+        } else {
+          const [created] = await db
+            .insert(subjectsTable)
+            .values({
+              courseId: course.id,
+              title: mod.title,
+              description: mod.description ?? null,
+              credits: mod.credits ?? 7.5,
+              year: mod.year,
+              semester: mod.semester,
+              orderIndex: i + 1,
+            })
+            .returning();
+          subjectId = created.id;
+        }
         subjectCount++;
 
-        await db.insert(assignmentsTable).values({
-          subjectId: subject.id,
-          title: mod.assignmentTitle,
-          description: assignmentDescription(mod),
-          dueDate: dueDateForIndex(i),
-          maxScore: 100,
-        });
-        assignmentCount++;
+        await upsertAssignment(
+          subjectId,
+          mod.assignmentTitle,
+          assignmentDescription(mod),
+          dueDateForIndex(i),
+        );
+      }
+
+      // Retire subjects no longer in the official plan — but only when they
+      // carry no exams or submissions, so historical records stay intact.
+      for (const sub of existingSubjects) {
+        if (plannedKeys.has(moduleKey(sub.title))) continue;
+        if (await subjectHasHistory(sub.id)) continue;
+        await removeSubject(sub.id);
       }
       continue;
     }
@@ -1019,45 +1138,69 @@ async function main() {
     // Original sample courses keep the generic plan with demo materials.
     for (let i = 0; i < sampleSubjectPlan.length; i++) {
       const plan = sampleSubjectPlan[i];
-      const [subject] = await db
-        .insert(subjectsTable)
-        .values({
-          courseId: course.id,
-          title: plan.title,
-          description: plan.description,
-          year: plan.year,
-          semester: plan.semester,
-          orderIndex: i + 1,
-        })
-        .returning();
+      const existing = existingByKey.get(moduleKey(plan.title));
+      let subjectId: number;
+      if (existing) {
+        await db
+          .update(subjectsTable)
+          .set({
+            title: plan.title,
+            description: plan.description,
+            year: plan.year,
+            semester: plan.semester,
+            orderIndex: i + 1,
+          })
+          .where(eq(subjectsTable.id, existing.id));
+        subjectId = existing.id;
+      } else {
+        const [created] = await db
+          .insert(subjectsTable)
+          .values({
+            courseId: course.id,
+            title: plan.title,
+            description: plan.description,
+            year: plan.year,
+            semester: plan.semester,
+            orderIndex: i + 1,
+          })
+          .returning();
+        subjectId = created.id;
+      }
       subjectCount++;
 
-      await db.insert(studyMaterialsTable).values([
-        {
-          subjectId: subject.id,
-          title: `${plan.title} — Video Lecture`,
-          type: "video",
-          url: SAMPLE_VIDEO,
-          durationMinutes: 10,
-          orderIndex: 1,
-        },
-        {
-          subjectId: subject.id,
-          title: `${plan.title} — Lecture Notes (PDF)`,
-          type: "pdf",
-          url: SAMPLE_PDF,
-          orderIndex: 2,
-        },
-        {
-          subjectId: subject.id,
-          title: `${plan.title} — Reading Summary`,
-          type: "text",
-          content:
-            "Review the key concepts covered in this module and complete the practice questions before moving on.",
-          orderIndex: 3,
-        },
-      ]);
-      materialCount += 3;
+      // Seed demo materials only when the subject has none yet.
+      const materials = await db
+        .select({ id: studyMaterialsTable.id })
+        .from(studyMaterialsTable)
+        .where(eq(studyMaterialsTable.subjectId, subjectId));
+      if (materials.length === 0) {
+        await db.insert(studyMaterialsTable).values([
+          {
+            subjectId,
+            title: `${plan.title} — Video Lecture`,
+            type: "video",
+            url: SAMPLE_VIDEO,
+            durationMinutes: 10,
+            orderIndex: 1,
+          },
+          {
+            subjectId,
+            title: `${plan.title} — Lecture Notes (PDF)`,
+            type: "pdf",
+            url: SAMPLE_PDF,
+            orderIndex: 2,
+          },
+          {
+            subjectId,
+            title: `${plan.title} — Reading Summary`,
+            type: "text",
+            content:
+              "Review the key concepts covered in this module and complete the practice questions before moving on.",
+            orderIndex: 3,
+          },
+        ]);
+        materialCount += 3;
+      }
     }
   }
 
