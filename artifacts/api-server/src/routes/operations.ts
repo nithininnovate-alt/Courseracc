@@ -36,6 +36,8 @@ import { generateInvoice } from "../lib/invoice";
 import {
   generateDegreeCertificate,
   generateTranscript,
+  GRADE_POINTS,
+  letterGradeFromPercent,
   type TranscriptRow,
 } from "../lib/certificate";
 import {
@@ -725,9 +727,9 @@ async function buildTranscriptRows(
   const subjects = await db
     .select()
     .from(subjectsTable)
-    .where(eq(subjectsTable.courseId, courseId));
+    .where(eq(subjectsTable.courseId, courseId))
+    .orderBy(asc(subjectsTable.orderIndex));
   if (subjects.length === 0) return [];
-  const subjectMap = new Map(subjects.map((s) => [s.id, s]));
   const subjectIds = subjects.map((s) => s.id);
 
   const exams = await db
@@ -749,19 +751,41 @@ async function buildTranscriptRows(
       ),
     );
 
-  return results.map((r) => {
+  // Keep the best published result per subject, ordered by curriculum order.
+  const bestBySubject = new Map<number, (typeof results)[number]>();
+  for (const r of results) {
     const exam = examMap.get(r.examId);
-    const subject = exam ? subjectMap.get(exam.subjectId) : undefined;
-    return {
-      subjectTitle: subject?.title ?? "Subject",
-      examTitle: exam?.title ?? "Examination",
-      score: r.score,
-      totalMarks: exam?.totalMarks ?? 100,
-      grade: r.grade,
+    if (!exam) continue;
+    const prev = bestBySubject.get(exam.subjectId);
+    if (!prev || r.score > prev.score) bestBySubject.set(exam.subjectId, r);
+  }
+
+  const rows: TranscriptRow[] = [];
+  for (const subject of subjects) {
+    const r = bestBySubject.get(subject.id);
+    if (!r) continue;
+    const exam = examMap.get(r.examId);
+    const totalMarks = exam?.totalMarks ?? 100;
+    const pct = totalMarks > 0 ? (r.score / totalMarks) * 100 : 0;
+    const [codePart, ...titleParts] = subject.title.split(" — ");
+    const hasCode = titleParts.length > 0;
+    rows.push({
+      moduleCode: hasCode ? codePart.trim() : "—",
+      moduleTitle: hasCode ? titleParts.join(" — ").trim() : subject.title,
+      credits: subject.credits ?? 7.5,
+      year: subject.year,
+      grade: r.grade && r.grade in GRADE_POINTS ? r.grade : letterGradeFromPercent(pct),
       passed: r.passed,
-    };
-  });
+    });
+  }
+  return rows;
 }
+
+const PROGRAM_CODE: Record<string, string> = {
+  undergraduate: "BBA",
+  postgraduate: "MBA",
+  doctorate: "DBA",
+};
 
 router.get("/certificates/:id/download", async (req, res) => {
   const user = await resolveCurrentUser(req);
@@ -803,12 +827,23 @@ router.get("/certificates/:id/download", async (req, res) => {
   let pdf: Uint8Array;
   if (certificate.type === "transcript") {
     const rows = await buildTranscriptRows(certificate.userId, certificate.courseId);
+    const [enrollment] = await db
+      .select()
+      .from(enrollmentsTable)
+      .where(
+        and(
+          eq(enrollmentsTable.userId, certificate.userId),
+          eq(enrollmentsTable.courseId, certificate.courseId),
+        ),
+      );
+    const programCode = PROGRAM_CODE[course?.level ?? ""] ?? "PRG";
     pdf = await generateTranscript({
       studentName,
-      studentEmail: student?.email ?? "",
-      courseTitle: course?.title ?? "Programme",
-      courseLevel: course?.level ?? "certificate",
+      studentId: `CGU${programCode}${1000 + certificate.userId}`,
+      degreeAwarded: course?.title ?? "Programme",
       certificateNumber: certificate.certificateNumber,
+      enrollmentDate: enrollment?.enrolledAt ?? null,
+      completionDate: enrollment?.status === "completed" ? certificate.issuedAt : null,
       issuedAt: certificate.issuedAt,
       rows,
     });

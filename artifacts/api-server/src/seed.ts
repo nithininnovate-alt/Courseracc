@@ -21,10 +21,399 @@ const SAMPLE_PDF =
 interface ModuleSeed {
   title: string;
   description?: string;
+  credits?: number; // ECTS; defaults to 7.5
   year: number;
   semester: number;
   assignmentTitle: string;
   assignmentTask: string;
+}
+
+/**
+ * Official assignment specifications (format, weight/length, evaluation
+ * benchmarks) keyed by module code, taken from the CGU assessment syllabi.
+ */
+const ASSIGNMENT_SPECS: Record<
+  string,
+  { format: string; length: string; benchmarks: string[] }
+> = {
+  // BBA — Year 1
+  BUS110: {
+    format: "Executive Briefing & Communication Plan",
+    length: "100% / 1,500 Words",
+    benchmarks: [
+      "Professionalism, clarity, tone, and appropriate structural layout of executive-level office memos.",
+      "Strategic viability of the multichannel communication deployment blueprint.",
+    ],
+  },
+  MGT120: {
+    format: "Comprehensive Organizational Audit",
+    length: "100% / 2,000 Words",
+    benchmarks: [
+      "Accurate conceptual application of the POLC matrix to real-world management.",
+      "Critical quality of structural management recommendations.",
+    ],
+  },
+  ACC130: {
+    format: "Financial Statement Construction Portfolio",
+    length: "100% / Ledger Balancing + 1,000 Words",
+    benchmarks: [
+      "Absolute structural and numerical balancing accuracy across financial sheets.",
+      "Compliant implementation of fundamental double-entry principles.",
+    ],
+  },
+  BUS140: {
+    format: "Digital Commerce Platform Blueprint",
+    length: "100% / 1,500 Words",
+    benchmarks: [
+      "Technical feasibility of payment gateways, inventory sync architectures, and compliance models.",
+      "Integration effectiveness of user acquisition and security metrics.",
+    ],
+  },
+  ECO150: {
+    format: "Micro & Macro Market Impact Report",
+    length: "100% / 1,800 Words",
+    benchmarks: [
+      "Proper structural deployment of supply-demand curves and economic variables.",
+      "Data-driven evaluation of policy interventions on market equilibrium.",
+    ],
+  },
+  FIN160: {
+    format: "Corporate Capital Budgeting Case Analysis",
+    length: "100% / 1,500 Words + Excel Models",
+    benchmarks: [
+      "Mathematical precision in discounting future cash flows and tracking hurdle rates.",
+      "Logical justification of capital-allocation choices under fiscal limits.",
+    ],
+  },
+  MKT170: {
+    format: "Strategic Marketing Mix Portfolio (4Ps)",
+    length: "100% / 2,000 Words",
+    benchmarks: [
+      "Depth and accuracy of market segment targeting criteria.",
+      "Strategic alignment across positioning statements and pricing models.",
+    ],
+  },
+  HRM180: {
+    format: "Workforce Optimization & Retention Strategy",
+    length: "100% / 1,500 Words",
+    benchmarks: [
+      "Alignment of compensation strategies with modern organizational behavior principles.",
+      "Legal and ethical compliance of proposed labor and productivity metrics.",
+    ],
+  },
+  // BBA — Year 2
+  ACT210: {
+    format: "Corporate Financial Statement Analysis",
+    length: "100% / 2,000 Words",
+    benchmarks: [
+      "Accuracy of calculated ratio formulas (Quick ratio, ROE, Debt-to-Equity).",
+      "Insightfulness of the structural commentary regarding operational weaknesses.",
+    ],
+  },
+  MGT220: {
+    format: "Process Mapping & Quality Optimization Report",
+    length: "100% / 1,800 Words",
+    benchmarks: [
+      "Correct structural use of workflow diagramming and capacity constraints.",
+      "Viability and direct cost-benefit calculation of the optimized process layout.",
+    ],
+  },
+  BUS230: {
+    format: "Start-up Pitch Deck & Feasibility Report",
+    length: "100% / 2,500 Words",
+    benchmarks: [
+      "Realism and structural integrity of market penetration and financial modeling assumptions.",
+      "Clarity and persuasiveness of the underlying competitive advantage statement.",
+    ],
+  },
+  BUS240: {
+    format: "Corporate ESG Transformation Strategy",
+    length: "100% / 1,500 Words",
+    benchmarks: [
+      "Actionable, metrics-driven balance between corporate profits and environmental targets.",
+      "Thorough understanding of regulatory sustainability frameworks and compliance rules.",
+    ],
+  },
+  FIN250: {
+    format: "IFRS Compliance Evaluation Framework",
+    length: "100% / 1,800 Words",
+    benchmarks: [
+      "Accurate technical references and interpretation of explicit IFRS rules.",
+      "Precision in adjusting accounting entries to reconcile compliance errors.",
+    ],
+  },
+  MGT260: {
+    format: "Global Supply Network Optimization Model",
+    length: "100% / 2,000 Words",
+    benchmarks: [
+      "Mathematical precision in inventory planning and logistics safety stock metrics.",
+      "Strategic depth of the multi-modal risk management backup network.",
+    ],
+  },
+  MKT270: {
+    format: "International Market Campaign Localization Deck",
+    length: "100% / 1,500 Words",
+    benchmarks: [
+      "Academic mastery in leveraging Hofstede's index metrics to reshape marketing messaging.",
+      "Avoidance of ethnocentric blind spots and cultural missteps in advertising design.",
+    ],
+  },
+  MGT280: {
+    format: "Enterprise IT Architecture Plan",
+    length: "100% / 1,500 Words",
+    benchmarks: [
+      "Logical cohesion of data flows between isolated enterprise software platforms.",
+      "Adequacy of information access controls and modern cybersecurity frameworks.",
+    ],
+  },
+  // BBA — Year 3
+  IBM310: {
+    format: "Global Entry Strategy Paper",
+    length: "100% / 2,200 Words",
+    benchmarks: [
+      "Depth of real-world regulatory risk assessment for the target country.",
+      "Strategic alignment of the chosen corporate vehicle with local market realities.",
+    ],
+  },
+  IBM320: {
+    format: "Cross-Border Human Capital Framework",
+    length: "100% / 1,800 Words",
+    benchmarks: [
+      "Sophistication of expatriate support systems and cost mitigation planning.",
+      "Adherence to international labor standards and regional regulatory requirements.",
+    ],
+  },
+  IBM330: {
+    format: "PESTLE Macro-Environmental Audit",
+    length: "100% / 2,000 Words",
+    benchmarks: [
+      "Analytical depth across macro pillars (Political, Economic, Social, Technological, Legal, Environmental).",
+      "Viability of proposed risk hedging and long-term asset security recommendations.",
+    ],
+  },
+  IBM340: {
+    format: "Trade Balance & FX Exposure Analysis",
+    length: "100% / 1,800 Words",
+    benchmarks: [
+      "Correct application of international trade theories (e.g., comparative advantage, Heckscher-Ohlin).",
+      "Technical accuracy in calculating currency risk exposures and hedging solutions.",
+    ],
+  },
+  IBM350: {
+    format: "Global Brand Positioning Portfolio",
+    length: "100% / 2,000 Words",
+    benchmarks: [
+      "Strategic logic behind decisions to standardize or adapt specific brand components.",
+      "Design effectiveness of cross-border promotional frameworks.",
+    ],
+  },
+  IBM360: {
+    format: "Global Trade Compliance & Logistics Manifest",
+    length: "100% / 1,800 Words",
+    benchmarks: [
+      "Flawless application of Incoterms 2020 definitions and corresponding liability transfers.",
+      "Completeness and statutory compliance of the generated cross-border documentation.",
+    ],
+  },
+  IBM370: {
+    format: "Trade Protectionism Impact Thesis",
+    length: "100% / 2,000 Words",
+    benchmarks: [
+      "Quality of data-driven analysis tracking the economic friction caused by trade barriers.",
+      "Strategic value of alternative sourcing and supplier reorganization configurations.",
+    ],
+  },
+  IBM380: {
+    format: "Strategic Business Plan & Defense Thesis",
+    length: "100% / 5,000 Words + Presentation",
+    benchmarks: [
+      "Advanced synthesis of financial, operational, marketing, and human capital theories.",
+      "Methodological rigor, empirical evidence depth, and executive-level oral defense clarity.",
+    ],
+  },
+  // MBA — graduate Application-Oriented Assignments (AOA)
+  MBA510: {
+    format: "Global Market Entry Strategy Dossier",
+    length: "100% / 3,500 Words",
+    benchmarks: [
+      "Depth of regulatory, political, and market-access risk assessment for the target region.",
+      "Strategic alignment of the chosen entry vehicle (FDI, JV, licensing, alliance) with corporate objectives.",
+    ],
+  },
+  MBA520: {
+    format: "Lean Operations & Quality Optimization Audit",
+    length: "100% / 3,500 Words",
+    benchmarks: [
+      "Quantitative tracing of cycle times, capacity constraints, and process bottlenecks.",
+      "Viability and cost-benefit calculation of the optimized Lean/Six Sigma process layout.",
+    ],
+  },
+  MBA530: {
+    format: "Executive Communication & Change Briefing Plan",
+    length: "100% / 3,500 Words",
+    benchmarks: [
+      "Professionalism, clarity, and structural quality of executive-level communications.",
+      "Strategic viability of the multichannel corporate communication deployment blueprint.",
+    ],
+  },
+  MBA540: {
+    format: "Enterprise Digital Commerce Architecture",
+    length: "100% / 3,500 Words",
+    benchmarks: [
+      "Technical feasibility of payment gateways, inventory sync architectures, and compliance models.",
+      "Integration effectiveness of customer acquisition, analytics, and security frameworks.",
+    ],
+  },
+  MBA550: {
+    format: "Macro & Micro Market Impact Analysis",
+    length: "100% / 3,500 Words",
+    benchmarks: [
+      "Proper structural deployment of supply-demand modelling and economic variables.",
+      "Data-driven evaluation of policy interventions on market equilibrium.",
+    ],
+  },
+  MBA560: {
+    format: "Corporate ESG Transformation Strategy",
+    length: "100% / 3,500 Words",
+    benchmarks: [
+      "Actionable, metrics-driven balance between corporate profits and environmental targets.",
+      "Thorough understanding of regulatory sustainability frameworks and GRI compliance rules.",
+    ],
+  },
+  MBA570: {
+    format: "Venture Blueprint & Investor Feasibility Study",
+    length: "100% / 3,500 Words",
+    benchmarks: [
+      "Realism and structural integrity of market penetration and financial modeling assumptions.",
+      "Clarity and persuasiveness of the underlying competitive advantage statement.",
+    ],
+  },
+  MBA580: {
+    format: "Enterprise Information Architecture Plan",
+    length: "100% / 3,500 Words",
+    benchmarks: [
+      "Logical cohesion of data flows between enterprise software platforms (CRM, ERP, BI).",
+      "Adequacy of information governance, access controls, and cybersecurity frameworks.",
+    ],
+  },
+  MBA590: {
+    format: "Strategic Workforce & Talent Architecture",
+    length: "100% / 3,500 Words",
+    benchmarks: [
+      "Alignment of compensation and retention strategies with organizational behavior principles.",
+      "Legal and ethical compliance of proposed labor and performance metrics.",
+    ],
+  },
+  MBA600: {
+    format: "Corporate Capital Budgeting & Valuation Case",
+    length: "100% / 3,500 Words + Financial Models",
+    benchmarks: [
+      "Mathematical precision in discounting future cash flows and tracking hurdle rates.",
+      "Logical justification of capital-allocation choices under fiscal constraints.",
+    ],
+  },
+  MBA610: {
+    format: "Integrated Strategic Marketing Portfolio",
+    length: "100% / 3,500 Words",
+    benchmarks: [
+      "Depth and accuracy of market segment targeting and positioning criteria.",
+      "Strategic alignment across brand positioning, channels, and pricing models.",
+    ],
+  },
+  MBA620: {
+    format: "Executive Organizational Strategy Audit",
+    length: "100% / 3,500 Words",
+    benchmarks: [
+      "Accurate application of the POLC and corporate governance frameworks to a live organization.",
+      "Critical quality of structural management recommendations.",
+    ],
+  },
+  MBA630: {
+    format: "Global Supply Network Optimization Model",
+    length: "100% / 3,500 Words",
+    benchmarks: [
+      "Mathematical precision in inventory planning and logistics safety stock metrics.",
+      "Strategic depth of the multi-tier risk management and supplier redundancy network.",
+    ],
+  },
+  MBA640: {
+    format: "Corporate Financial Statement Construction & Analysis",
+    length: "100% / 3,500 Words + Ledger Workings",
+    benchmarks: [
+      "Structural and numerical accuracy across constructed financial statements.",
+      "Insightfulness of comparative ratio analysis and operational commentary.",
+    ],
+  },
+  MBA650: {
+    format: "IFRS Compliance Evaluation Framework",
+    length: "100% / 3,500 Words",
+    benchmarks: [
+      "Accurate technical references and interpretation of explicit IFRS rules.",
+      "Precision in adjusting accounting entries to reconcile compliance errors.",
+    ],
+  },
+  MBA690: {
+    format: "Empirical Business Thesis & Viva Voce Defense",
+    length: "100% / 12,000 – 15,000 Words",
+    benchmarks: [
+      "Methodological rigor, clarity of data validation, and depth of literature integration.",
+      "Practical corporate value of findings and performance under cross-examination by the board.",
+    ],
+  },
+  // DBA — doctoral milestones
+  RBL810: {
+    format: "Mixed-Methods Research Proposal & Data Analysis Strategy",
+    length: "100% / Formal Research Proposal",
+    benchmarks: [
+      "Critical problem formulation with operational hypotheses and research questions.",
+      "Robust research instrumentation and a structured analytical triangulation strategy.",
+    ],
+  },
+  RBL820: {
+    format: "Critical Systematic Literature Review & Theoretical Framework",
+    length: "100% / Systematic Review (30+ peer-reviewed articles)",
+    benchmarks: [
+      "Exhaustive synthesized literature matrix indexing methodologies, variables, and limitations.",
+      "Theoretical justification mapping established paradigms onto the study's conceptual model.",
+    ],
+  },
+  RBL830: {
+    format: "Applied Pilot Study & Industry Specialization Paper",
+    length: "100% / Pilot Study + Specialization Review",
+    benchmarks: [
+      "Localized specialization analysis of sector risks, policy dynamics, and operational pain points.",
+      "Methodological soundness of pilot execution and instrument refinement strategy.",
+    ],
+  },
+  DSSR980: {
+    format: "The Doctoral Dissertation (Progressive Milestones)",
+    length: "100% / Five-Chapter Dissertation Manuscript",
+    benchmarks: [
+      "Completion of IRB ethics clearance, fieldwork, and raw dataset submission milestones.",
+      "Quality of the five-chapter manuscript and actionable practitioner recommendations.",
+    ],
+  },
+  VIVA920: {
+    format: "Oral Defense Presentation & Academic Defense Dossier",
+    length: "100% / 20-Minute Defense + 3-Page Executive Dossier",
+    benchmarks: [
+      "Comprehensive justification of empirical models, research ethics, and conclusions under cross-examination.",
+      "Polish and practitioner value of the defense deck and executive briefing dossier.",
+    ],
+  },
+};
+
+/** Compose the full assignment description from task text + official spec. */
+function assignmentDescription(mod: ModuleSeed): string {
+  const code = mod.title.split(" — ")[0]?.trim() ?? "";
+  const spec = ASSIGNMENT_SPECS[code];
+  if (!spec) return mod.assignmentTask;
+  const parts = [
+    `Format: ${spec.format} | Weight / Length: ${spec.length}`,
+    `Assignment Task:\n${mod.assignmentTask}`,
+    `Evaluation Benchmarks:\n${spec.benchmarks.map((b) => `• ${b}`).join("\n")}`,
+  ];
+  return parts.join("\n\n");
 }
 
 const BBA_MODULES: ModuleSeed[] = [
@@ -226,75 +615,134 @@ const BBA_MODULES: ModuleSeed[] = [
 ];
 
 const MBA_MODULES: ModuleSeed[] = [
+  // Year 1 — Core Executive Frameworks
   {
-    title: "MGT510 — Managerial Accounting",
+    title: "MBA510 — International Business Management",
     year: 1,
     semester: 1,
-    assignmentTitle: "Strategic Cost Optimization Audit",
+    assignmentTitle: "Global Market Entry Strategy Dossier",
     assignmentTask:
-      "Analyze a multi-departmental corporate cost sheet. Map operational overheads using Activity-Based Costing (ABC), isolate financial variances under standard budgeting, and build a rolling quarterly projection model identifying direct cost-containment measures for senior executives.",
+      "Formulate a market entry strategy for an enterprise seeking expansion into an unfamiliar region. Critically choose between FDI (Foreign Direct Investment), joint ventures, licensing models, or strategic alliances based on local market access barriers and corporate objectives.",
   },
   {
-    title: "MGT520 — Managing Business Strategy",
+    title: "MBA520 — Operations Management",
     year: 1,
     semester: 1,
-    assignmentTitle: "Corporate Competitive Realignment Thesis",
+    assignmentTitle: "Lean Operations & Quality Optimization Audit",
     assignmentTask:
-      "Select a global organization facing digital disruption. Complete a thorough macro-environmental audit using PESTLE, Porter's Five Forces, and VRIO models. Formulate a 5-year corporate turnaround roadmap covering defensive diversification or joint-venture restructuring options.",
+      "Evaluate an operational production line or service workflow to isolate efficiency bottlenecks. Apply Lean manufacturing or Six Sigma concepts to eliminate waste, optimize cycle times, and introduce proactive quality control loops.",
   },
   {
-    title: "MGT530 — Human Capital Management",
+    title: "MBA530 — Business Communication",
     year: 1,
     semester: 1,
-    assignmentTitle: "Institutional Restructuring & Culture Transformation Blueprint",
+    assignmentTitle: "Executive Communication & Change Briefing Plan",
     assignmentTask:
-      "Address a post-merger integration scenario involving conflicting organizational cultures and executive attrition. Design a global human capital development architecture covering succession planning, global compensation alignment, performance KPI systems, and workforce change mitigation models.",
+      "Draft a formal Executive Briefing addressing a major organizational shift. Outline the internal communications framework needed to mitigate message distortion across departments, manage stakeholder friction, and coordinate distributed teams.",
   },
   {
-    title: "MGT540 — Marketing Management",
+    title: "MBA540 — E-Commerce",
     year: 1,
     semester: 1,
-    assignmentTitle: "International Market Disruptive Expansion Matrix",
+    assignmentTitle: "Enterprise Digital Commerce Architecture",
     assignmentTask:
-      "Develop an entry strategy for a high-value consumer product or enterprise service expanding into a highly saturated global marketplace. Formulate data-driven customer acquisition metrics, multi-channel pricing strategies, and automated digital tracking pipelines.",
+      "Design a technical and operational architecture for migrating a traditional enterprise into an omni-channel e-commerce brand. Address infrastructure hosting, UI/UX pathways, secure API gateways, and regional data protection standards (GDPR/CCPA).",
   },
   {
-    title: "MGT550 — Managing Operations",
+    title: "MBA550 — Principles of Economics",
     year: 1,
     semester: 2,
-    assignmentTitle: "Lean Supply Chain Value-Stream Architecture",
+    assignmentTitle: "Macro & Micro Market Impact Analysis",
     assignmentTask:
-      "Deconstruct an international manufacturing or fulfillment operation experiencing supply delays. Build a current-state Value Stream Map (VSM). Identify and remove process waste using Lean Six Sigma methodologies, and establish a digital supply chain network plan.",
+      "Analyze a specific market sector and map out structural adjustments triggered by changing variables: inflation rates, shifting price elasticity of demand, and newly imposed government tariff barriers.",
   },
   {
-    title: "MGT560 — Leading Organisation",
+    title: "MBA560 — Sustainable Business Practices",
     year: 1,
     semester: 2,
-    assignmentTitle: "Executive Leadership & Governance Strategy Report",
+    assignmentTitle: "Corporate ESG Transformation Strategy",
     assignmentTask:
-      "Evaluate the leadership breakdowns behind a major corporate ethical failure. Apply contemporary ethical framework models to diagnose governance flaws and build a long-term corporate compliance architecture complete with board oversight protocols.",
+      "Audit a heavily resource-dependent business and build an Environmental, Social, and Governance (ESG) pivot model. Address carbon emission downscaling, circular supply chains, and transparent reporting metrics using global GRI standards.",
   },
   {
-    title: "MGT570 — Financial Management",
+    title: "MBA570 — Entrepreneurship",
     year: 1,
     semester: 2,
-    assignmentTitle: "Corporate Mergers & Capital Restructuring Model",
+    assignmentTitle: "Venture Blueprint & Investor Feasibility Study",
     assignmentTask:
-      "Execute a formal financial valuation of a target company for acquisition. Calculate Free Cash Flow to Firm (FCFF), Weighted Average Cost of Capital (WACC), and enterprise valuation under different growth scenarios. Provide strategic recommendations on financing the purchase using debt vs. equity mix models.",
+      "Formulate an original, scalable business concept and construct a comprehensive investor-ready commercial blueprint. Include value proposition design, customer acquisition costs, break-even thresholds, and a 3-year funding road map.",
   },
   {
-    title: "MGT580 — Project Management",
+    title: "MBA580 — Business Information Management",
     year: 1,
     semester: 2,
-    assignmentTitle: "Enterprise Project Management Office (PMO) Charter",
+    assignmentTitle: "Enterprise Information Architecture Plan",
     assignmentTask:
-      "Construct a comprehensive Project Charter for an enterprise transformation initiative. Outline Work Breakdown Structures (WBS), analyze critical path timelines, map out resource allocation plans, and design a quantitative risk log complete with specific mitigation responses.",
+      "Design an integrated information technology infrastructure configuration for an expanding enterprise. Map data pipelines between CRM, ERP, and localized database layers, ensuring data integrity and outlining cybersecurity defense patterns.",
+  },
+  // Year 2 — Advanced Specialization & Research
+  {
+    title: "MBA590 — Human Resource Management",
+    year: 2,
+    semester: 1,
+    assignmentTitle: "Strategic Workforce & Talent Architecture",
+    assignmentTask:
+      "Analyze a corporate case study dealing with high employee attrition and low morale. Design an end-to-end human capital recovery blueprint covering revamped recruitment pipelines, equity-driven reward systems, and remote performance tracking frameworks.",
   },
   {
-    title: "MGT590 — Action Research Project (Thesis/Dissertation Framework)",
+    title: "MBA600 — Principles of Finance",
+    year: 2,
+    semester: 1,
+    assignmentTitle: "Corporate Capital Budgeting & Valuation Case",
+    assignmentTask:
+      "Examine competing multi-year investment options for an expanding enterprise. Calculate and compare the Net Present Value (NPV), Internal Rate of Return (IRR), and Payback Periods to advise senior executives on the best path forward.",
+  },
+  {
+    title: "MBA610 — Principles of Marketing",
+    year: 2,
+    semester: 1,
+    assignmentTitle: "Integrated Strategic Marketing Portfolio",
+    assignmentTask:
+      "Develop a comprehensive marketing launch strategy for an innovative product entering a competitive sector. Provide precise target market segment profiles (demographic, psychographic) and map out an integrated 4Ps framework.",
+  },
+  {
+    title: "MBA620 — Managing Business",
+    year: 2,
+    semester: 1,
+    assignmentTitle: "Executive Organizational Strategy Audit",
+    assignmentTask:
+      "Select an active international corporation and execute a strategic audit using the POLC framework (Planning, Organizing, Leading, Controlling). Critique how their corporate governance structure aligns with modern volatile operating realities.",
+  },
+  {
+    title: "MBA630 — Logistics and Supply Chain Management",
+    year: 2,
+    semester: 2,
+    assignmentTitle: "Global Supply Network Optimization Model",
+    assignmentTask:
+      "Map out and analyze a cross-border distribution network suffering from geopolitical bottlenecks or port congestion. Calculate optimal inventory positions using Economic Order Quantity (EOQ) variables and establish risk mitigation paths.",
+  },
+  {
+    title: "MBA640 — Accounting Principles I & II",
+    year: 2,
+    semester: 2,
+    assignmentTitle: "Corporate Financial Statement Construction & Analysis",
+    assignmentTask:
+      "Given a raw unadjusted transaction ledger, process journal entries and construct complete financial statements; then conduct a comparative ratio analysis (liquidity, profitability, leverage, efficiency) against a publicly-traded peer to score financial health.",
+  },
+  {
+    title: "MBA650 — Financial Reporting",
+    year: 2,
+    semester: 2,
+    assignmentTitle: "IFRS Compliance Evaluation Framework",
+    assignmentTask:
+      "Deconstruct complex corporate transactions involving revenue recognition, asset impairment, or lease treatments. Evaluate these cases to ensure strict compliance with International Financial Reporting Standards (IFRS) guidelines.",
+  },
+  {
+    title: "MBA690 — Master Thesis / Capstone Research Project",
     description:
-      "Graduate capstone milestone (30 ECTS): an expansive action-oriented research capstone project defended via Viva Voce.",
-    year: 1,
+      "Graduate capstone milestone (30 ECTS): an independent empirical research thesis defended via Viva Voce before the CGU academic board.",
+    credits: 30,
+    year: 2,
     semester: 2,
     assignmentTitle: "Empirical Business Thesis & Viva Voce Defense",
     assignmentTask:
@@ -307,6 +755,7 @@ const DBA_MODULES: ModuleSeed[] = [
     title: "RBL810 — Research Methodology: Quantitative & Qualitative Analyses",
     description:
       "Focuses on advanced research tools, rigorous research design, data analysis paradigms, and sophisticated methodologies explicitly geared toward solving complex, practical corporate problems.",
+    credits: 30,
     year: 1,
     semester: 1,
     assignmentTitle: "Mixed-Methods Research Proposal & Data Analysis Strategy",
@@ -317,8 +766,9 @@ const DBA_MODULES: ModuleSeed[] = [
     title: "RBL820 — Scholarly Engagement I",
     description:
       "Focuses on developing an extensive, critical literature review, identifying specific research gaps, and constructing contemporary theoretical frameworks of competitive business strategy.",
+    credits: 15,
     year: 1,
-    semester: 1,
+    semester: 2,
     assignmentTitle: "Critical Systematic Literature Review & Theoretical Framework",
     assignmentTask:
       "Conduct a highly rigorous, systematic review of at least 30 peer-reviewed, high-impact journal articles from the last five years on macro-level corporate strategy or organizational behavior. Produce a synthesized literature matrix, a conceptual framework exposing an unaddressed research gap, and definitive theoretical justification.",
@@ -327,7 +777,8 @@ const DBA_MODULES: ModuleSeed[] = [
     title: "RBL830 — Scholarly Engagement II",
     description:
       "Involves localized, applied research and literature exploration tailored into advanced specializations such as global marketing strategy, corporate governance, or supply chain dynamics.",
-    year: 1,
+    credits: 15,
+    year: 2,
     semester: 1,
     assignmentTitle: "Applied Pilot Study & Industry Specialization Paper",
     assignmentTask:
@@ -337,7 +788,8 @@ const DBA_MODULES: ModuleSeed[] = [
     title: "DSSR980 — Doctorate Thesis",
     description:
       "The substantive developmental, drafting, and investigative phase dedicated to executing and finalizing the primary practitioner-oriented independent research project.",
-    year: 1,
+    credits: 90,
+    year: 2,
     semester: 2,
     assignmentTitle: "The Doctoral Dissertation (Progressive Milestones)",
     assignmentTask:
@@ -347,8 +799,9 @@ const DBA_MODULES: ModuleSeed[] = [
     title: "VIVA920 — Viva Voce (Oral Defense)",
     description:
       "The conclusive formal presentation and rigorous defense of the doctoral thesis before an appointed academic and professional examination board.",
-    year: 1,
-    semester: 2,
+    credits: 30,
+    year: 3,
+    semester: 1,
     assignmentTitle: "Oral Defense Presentation & Academic Defense Dossier",
     assignmentTask:
       "Prepare, deliver, and defend the final completed dissertation before an officially appointed Academic and Professional Examination Board. Produce a concise 20-minute defense presentation slide deck and a 3-page executive briefing dossier delineating practitioner solutions and strategic policy impacts.",
@@ -443,7 +896,7 @@ async function main() {
       title: "Master of Business Administration (MBA)",
       slug: "mba-business-administration",
       description:
-        "An advanced postgraduate degree (90 ECTS, ACBSP Candidacy) with 8 core management modules plus an action-oriented research capstone, engineered for managers and executives driving organizational change.",
+        "An advanced postgraduate degree (90 ECTS, ACBSP Candidacy) spanning 16 modules across two academic years — core executive frameworks, advanced specialization, and a Master Thesis / Capstone Research Project defended via Viva Voce.",
       level: "postgraduate",
       durationWeeks: 72,
       price: "4000.00",
@@ -543,6 +996,7 @@ async function main() {
             courseId: course.id,
             title: mod.title,
             description: mod.description ?? null,
+            credits: mod.credits ?? 7.5,
             year: mod.year,
             semester: mod.semester,
             orderIndex: i + 1,
@@ -553,7 +1007,7 @@ async function main() {
         await db.insert(assignmentsTable).values({
           subjectId: subject.id,
           title: mod.assignmentTitle,
-          description: mod.assignmentTask,
+          description: assignmentDescription(mod),
           dueDate: dueDateForIndex(i),
           maxScore: 100,
         });

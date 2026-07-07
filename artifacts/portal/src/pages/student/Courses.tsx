@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Clock, ArrowRight, Lock } from "lucide-react";
+import { Clock, ArrowRight, Lock, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader, EmptyCard } from "@/components/common/PageState";
 
@@ -17,6 +17,7 @@ export default function StudentCourses() {
   const enroll = useCreateEnrollment();
 
   const enrolledIds = new Set((enrollments ?? []).map((e) => e.courseId));
+  const enrollmentByCourse = new Map((enrollments ?? []).map((e) => [e.courseId, e]));
 
   const handleEnroll = (courseId: number) => {
     enroll.mutate(
@@ -68,11 +69,33 @@ export default function StudentCourses() {
                     <Clock className="w-4 h-4" /> {c.durationWeeks} weeks
                   </div>
                   {enrolled ? (
-                    <Button className="w-full" asChild>
-                      <Link href={`/portal/learning/${c.id}`}>
-                        Continue Learning <ArrowRight className="w-4 h-4 ml-2" />
-                      </Link>
-                    </Button>
+                    <div className="space-y-2">
+                      <Button className="w-full" asChild>
+                        <Link href={`/portal/learning/${c.id}`}>
+                          Continue Learning <ArrowRight className="w-4 h-4 ml-2" />
+                        </Link>
+                      </Button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button variant="outline" size="sm" asChild>
+                          <a
+                            href={`/api/enrollments/${enrollmentByCourse.get(c.id)?.id}/letter?validator=ieac`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <FileText className="w-3.5 h-3.5 mr-1" /> IEAC Letter
+                          </a>
+                        </Button>
+                        <Button variant="outline" size="sm" asChild>
+                          <a
+                            href={`/api/enrollments/${enrollmentByCourse.get(c.id)?.id}/letter?validator=eahea`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <FileText className="w-3.5 h-3.5 mr-1" /> EAHEA Letter
+                          </a>
+                        </Button>
+                      </div>
+                    </div>
                   ) : free ? (
                     <Button className="w-full" onClick={() => handleEnroll(c.id)} disabled={enroll.isPending}>
                       Enroll Now

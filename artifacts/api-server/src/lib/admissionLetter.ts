@@ -1,4 +1,5 @@
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont } from "pdf-lib";
+import { resolveProgramInfo, ACCREDITATIONS } from "./programInfo";
 
 export interface AdmissionLetterData {
   applicantName: string;
@@ -10,192 +11,348 @@ export interface AdmissionLetterData {
 const PRIMARY = rgb(0.12, 0.25, 0.46);
 const MUTED = rgb(0.4, 0.4, 0.4);
 const BLACK = rgb(0.1, 0.1, 0.1);
+const LINE = rgb(0.85, 0.85, 0.85);
+const TABLE_BG = rgb(0.95, 0.96, 0.98);
+
+const PAGE_W = 595.28;
+const PAGE_H = 841.89;
+const MARGIN = 56;
+
+interface Fonts {
+  regular: PDFFont;
+  bold: PDFFont;
+  italic: PDFFont;
+}
 
 /**
- * Generate a one-page PDF admission letter and return the raw bytes.
+ * Generate the official two-page CGU admission letter
+ * (Office of Admissions & Registrar format).
  */
 export async function generateAdmissionLetter(
   data: AdmissionLetterData,
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
-  const page = doc.addPage([595.28, 841.89]); // A4 portrait
-  const { width, height } = page.getSize();
+  const fonts: Fonts = {
+    regular: await doc.embedFont(StandardFonts.Helvetica),
+    bold: await doc.embedFont(StandardFonts.HelveticaBold),
+    italic: await doc.embedFont(StandardFonts.HelveticaOblique),
+  };
 
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
-  const fontItalic = await doc.embedFont(StandardFonts.HelveticaOblique);
-
-  const margin = 56;
-  let y = height - margin;
-
-  // Header band
-  page.drawRectangle({
-    x: 0,
-    y: height - 110,
-    width,
-    height: 110,
-    color: PRIMARY,
-  });
-  page.drawText("CENTRAL GLOBAL UNIVERSITY", {
-    x: margin,
-    y: height - 60,
-    size: 22,
-    font: fontBold,
-    color: rgb(1, 1, 1),
-  });
-  page.drawText("Office of Admissions", {
-    x: margin,
-    y: height - 84,
-    size: 12,
-    font,
-    color: rgb(0.85, 0.89, 0.96),
-  });
-
-  y = height - 150;
-
+  const program = resolveProgramInfo(data.programName);
+  const year = new Date().getFullYear();
+  const refNo = `CGU/${program.code}/${year}/${String(data.applicationId).padStart(4, "0")}`;
   const today = new Date().toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
+
+  let pageIndex = 0;
+  const totalPages = 2;
+  const newPage = (): { page: PDFPage; y: number } => {
+    const page = doc.addPage([PAGE_W, PAGE_H]);
+    pageIndex++;
+    drawHeader(page, fonts);
+    drawPageFooter(page, fonts, pageIndex, totalPages);
+    return { page, y: PAGE_H - 128 };
+  };
+
+  // ---------- Page 1 ----------
+  let { page, y } = newPage();
+
+  page.drawText("To:", { x: MARGIN, y, size: 10, font: fonts.bold, color: BLACK });
   page.drawText(`Date: ${today}`, {
-    x: margin,
+    x: PAGE_W - MARGIN - fonts.regular.widthOfTextAtSize(`Date: ${today}`, 10),
     y,
     size: 10,
-    font,
-    color: MUTED,
+    font: fonts.regular,
+    color: BLACK,
   });
-  page.drawText(`Reference: ADM-${data.applicationId}`, {
-    x: width - margin - 140,
+  y -= 15;
+  page.drawText(data.applicantName, { x: MARGIN, y, size: 10, font: fonts.regular, color: BLACK });
+  page.drawText(`Ref No: ${refNo}`, {
+    x: PAGE_W - MARGIN - fonts.regular.widthOfTextAtSize(`Ref No: ${refNo}`, 10),
     y,
     size: 10,
-    font,
-    color: MUTED,
-  });
-
-  y -= 40;
-  page.drawText("LETTER OF ADMISSION", {
-    x: margin,
-    y,
-    size: 16,
-    font: fontBold,
-    color: PRIMARY,
-  });
-
-  y -= 36;
-  page.drawText(`Dear ${data.applicantName},`, {
-    x: margin,
-    y,
-    size: 12,
-    font,
+    font: fonts.regular,
     color: BLACK,
   });
 
-  const paragraphs = [
-    `Congratulations! On behalf of Central Global University, it is our great pleasure to offer you admission into the ${data.programName} programme.`,
-    `Your application has been carefully reviewed by our admissions committee, and we were impressed by your academic background and potential. We are confident that you will make valuable contributions to our academic community.`,
-    `This offer of admission is formal confirmation of your acceptance. Further details regarding enrollment, orientation, and fee payment will be communicated to you through your student portal.`,
-    `We look forward to welcoming you to Central Global University and wish you every success in your academic journey with us.`,
-  ];
+  y -= 30;
+  y = drawWrapped(page, fonts.bold, {
+    text: `Subject: Official Letter of Admission – ${data.programName}`,
+    x: MARGIN,
+    y,
+    size: 11,
+    color: BLACK,
+  });
 
-  y -= 28;
-  const maxWidth = width - margin * 2;
-  for (const para of paragraphs) {
-    y = drawWrapped(page, para, {
-      x: margin,
-      y,
-      size: 11,
-      font,
-      color: BLACK,
-      maxWidth,
-      lineHeight: 16,
-    });
-    y -= 14;
+  y -= 12;
+  page.drawText(`Dear ${data.applicantName},`, {
+    x: MARGIN,
+    y,
+    size: 10.5,
+    font: fonts.regular,
+    color: BLACK,
+  });
+  y -= 20;
+
+  const introParas = [
+    `On behalf of the Admissions Committee, I am pleased to inform you that you have been officially accepted into the ${data.programName} program at Central Global University (CGU) for the upcoming academic session.`,
+    "Your application was evaluated thoroughly based on your academic credentials, professional potential, and alignment with our rigorous educational benchmarks. We believe your profile will contribute significantly to our global learning community.",
+  ];
+  for (const p of introParas) {
+    y = drawWrapped(page, fonts.regular, { text: p, x: MARGIN, y, size: 10.5, color: BLACK });
+    y -= 10;
   }
 
-  if (data.reviewNote) {
-    y = drawWrapped(page, `Note from the admissions office: ${data.reviewNote}`, {
-      x: margin,
-      y,
-      size: 10,
-      font: fontItalic,
-      color: MUTED,
-      maxWidth,
-      lineHeight: 14,
+  // Program details table
+  y -= 6;
+  const rows: [string, string][] = [
+    ["Degree Program", data.programName],
+    ["Mode of Delivery", "Online / Distance Learning / Hybrid"],
+    ["Duration", program.duration],
+    ["Language of Instruction", "English"],
+    ["Academic Credits", program.credits],
+  ];
+  const rowH = 24;
+  const labelW = 180;
+  for (const [label, value] of rows) {
+    page.drawRectangle({
+      x: MARGIN,
+      y: y - rowH + 8,
+      width: PAGE_W - MARGIN * 2,
+      height: rowH,
+      color: TABLE_BG,
+      borderColor: LINE,
+      borderWidth: 0.5,
     });
-    y -= 14;
+    page.drawText(label, { x: MARGIN + 10, y: y - 8, size: 10, font: fonts.bold, color: PRIMARY });
+    page.drawText(value, { x: MARGIN + labelW, y: y - 8, size: 10, font: fonts.regular, color: BLACK });
+    y -= rowH;
   }
 
   y -= 24;
-  page.drawText("Warm regards,", { x: margin, y, size: 11, font, color: BLACK });
-  y -= 36;
-  page.drawText("Registrar", { x: margin, y, size: 12, font: fontBold, color: PRIMARY });
-  y -= 16;
-  page.drawText("Office of Admissions, Central Global University", {
-    x: margin,
+  page.drawText("INSTITUTIONAL FRAMEWORK & GLOBAL RECOGNITION", {
+    x: MARGIN,
     y,
-    size: 10,
-    font,
-    color: MUTED,
+    size: 11,
+    font: fonts.bold,
+    color: PRIMARY,
+  });
+  y -= 18;
+  y = drawWrapped(page, fonts.regular, {
+    text: "Central Global University is committed to delivering world-class business education aligned with international quality frameworks. CGU operates with structural validations, international accreditations, and high-tier institutional memberships:",
+    x: MARGIN,
+    y,
+    size: 10.5,
+    color: BLACK,
+  });
+  y -= 8;
+
+  // First two accreditations on page 1, rest on page 2.
+  for (const acc of ACCREDITATIONS.slice(0, 2)) {
+    y = drawAccreditation(page, fonts, acc, y);
+  }
+
+  // ---------- Page 2 ----------
+  ({ page, y } = newPage());
+  for (const acc of ACCREDITATIONS.slice(2)) {
+    y = drawAccreditation(page, fonts, acc, y);
+  }
+
+  y -= 14;
+  page.drawText("KEY CONDITIONS OF ADMISSION", {
+    x: MARGIN,
+    y,
+    size: 11,
+    font: fonts.bold,
+    color: PRIMARY,
+  });
+  y -= 18;
+  y = drawWrapped(page, fonts.regular, {
+    text: "To finalize your enrollment and secure your student record, please fulfill the following institutional requirements:",
+    x: MARGIN,
+    y,
+    size: 10.5,
+    color: BLACK,
+  });
+  y -= 8;
+
+  const conditions = [
+    `1. Official Documentation: Submit clear scanned copies of your official ${program.priorCredential} (or equivalent) along with full academic transcripts. Note: Any non-English documentation must be accompanied by a certified English translation.`,
+    "2. Transcript Submission Timeline: Official, original documents must be formally verified by the Registrar's office before you complete your first 9 semester credit hours.",
+    "3. Program Fees: Complete the relevant program fee installments or structural tuition payments as detailed in your fee schedule to formalize your structural enrollment and activate your university portal login.",
+  ];
+  for (const c of conditions) {
+    y = drawWrapped(page, fonts.regular, { text: c, x: MARGIN, y, size: 10.5, color: BLACK });
+    y -= 8;
+  }
+
+  y -= 6;
+  y = drawWrapped(page, fonts.regular, {
+    text: "We are thrilled to welcome you to Central Global University and look forward to supporting your path toward cross-border professional and corporate leadership.",
+    x: MARGIN,
+    y,
+    size: 10.5,
+    color: BLACK,
   });
 
-  // Footer
-  page.drawLine({
-    start: { x: margin, y: 70 },
-    end: { x: width - margin, y: 70 },
-    thickness: 1,
-    color: rgb(0.85, 0.85, 0.85),
+  if (data.reviewNote) {
+    y -= 8;
+    y = drawWrapped(page, fonts.italic, {
+      text: `Note from the admissions office: ${data.reviewNote}`,
+      x: MARGIN,
+      y,
+      size: 9.5,
+      color: MUTED,
+    });
+  }
+
+  y -= 16;
+  page.drawText("Sincerely,", { x: MARGIN, y, size: 10.5, font: fonts.regular, color: BLACK });
+  y -= 44;
+  page.drawText("Office of the Registrar", {
+    x: MARGIN,
+    y,
+    size: 11,
+    font: fonts.bold,
+    color: PRIMARY,
   });
-  page.drawText(
-    "This is an official document generated by Central Global University.",
-    { x: margin, y: 54, size: 8, font, color: MUTED },
-  );
+  y -= 15;
+  page.drawText("Central Global University (CGU)", {
+    x: MARGIN,
+    y,
+    size: 10,
+    font: fonts.regular,
+    color: BLACK,
+  });
+  y -= 14;
+  page.drawText("Georgia Office", { x: MARGIN, y, size: 10, font: fonts.regular, color: BLACK });
 
   return doc.save();
 }
 
+function drawHeader(page: PDFPage, fonts: Fonts) {
+  page.drawRectangle({ x: 0, y: PAGE_H - 96, width: PAGE_W, height: 96, color: PRIMARY });
+  page.drawText("CENTRAL GLOBAL UNIVERSITY", {
+    x: MARGIN,
+    y: PAGE_H - 42,
+    size: 18,
+    font: fonts.bold,
+    color: rgb(1, 1, 1),
+  });
+  page.drawText("OFFICE OF ADMISSIONS & REGISTRAR", {
+    x: MARGIN,
+    y: PAGE_H - 60,
+    size: 10,
+    font: fonts.bold,
+    color: rgb(0.85, 0.89, 0.96),
+  });
+  page.drawText(
+    "Campus & Administrative Office: Georgia | Website: www.cgu.edu.ge | Email: admission@cgu.edu.ge",
+    { x: MARGIN, y: PAGE_H - 76, size: 8.5, font: fonts.regular, color: rgb(0.85, 0.89, 0.96) },
+  );
+}
+
+function drawPageFooter(page: PDFPage, fonts: Fonts, num: number, total: number) {
+  page.drawLine({
+    start: { x: MARGIN, y: 56 },
+    end: { x: PAGE_W - MARGIN, y: 56 },
+    thickness: 0.75,
+    color: LINE,
+  });
+  const label = `Page ${num} of ${total}`;
+  page.drawText(label, {
+    x: PAGE_W - MARGIN - fonts.regular.widthOfTextAtSize(label, 8.5),
+    y: 42,
+    size: 8.5,
+    font: fonts.regular,
+    color: MUTED,
+  });
+  page.drawText("Official Letter of Admission | Central Global University", {
+    x: MARGIN,
+    y: 42,
+    size: 8.5,
+    font: fonts.regular,
+    color: MUTED,
+  });
+}
+
+function drawAccreditation(
+  page: PDFPage,
+  fonts: Fonts,
+  acc: { title: string; body: string },
+  y: number,
+): number {
+  page.drawText("•", { x: MARGIN + 4, y, size: 10.5, font: fonts.bold, color: PRIMARY });
+  y = drawWrapped(page, fonts.regular, {
+    text: `${acc.title} ${acc.body}`,
+    x: MARGIN + 18,
+    y,
+    size: 10,
+    color: BLACK,
+    maxWidth: PAGE_W - MARGIN * 2 - 18,
+    boldPrefix: acc.title,
+    boldFont: fonts.bold,
+  });
+  return y - 8;
+}
+
 function drawWrapped(
-  page: ReturnType<PDFDocument["addPage"]>,
-  text: string,
+  page: PDFPage,
+  font: PDFFont,
   opts: {
+    text: string;
     x: number;
     y: number;
     size: number;
-    font: Awaited<ReturnType<PDFDocument["embedFont"]>>;
     color: ReturnType<typeof rgb>;
-    maxWidth: number;
-    lineHeight: number;
+    maxWidth?: number;
+    lineHeight?: number;
+    boldPrefix?: string;
+    boldFont?: PDFFont;
   },
 ): number {
-  const words = text.split(/\s+/);
-  let line = "";
+  const maxWidth = opts.maxWidth ?? PAGE_W - MARGIN * 2;
+  const lineHeight = opts.lineHeight ?? opts.size * 1.45;
+  const prefixLen = opts.boldPrefix?.length ?? 0;
+
+  const words = opts.text.split(/\s+/);
+  let line: { word: string; bold: boolean }[] = [];
+  let consumed = 0;
   let y = opts.y;
+
+  const widthOf = (items: { word: string; bold: boolean }[]) =>
+    items.reduce((w, it, i) => {
+      const f = it.bold && opts.boldFont ? opts.boldFont : font;
+      return w + f.widthOfTextAtSize((i > 0 ? " " : "") + it.word, opts.size);
+    }, 0);
+
+  const flush = () => {
+    let x = opts.x;
+    for (let i = 0; i < line.length; i++) {
+      const it = line[i];
+      const f = it.bold && opts.boldFont ? opts.boldFont : font;
+      const t = (i > 0 ? " " : "") + it.word;
+      page.drawText(t, { x, y, size: opts.size, font: f, color: opts.color });
+      x += f.widthOfTextAtSize(t, opts.size);
+    }
+    y -= lineHeight;
+    line = [];
+  };
+
   for (const word of words) {
-    const candidate = line ? `${line} ${word}` : word;
-    const w = opts.font.widthOfTextAtSize(candidate, opts.size);
-    if (w > opts.maxWidth && line) {
-      page.drawText(line, {
-        x: opts.x,
-        y,
-        size: opts.size,
-        font: opts.font,
-        color: opts.color,
-      });
-      y -= opts.lineHeight;
-      line = word;
+    const bold = consumed < prefixLen;
+    consumed += word.length + 1;
+    const candidate = [...line, { word, bold }];
+    if (widthOf(candidate) > maxWidth && line.length > 0) {
+      flush();
+      line = [{ word, bold }];
     } else {
       line = candidate;
     }
   }
-  if (line) {
-    page.drawText(line, {
-      x: opts.x,
-      y,
-      size: opts.size,
-      font: opts.font,
-      color: opts.color,
-    });
-    y -= opts.lineHeight;
-  }
+  if (line.length > 0) flush();
   return y;
 }

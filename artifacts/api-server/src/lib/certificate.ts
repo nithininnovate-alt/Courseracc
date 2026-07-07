@@ -151,221 +151,286 @@ export async function generateDegreeCertificate(
 }
 
 export interface TranscriptRow {
-  subjectTitle: string;
-  examTitle: string;
-  score: number;
-  totalMarks: number;
-  grade: string | null;
+  moduleCode: string;
+  moduleTitle: string;
+  credits: number;
+  year: number;
+  grade: string; // letter grade, e.g. "A", "B+"
   passed: boolean;
 }
 
 export interface TranscriptData {
   studentName: string;
-  studentEmail: string;
-  courseTitle: string;
-  courseLevel: string;
-  certificateNumber: string;
+  studentId: string;
+  degreeAwarded: string;
+  certificateNumber: string; // Transcript Ref
+  enrollmentDate: Date | null;
+  completionDate: Date | null;
   issuedAt: Date;
   rows: TranscriptRow[];
 }
 
+/** Official CGU grading key: letter grade → grade points (4.00 scale). */
+export const GRADE_POINTS: Record<string, number> = {
+  A: 4.0,
+  "A-": 3.67,
+  "B+": 3.33,
+  B: 3.0,
+  "B-": 2.67,
+  "C+": 2.33,
+  C: 2.0,
+  D: 1.0,
+  F: 0.0,
+};
+
+/** Derive a letter grade from a percentage score. */
+export function letterGradeFromPercent(pct: number): string {
+  if (pct >= 93) return "A";
+  if (pct >= 90) return "A-";
+  if (pct >= 87) return "B+";
+  if (pct >= 83) return "B";
+  if (pct >= 80) return "B-";
+  if (pct >= 77) return "C+";
+  if (pct >= 70) return "C";
+  if (pct >= 60) return "D";
+  return "F";
+}
+
 /**
- * Generate an official academic transcript (portrait, tabular).
+ * Generate an official academic transcript (official registrar format).
  */
 export async function generateTranscript(data: TranscriptData): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
-  const page = doc.addPage([595.28, 841.89]); // A4 portrait
-  const { width, height } = page.getSize();
-
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
 
+  const PAGE_W = 595.28;
+  const PAGE_H = 841.89;
   const margin = 56;
 
-  // Header band
-  page.drawRectangle({ x: 0, y: height - 110, width, height: 110, color: PRIMARY });
-  page.drawText("CENTRAL GLOBAL UNIVERSITY", {
-    x: margin,
-    y: height - 56,
-    size: 20,
-    font: fontBold,
-    color: rgb(1, 1, 1),
-  });
-  page.drawText("Office of the Registrar", {
-    x: margin,
-    y: height - 80,
-    size: 11,
-    font,
-    color: rgb(0.85, 0.89, 0.96),
-  });
-  page.drawText("TRANSCRIPT", {
-    x: width - margin - 135,
-    y: height - 62,
-    size: 22,
-    font: fontBold,
-    color: rgb(1, 1, 1),
-  });
+  const drawHeader = (page: PDFPage) => {
+    page.drawRectangle({ x: 0, y: PAGE_H - 110, width: PAGE_W, height: 110, color: PRIMARY });
+    page.drawText("CENTRAL GLOBAL UNIVERSITY", {
+      x: margin,
+      y: PAGE_H - 42,
+      size: 18,
+      font: fontBold,
+      color: rgb(1, 1, 1),
+    });
+    page.drawText("OFFICE OF THE REGISTRAR & ACADEMIC RECORDS", {
+      x: margin,
+      y: PAGE_H - 60,
+      size: 10,
+      font: fontBold,
+      color: rgb(0.85, 0.89, 0.96),
+    });
+    page.drawText(
+      "Campus & Administrative Office: Georgia | Verification Portal: verification.cgu.edu.ge",
+      { x: margin, y: PAGE_H - 76, size: 8.5, font, color: rgb(0.85, 0.89, 0.96) },
+    );
+    page.drawText("OFFICIAL ACADEMIC TRANSCRIPT", {
+      x: PAGE_W - margin - fontBold.widthOfTextAtSize("OFFICIAL ACADEMIC TRANSCRIPT", 11),
+      y: PAGE_H - 96,
+      size: 11,
+      font: fontBold,
+      color: rgb(1, 1, 1),
+    });
+  };
 
-  const fmtDate = data.issuedAt.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const drawPageFooter = (page: PDFPage) => {
+    page.drawLine({
+      start: { x: margin, y: 56 },
+      end: { x: PAGE_W - margin, y: 56 },
+      thickness: 0.75,
+      color: LINE,
+    });
+    page.drawText(
+      "This is an official academic transcript issued by Central Global University. Verify at verification.cgu.edu.ge",
+      { x: margin, y: 42, size: 8, font, color: MUTED },
+    );
+  };
 
-  // Meta + student
-  let y = height - 150;
-  page.drawText("STUDENT", { x: margin, y, size: 10, font: fontBold, color: MUTED });
-  page.drawText("Issued", { x: width - margin - 220, y, size: 10, font, color: MUTED });
-  page.drawText(fmtDate, {
-    x: width - margin - 110,
-    y,
-    size: 10,
-    font: fontBold,
-    color: BLACK,
-  });
-  y -= 18;
-  page.drawText(data.studentName, { x: margin, y, size: 12, font: fontBold, color: BLACK });
-  page.drawText("Transcript No.", {
-    x: width - margin - 220,
-    y,
-    size: 10,
-    font,
-    color: MUTED,
-  });
-  page.drawText(data.certificateNumber, {
-    x: width - margin - 110,
-    y,
-    size: 10,
-    font: fontBold,
-    color: BLACK,
-  });
-  y -= 16;
-  page.drawText(data.studentEmail, { x: margin, y, size: 10, font, color: MUTED });
+  const newPage = (): { page: PDFPage; y: number } => {
+    const page = doc.addPage([PAGE_W, PAGE_H]);
+    drawHeader(page);
+    drawPageFooter(page);
+    return { page, y: PAGE_H - 148 };
+  };
 
-  y -= 32;
-  const infoRows: [string, string][] = [
-    ["Programme", data.courseTitle],
-    ["Level", data.courseLevel],
+  const fmt = (d: Date | null) =>
+    d
+      ? d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+      : "In Progress";
+
+  let { page, y } = newPage();
+
+  // Student information block
+  const info: [string, string][] = [
+    ["Student Name", data.studentName],
+    ["Student ID", data.studentId],
+    ["Degree Awarded", data.degreeAwarded],
+    ["Transcript Ref", data.certificateNumber],
+    ["Enrollment Date", fmt(data.enrollmentDate)],
+    ["Completion Date", fmt(data.completionDate)],
+    ["Date of Issue", fmt(data.issuedAt)],
   ];
-  for (const [label, value] of infoRows) {
-    page.drawText(label, { x: margin, y, size: 10, font, color: MUTED });
-    page.drawText(value, { x: margin + 110, y, size: 11, font: fontBold, color: BLACK });
-    y -= 20;
+  for (const [label, value] of info) {
+    page.drawText(label.toUpperCase(), { x: margin, y, size: 8, font: fontBold, color: MUTED });
+    page.drawText(value, { x: margin + 130, y, size: 9.5, font: fontBold, color: BLACK });
+    y -= 16;
   }
+  y -= 12;
 
-  // Table header
-  y -= 8;
-  const colSubject = margin + 6;
-  const colExam = margin + 180;
-  const colMarks = width - margin - 150;
-  const colGrade = width - margin - 80;
-  const colOutcome = width - margin - 36;
-  page.drawRectangle({
-    x: margin,
-    y: y - 6,
-    width: width - margin * 2,
-    height: 24,
-    color: rgb(0.95, 0.96, 0.98),
-  });
-  page.drawText("SUBJECT", { x: colSubject, y, size: 9, font: fontBold, color: PRIMARY });
-  page.drawText("EXAM", { x: colExam, y, size: 9, font: fontBold, color: PRIMARY });
-  page.drawText("MARKS", { x: colMarks, y, size: 9, font: fontBold, color: PRIMARY });
-  page.drawText("GRD", { x: colGrade, y, size: 9, font: fontBold, color: PRIMARY });
-  page.drawText("P/F", { x: colOutcome, y, size: 9, font: fontBold, color: PRIMARY });
-  y -= 24;
+  // Table columns
+  const colCode = margin + 4;
+  const colTitle = margin + 90;
+  const colCredits = PAGE_W - margin - 170;
+  const colGrade = PAGE_W - margin - 105;
+  const colStatus = PAGE_W - margin - 55;
+
+  const drawTableHeader = () => {
+    page.drawRectangle({
+      x: margin,
+      y: y - 6,
+      width: PAGE_W - margin * 2,
+      height: 22,
+      color: rgb(0.95, 0.96, 0.98),
+    });
+    page.drawText("MODULE CODE", { x: colCode, y, size: 8.5, font: fontBold, color: PRIMARY });
+    page.drawText("MODULE TITLE", { x: colTitle, y, size: 8.5, font: fontBold, color: PRIMARY });
+    page.drawText("CREDITS", { x: colCredits, y, size: 8.5, font: fontBold, color: PRIMARY });
+    page.drawText("GRADE", { x: colGrade, y, size: 8.5, font: fontBold, color: PRIMARY });
+    page.drawText("STATUS", { x: colStatus, y, size: 8.5, font: fontBold, color: PRIMARY });
+    y -= 24;
+  };
+
+  const ensureSpace = (needed: number) => {
+    if (y - needed < 90) {
+      ({ page, y } = newPage());
+      drawTableHeader();
+    }
+  };
 
   const truncate = (text: string, max: number) =>
     text.length > max ? `${text.slice(0, max - 1)}…` : text;
 
-  let totalScore = 0;
-  let totalMax = 0;
-  let passedCount = 0;
-  for (const row of data.rows) {
-    if (y < 120) break; // single page guard
-    page.drawText(truncate(row.subjectTitle, 28), {
-      x: colSubject,
-      y,
-      size: 9,
-      font,
-      color: BLACK,
-    });
-    page.drawText(truncate(row.examTitle, 22), {
-      x: colExam,
-      y,
-      size: 9,
-      font,
-      color: BLACK,
-    });
-    page.drawText(`${row.score}/${row.totalMarks}`, {
-      x: colMarks,
-      y,
-      size: 9,
-      font,
-      color: BLACK,
-    });
-    page.drawText(row.grade ?? "—", { x: colGrade, y, size: 9, font, color: BLACK });
-    page.drawText(row.passed ? "P" : "F", {
-      x: colOutcome,
+  drawTableHeader();
+
+  const years = [...new Set(data.rows.map((r) => r.year))].sort((a, b) => a - b);
+  const ordinal = ["FIRST", "SECOND", "THIRD", "FOURTH", "FIFTH"];
+  let totalCredits = 0;
+  let earnedCredits = 0;
+  let weightedPoints = 0;
+  let gradedCredits = 0;
+
+  for (const yr of years) {
+    ensureSpace(40);
+    page.drawText(`${ordinal[yr - 1] ?? `YEAR ${yr}`} ACADEMIC YEAR`, {
+      x: colCode,
       y,
       size: 9,
       font: fontBold,
-      color: row.passed ? rgb(0.13, 0.5, 0.23) : rgb(0.7, 0.16, 0.16),
+      color: GOLD,
     });
-    page.drawLine({
-      start: { x: margin, y: y - 6 },
-      end: { x: width - margin, y: y - 6 },
-      thickness: 0.5,
-      color: LINE,
-    });
-    totalScore += row.score;
-    totalMax += row.totalMarks;
-    if (row.passed) passedCount += 1;
-    y -= 22;
+    y -= 20;
+    for (const row of data.rows.filter((r) => r.year === yr)) {
+      ensureSpace(22);
+      page.drawText(row.moduleCode, { x: colCode, y, size: 9, font: fontBold, color: BLACK });
+      page.drawText(truncate(row.moduleTitle, 52), { x: colTitle, y, size: 9, font, color: BLACK });
+      page.drawText(String(row.credits), { x: colCredits, y, size: 9, font, color: BLACK });
+      page.drawText(row.grade, { x: colGrade, y, size: 9, font: fontBold, color: BLACK });
+      page.drawText(row.passed ? "Pass" : "Fail", {
+        x: colStatus,
+        y,
+        size: 9,
+        font: fontBold,
+        color: row.passed ? rgb(0.13, 0.5, 0.23) : rgb(0.7, 0.16, 0.16),
+      });
+      page.drawLine({
+        start: { x: margin, y: y - 6 },
+        end: { x: PAGE_W - margin, y: y - 6 },
+        thickness: 0.5,
+        color: LINE,
+      });
+      totalCredits += row.credits;
+      if (row.passed) earnedCredits += row.credits;
+      const points = GRADE_POINTS[row.grade];
+      if (points !== undefined) {
+        weightedPoints += points * row.credits;
+        gradedCredits += row.credits;
+      }
+      y -= 20;
+    }
+    y -= 6;
   }
 
   if (data.rows.length === 0) {
     page.drawText("No published results on record.", {
-      x: colSubject,
+      x: colCode,
       y,
       size: 10,
       font,
       color: MUTED,
     });
-    y -= 22;
+    y -= 24;
   }
 
-  // Summary
-  y -= 16;
-  const pct = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
-  page.drawText("Aggregate", { x: margin, y, size: 11, font: fontBold, color: PRIMARY });
-  page.drawText(`${totalScore} / ${totalMax}  (${pct}%)`, {
-    x: margin + 110,
-    y,
+  // Totals + GPA
+  ensureSpace(120);
+  y -= 8;
+  const gpa = gradedCredits > 0 ? weightedPoints / gradedCredits : 0;
+  page.drawRectangle({
+    x: margin,
+    y: y - 30,
+    width: PAGE_W - margin * 2,
+    height: 44,
+    color: rgb(0.95, 0.96, 0.98),
+    borderColor: LINE,
+    borderWidth: 0.5,
+  });
+  page.drawText("TOTAL CREDITS EARNED", { x: margin + 10, y, size: 8.5, font: fontBold, color: MUTED });
+  page.drawText(`${earnedCredits} / ${totalCredits} ECTS`, {
+    x: margin + 10,
+    y: y - 16,
     size: 11,
     font: fontBold,
     color: BLACK,
   });
-  y -= 18;
-  page.drawText("Subjects passed", { x: margin, y, size: 10, font, color: MUTED });
-  page.drawText(`${passedCount} / ${data.rows.length}`, {
-    x: margin + 110,
-    y,
-    size: 10,
+  page.drawText("CUMULATIVE GPA", { x: PAGE_W / 2 + 10, y, size: 8.5, font: fontBold, color: MUTED });
+  page.drawText(`${gpa.toFixed(2)} / 4.00`, {
+    x: PAGE_W / 2 + 10,
+    y: y - 16,
+    size: 11,
     font: fontBold,
     color: BLACK,
   });
+  y -= 56;
 
-  // Footer
+  // Grading key
+  ensureSpace(60);
+  page.drawText("GRADING KEY", { x: margin, y, size: 9, font: fontBold, color: PRIMARY });
+  y -= 14;
+  const key =
+    "A = 4.00 | A- = 3.67 | B+ = 3.33 | B = 3.00 | B- = 2.67 | C+ = 2.33 | C = 2.00 | D = 1.00 | F = 0.00";
+  page.drawText(key, { x: margin, y, size: 8.5, font, color: BLACK });
+  y -= 40;
+
+  // Registrar signature
+  ensureSpace(60);
   page.drawLine({
-    start: { x: margin, y: 70 },
-    end: { x: width - margin, y: 70 },
+    start: { x: margin, y: y + 12 },
+    end: { x: margin + 180, y: y + 12 },
     thickness: 1,
-    color: LINE,
+    color: BLACK,
   });
-  page.drawText(
-    "This is an official academic transcript issued by Central Global University.",
-    { x: margin, y: 54, size: 8, font, color: MUTED },
-  );
+  page.drawText("Office of the Registrar", { x: margin, y, size: 9.5, font: fontBold, color: BLACK });
+  page.drawText("Central Global University, Georgia Office", {
+    x: margin,
+    y: y - 13,
+    size: 8.5,
+    font,
+    color: MUTED,
+  });
 
   return doc.save();
 }

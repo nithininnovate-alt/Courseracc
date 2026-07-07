@@ -40,6 +40,7 @@ import {
   buildCourseActivation,
 } from "../lib/email";
 import { generateResultReport } from "../lib/resultReport";
+import { generateEnrollmentLetter } from "../lib/enrollmentLetter";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 
 const router: IRouter = Router();
@@ -103,6 +104,60 @@ router.post("/enrollments", requireUser, async (req: AuthedRequest, res) => {
   }
 
   res.status(201).json(created);
+});
+
+// Binary PDF enrollment letter download (not part of the OpenAPI JSON surface).
+router.get("/enrollments/:id/letter", async (req, res) => {
+  const user = await resolveCurrentUser(req);
+  if (!user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const id = Number(req.params.id);
+  const [enrollment] = await db
+    .select()
+    .from(enrollmentsTable)
+    .where(eq(enrollmentsTable.id, id));
+  if (!enrollment) {
+    res.status(404).json({ error: "Enrollment not found" });
+    return;
+  }
+  if (enrollment.userId !== user.id && !isStaff(user)) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  const validatorParam = String(req.query.validator ?? "ieac").toLowerCase();
+  if (validatorParam !== "ieac" && validatorParam !== "eahea") {
+    res.status(400).json({ error: "validator must be 'ieac' or 'eahea'" });
+    return;
+  }
+  const [student] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, enrollment.userId));
+  const [course] = await db
+    .select()
+    .from(coursesTable)
+    .where(eq(coursesTable.id, enrollment.courseId));
+  if (!student || !course) {
+    res.status(404).json({ error: "Enrollment record incomplete" });
+    return;
+  }
+
+  const pdf = await generateEnrollmentLetter({
+    studentName: studentName(student),
+    programName: course.title,
+    userId: enrollment.userId,
+    enrolledAt: enrollment.enrolledAt ?? new Date(),
+    validator: validatorParam,
+  });
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader(
+    "Content-Disposition",
+    `inline; filename="CGU-Enrollment-Letter-${validatorParam.toUpperCase()}-${enrollment.id}.pdf"`,
+  );
+  res.send(Buffer.from(pdf));
 });
 
 /* ----------------------------- assignments ----------------------------- */
