@@ -851,7 +851,9 @@ router.get("/results/:id/report", async (req, res) => {
   }
   if (!isStaff(user)) {
     if (result.userId !== user.id || !result.published) {
-      res.status(403).json({ error: "Forbidden" });
+      // Indistinguishable from a missing result so students can't probe
+      // for the existence of other students' (or unpublished) results.
+      res.status(404).json({ error: "Result not found" });
       return;
     }
   }
