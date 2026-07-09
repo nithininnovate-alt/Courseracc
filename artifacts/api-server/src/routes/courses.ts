@@ -1,10 +1,11 @@
 import { Router, type IRouter } from "express";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, and } from "drizzle-orm";
 import {
   db,
   coursesTable,
   subjectsTable,
   studyMaterialsTable,
+  enrollmentsTable,
 } from "@workspace/db";
 import {
   CreateCourseBody,
@@ -149,12 +150,35 @@ router.post("/courses/:courseId/subjects", requireStaff, async (req, res) => {
   res.status(201).json(created);
 });
 
-router.get("/subjects", async (_req, res) => {
+router.get("/subjects", async (req, res) => {
+  const user = await resolveCurrentUser(req);
+  if (!user) {
+    res.json([]);
+    return;
+  }
+  if (isStaff(user)) {
+    const rows = await db
+      .select()
+      .from(subjectsTable)
+      .orderBy(asc(subjectsTable.courseId), asc(subjectsTable.year), asc(subjectsTable.semester), asc(subjectsTable.orderIndex));
+    res.json(rows);
+    return;
+  }
+  // Students only see subjects belonging to courses they are enrolled in.
+  // selectDistinct guards against duplicate rows if a student somehow has
+  // multiple enrollment records for the same course.
   const rows = await db
-    .select()
+    .selectDistinct({ subject: subjectsTable })
     .from(subjectsTable)
+    .innerJoin(
+      enrollmentsTable,
+      and(
+        eq(enrollmentsTable.courseId, subjectsTable.courseId),
+        eq(enrollmentsTable.userId, user.id),
+      ),
+    )
     .orderBy(asc(subjectsTable.courseId), asc(subjectsTable.year), asc(subjectsTable.semester), asc(subjectsTable.orderIndex));
-  res.json(rows);
+  res.json(rows.map((r) => r.subject));
 });
 
 router.get("/subjects/:id", async (req, res) => {
