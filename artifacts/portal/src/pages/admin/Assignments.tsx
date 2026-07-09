@@ -7,6 +7,7 @@ import {
   useListAssignmentSubmissions,
   useGradeSubmission,
   useListAllSubjects,
+  useListCourses,
   type Assignment,
   type Submission,
 } from "@workspace/api-client-react";
@@ -26,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Pencil, Trash2, ClipboardList, Download, FileText } from "lucide-react";
 
 interface AssignmentForm {
+  courseId: string;
   subjectId: string;
   title: string;
   description: string;
@@ -35,6 +37,7 @@ interface AssignmentForm {
 }
 
 const empty: AssignmentForm = {
+  courseId: "",
   subjectId: "",
   title: "",
   description: "",
@@ -54,6 +57,7 @@ export default function AdminAssignments() {
   const qc = useQueryClient();
   const { data: assignments, isLoading } = useListAssignments();
   const { data: subjects } = useListAllSubjects();
+  const { data: courses } = useListCourses();
   const createAssignment = useCreateAssignment();
   const updateAssignment = useUpdateAssignment();
   const deleteAssignment = useDeleteAssignment();
@@ -62,6 +66,7 @@ export default function AdminAssignments() {
   const [editing, setEditing] = useState<Assignment | null>(null);
   const [form, setForm] = useState<AssignmentForm>(empty);
   const [gradingFor, setGradingFor] = useState<Assignment | null>(null);
+  const [courseFilter, setCourseFilter] = useState<string>("all");
 
   const { uploadFile, isUploading } = useUpload();
 
@@ -69,15 +74,29 @@ export default function AdminAssignments() {
     const s = subjects?.find((x) => x.id === id);
     return s ? s.title : `Subject #${id}`;
   };
+  const courseIdOfSubject = (subjectId: number) =>
+    subjects?.find((s) => s.id === subjectId)?.courseId;
+  const courseLabel = (subjectId: number) => {
+    const cid = courseIdOfSubject(subjectId);
+    const c = courses?.find((x) => x.id === cid);
+    return c ? c.title : "—";
+  };
+  const formSubjects = (subjects ?? []).filter(
+    (s) => form.courseId && s.courseId === Number(form.courseId),
+  );
+  const visibleAssignments = (assignments ?? []).filter(
+    (a) => courseFilter === "all" || courseIdOfSubject(a.subjectId) === Number(courseFilter),
+  );
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ ...empty, subjectId: subjects?.[0] ? String(subjects[0].id) : "" });
+    setForm({ ...empty });
     setOpen(true);
   };
   const openEdit = (a: Assignment) => {
     setEditing(a);
     setForm({
+      courseId: String(courseIdOfSubject(a.subjectId) ?? ""),
       subjectId: String(a.subjectId),
       title: a.title,
       description: a.description ?? "",
@@ -146,10 +165,25 @@ export default function AdminAssignments() {
         action={<Button onClick={openCreate}>Add Assignment</Button>}
       />
 
+      <div className="flex items-center gap-2">
+        <Label className="text-sm text-muted-foreground">Course</Label>
+        <Select value={courseFilter} onValueChange={setCourseFilter}>
+          <SelectTrigger className="w-64"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All courses</SelectItem>
+            {(courses ?? []).map((c) => (
+              <SelectItem key={c.id} value={String(c.id)}>{c.title}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {isLoading ? (
         <LoadingCard />
       ) : !assignments || assignments.length === 0 ? (
         <EmptyCard message="No assignments yet. Create your first assignment." />
+      ) : visibleAssignments.length === 0 ? (
+        <EmptyCard message="No assignments for this course." />
       ) : (
         <Card className="rounded-2xl">
           <CardContent className="p-0 overflow-x-auto">
@@ -157,6 +191,7 @@ export default function AdminAssignments() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Title</TableHead>
+                  <TableHead>Course</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Due Date</TableHead>
                   <TableHead>Max Score</TableHead>
@@ -164,11 +199,12 @@ export default function AdminAssignments() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {assignments.map((a) => {
+                {visibleAssignments.map((a) => {
                   const overdue = new Date(a.dueDate).getTime() < Date.now();
                   return (
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">{a.title}</TableCell>
+                      <TableCell>{courseLabel(a.subjectId)}</TableCell>
                       <TableCell>{subjectLabel(a.subjectId)}</TableCell>
                       <TableCell>
                         {new Date(a.dueDate).toLocaleString()}
@@ -202,11 +238,22 @@ export default function AdminAssignments() {
           <DialogHeader><DialogTitle>{editing ? "Edit Assignment" : "Add Assignment"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Subject</Label>
-              <Select value={form.subjectId} onValueChange={(v) => setForm({ ...form, subjectId: v })}>
-                <SelectTrigger><SelectValue placeholder="Select a subject" /></SelectTrigger>
+              <Label>Course</Label>
+              <Select value={form.courseId} onValueChange={(v) => setForm({ ...form, courseId: v, subjectId: "" })}>
+                <SelectTrigger><SelectValue placeholder="Select a course" /></SelectTrigger>
                 <SelectContent>
-                  {(subjects ?? []).map((s) => (
+                  {(courses ?? []).map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)}>{c.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Subject</Label>
+              <Select value={form.subjectId} onValueChange={(v) => setForm({ ...form, subjectId: v })} disabled={!form.courseId}>
+                <SelectTrigger><SelectValue placeholder={form.courseId ? "Select a subject" : "Select a course first"} /></SelectTrigger>
+                <SelectContent>
+                  {formSubjects.map((s) => (
                     <SelectItem key={s.id} value={String(s.id)}>{s.title}</SelectItem>
                   ))}
                 </SelectContent>

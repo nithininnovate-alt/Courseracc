@@ -9,6 +9,7 @@ import {
   useCreateResult,
   usePublishExamResults,
   useListAllSubjects,
+  useListCourses,
   type Exam,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -29,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Pencil, Trash2, ClipboardCheck, FileText, Send } from "lucide-react";
 
 interface ExamForm {
+  courseId: string;
   subjectId: string;
   title: string;
   scheduledAt: string;
@@ -40,6 +42,7 @@ interface ExamForm {
 }
 
 const empty: ExamForm = {
+  courseId: "",
   subjectId: "",
   title: "",
   scheduledAt: "",
@@ -62,6 +65,7 @@ export default function AdminExams() {
   const qc = useQueryClient();
   const { data: exams, isLoading } = useListExams();
   const { data: subjects } = useListAllSubjects();
+  const { data: courses } = useListCourses();
   const createExam = useCreateExam();
   const updateExam = useUpdateExam();
   const deleteExam = useDeleteExam();
@@ -70,19 +74,33 @@ export default function AdminExams() {
   const [editing, setEditing] = useState<Exam | null>(null);
   const [form, setForm] = useState<ExamForm>(empty);
   const [managing, setManaging] = useState<Exam | null>(null);
+  const [courseFilter, setCourseFilter] = useState<string>("all");
 
   const { uploadFile, isUploading } = useUpload();
 
   const subjectLabel = (id: number) => subjects?.find((x) => x.id === id)?.title ?? `Subject #${id}`;
+  const courseIdOfSubject = (subjectId: number) =>
+    subjects?.find((s) => s.id === subjectId)?.courseId;
+  const courseLabel = (subjectId: number) => {
+    const cid = courseIdOfSubject(subjectId);
+    return courses?.find((x) => x.id === cid)?.title ?? "—";
+  };
+  const formSubjects = (subjects ?? []).filter(
+    (s) => form.courseId && s.courseId === Number(form.courseId),
+  );
+  const visibleExams = (exams ?? []).filter(
+    (e) => courseFilter === "all" || courseIdOfSubject(e.subjectId) === Number(courseFilter),
+  );
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ ...empty, subjectId: subjects?.[0] ? String(subjects[0].id) : "" });
+    setForm({ ...empty });
     setOpen(true);
   };
   const openEdit = (e: Exam) => {
     setEditing(e);
     setForm({
+      courseId: String(courseIdOfSubject(e.subjectId) ?? ""),
       subjectId: String(e.subjectId),
       title: e.title,
       scheduledAt: toLocalInput(e.scheduledAt),
@@ -155,10 +173,25 @@ export default function AdminExams() {
         action={<Button onClick={openCreate}>Add Exam</Button>}
       />
 
+      <div className="flex items-center gap-2">
+        <Label className="text-sm text-muted-foreground">Course</Label>
+        <Select value={courseFilter} onValueChange={setCourseFilter}>
+          <SelectTrigger className="w-64"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All courses</SelectItem>
+            {(courses ?? []).map((c) => (
+              <SelectItem key={c.id} value={String(c.id)}>{c.title}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {isLoading ? (
         <LoadingCard />
       ) : !exams || exams.length === 0 ? (
         <EmptyCard message="No exams scheduled. Create your first exam." />
+      ) : visibleExams.length === 0 ? (
+        <EmptyCard message="No exams for this course." />
       ) : (
         <Card className="rounded-2xl">
           <CardContent className="p-0 overflow-x-auto">
@@ -166,6 +199,7 @@ export default function AdminExams() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Title</TableHead>
+                  <TableHead>Course</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Scheduled</TableHead>
                   <TableHead>Duration</TableHead>
@@ -174,9 +208,10 @@ export default function AdminExams() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {exams.map((e) => (
+                {visibleExams.map((e) => (
                   <TableRow key={e.id}>
                     <TableCell className="font-medium">{e.title}</TableCell>
+                    <TableCell>{courseLabel(e.subjectId)}</TableCell>
                     <TableCell>{subjectLabel(e.subjectId)}</TableCell>
                     <TableCell>{new Date(e.scheduledAt).toLocaleString()}</TableCell>
                     <TableCell>{e.durationMinutes} min</TableCell>
@@ -207,11 +242,22 @@ export default function AdminExams() {
           <DialogHeader><DialogTitle>{editing ? "Edit Exam" : "Add Exam"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Subject</Label>
-              <Select value={form.subjectId} onValueChange={(v) => setForm({ ...form, subjectId: v })}>
-                <SelectTrigger><SelectValue placeholder="Select a subject" /></SelectTrigger>
+              <Label>Course</Label>
+              <Select value={form.courseId} onValueChange={(v) => setForm({ ...form, courseId: v, subjectId: "" })}>
+                <SelectTrigger><SelectValue placeholder="Select a course" /></SelectTrigger>
                 <SelectContent>
-                  {(subjects ?? []).map((s) => (
+                  {(courses ?? []).map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)}>{c.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Subject</Label>
+              <Select value={form.subjectId} onValueChange={(v) => setForm({ ...form, subjectId: v })} disabled={!form.courseId}>
+                <SelectTrigger><SelectValue placeholder={form.courseId ? "Select a subject" : "Select a course first"} /></SelectTrigger>
+                <SelectContent>
+                  {formSubjects.map((s) => (
                     <SelectItem key={s.id} value={String(s.id)}>{s.title}</SelectItem>
                   ))}
                 </SelectContent>

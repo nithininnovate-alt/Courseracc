@@ -46,6 +46,28 @@ import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage"
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
 
+/**
+ * Check whether a subject belongs to a course the given user is enrolled in.
+ * Enrollment of any status counts (active or completed).
+ */
+async function isEnrolledInSubject(
+  userId: number,
+  subjectId: number,
+): Promise<boolean> {
+  const [row] = await db
+    .select({ id: subjectsTable.id })
+    .from(subjectsTable)
+    .innerJoin(
+      enrollmentsTable,
+      and(
+        eq(enrollmentsTable.courseId, subjectsTable.courseId),
+        eq(enrollmentsTable.userId, userId),
+      ),
+    )
+    .where(eq(subjectsTable.id, subjectId));
+  return Boolean(row);
+}
+
 function studentName(u: {
   firstName?: string | null;
   lastName?: string | null;
@@ -162,8 +184,28 @@ router.get("/enrollments/:id/letter", async (req, res) => {
 
 /* ----------------------------- assignments ----------------------------- */
 
-router.get("/assignments", async (_req, res) => {
-  res.json(await db.select().from(assignmentsTable));
+router.get("/assignments", async (req, res) => {
+  const user = await resolveCurrentUser(req);
+  if (isStaff(user)) {
+    res.json(await db.select().from(assignmentsTable));
+    return;
+  }
+  if (user) {
+    const rows = await db
+      .selectDistinct({ assignment: assignmentsTable })
+      .from(assignmentsTable)
+      .innerJoin(subjectsTable, eq(subjectsTable.id, assignmentsTable.subjectId))
+      .innerJoin(
+        enrollmentsTable,
+        and(
+          eq(enrollmentsTable.courseId, subjectsTable.courseId),
+          eq(enrollmentsTable.userId, user.id),
+        ),
+      );
+    res.json(rows.map((r) => r.assignment));
+    return;
+  }
+  res.json([]);
 });
 
 router.post("/assignments", requireStaff, async (req, res) => {
@@ -179,7 +221,7 @@ router.post("/assignments", requireStaff, async (req, res) => {
   res.status(201).json(created);
 });
 
-router.get("/assignments/:id", async (req, res) => {
+router.get("/assignments/:id", requireUser, async (req: AuthedRequest, res) => {
   const id = Number(req.params.id);
   const [row] = await db
     .select()
@@ -187,6 +229,11 @@ router.get("/assignments/:id", async (req, res) => {
     .where(eq(assignmentsTable.id, id));
   if (!row) {
     res.status(404).json({ error: "Assignment not found" });
+    return;
+  }
+  const user = req.currentUser!;
+  if (!isStaff(user) && !(await isEnrolledInSubject(user.id, row.subjectId))) {
+    res.status(403).json({ error: "You are not enrolled in this course" });
     return;
   }
   res.json(row);
@@ -359,6 +406,10 @@ router.post("/submissions", requireUser, async (req: AuthedRequest, res) => {
     res.status(404).json({ error: "Assignment not found" });
     return;
   }
+  if (!(await isEnrolledInSubject(userId, assignment.subjectId))) {
+    res.status(403).json({ error: "You are not enrolled in this course" });
+    return;
+  }
   if (assignment.dueDate.getTime() < Date.now()) {
     res
       .status(403)
@@ -466,8 +517,28 @@ router.patch("/submissions/:id", requireStaff, async (req, res) => {
 
 /* -------------------------------- exams -------------------------------- */
 
-router.get("/exams", async (_req, res) => {
-  res.json(await db.select().from(examsTable));
+router.get("/exams", async (req, res) => {
+  const user = await resolveCurrentUser(req);
+  if (isStaff(user)) {
+    res.json(await db.select().from(examsTable));
+    return;
+  }
+  if (user) {
+    const rows = await db
+      .selectDistinct({ exam: examsTable })
+      .from(examsTable)
+      .innerJoin(subjectsTable, eq(subjectsTable.id, examsTable.subjectId))
+      .innerJoin(
+        enrollmentsTable,
+        and(
+          eq(enrollmentsTable.courseId, subjectsTable.courseId),
+          eq(enrollmentsTable.userId, user.id),
+        ),
+      );
+    res.json(rows.map((r) => r.exam));
+    return;
+  }
+  res.json([]);
 });
 
 router.post("/exams", requireStaff, async (req, res) => {
@@ -480,11 +551,16 @@ router.post("/exams", requireStaff, async (req, res) => {
   res.status(201).json(created);
 });
 
-router.get("/exams/:id", async (req, res) => {
+router.get("/exams/:id", requireUser, async (req: AuthedRequest, res) => {
   const id = Number(req.params.id);
   const [row] = await db.select().from(examsTable).where(eq(examsTable.id, id));
   if (!row) {
     res.status(404).json({ error: "Exam not found" });
+    return;
+  }
+  const user = req.currentUser!;
+  if (!isStaff(user) && !(await isEnrolledInSubject(user.id, row.subjectId))) {
+    res.status(403).json({ error: "You are not enrolled in this course" });
     return;
   }
   res.json(row);
@@ -603,6 +679,10 @@ router.post(
       .where(eq(examsTable.id, parsed.data.examId));
     if (!exam) {
       res.status(404).json({ error: "Exam not found" });
+      return;
+    }
+    if (!(await isEnrolledInSubject(userId, exam.subjectId))) {
+      res.status(403).json({ error: "You are not enrolled in this course" });
       return;
     }
 
