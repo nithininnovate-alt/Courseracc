@@ -1,6 +1,7 @@
 import { useGetAdminDashboard, useGetAdminAnalytics } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Link } from "wouter";
 import { Users, Inbox, BookOpen, GraduationCap, DollarSign } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -38,14 +39,15 @@ export default function AdminDashboard() {
   const { data: analytics, isLoading: analyticsLoading } = useGetAdminAnalytics();
 
   const stats = [
-    { label: "Total Students", value: data?.totalStudents, icon: Users },
-    { label: "Pending Applications", value: data?.pendingApplications, icon: Inbox },
-    { label: "Total Courses", value: data?.totalCourses, icon: BookOpen },
-    { label: "Active Enrollments", value: data?.activeEnrollments, icon: GraduationCap },
+    { label: "Total Students", value: data?.totalStudents, icon: Users, href: "/admin/students" },
+    { label: "Pending Applications", value: data?.pendingApplications, icon: Inbox, href: "/admin/applications" },
+    { label: "Total Courses", value: data?.totalCourses, icon: BookOpen, href: "/admin/courses" },
+    { label: "Active Enrollments", value: data?.activeEnrollments, icon: GraduationCap, href: "/admin/students" },
     {
       label: "Total Revenue",
       value: data ? `$${data.totalRevenue.toLocaleString()}` : undefined,
       icon: DollarSign,
+      href: "/admin/payments",
     },
   ];
 
@@ -66,19 +68,21 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {stats.map((s) => (
-          <Card key={s.label} className="rounded-2xl">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{s.label}</CardTitle>
-              <s.icon className="w-4 h-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <div className="text-3xl font-bold text-primary">{s.value ?? 0}</div>
-              )}
-            </CardContent>
-          </Card>
+          <Link key={s.label} href={s.href} className="block group focus:outline-none">
+            <Card className="rounded-2xl h-full transition-all group-hover:shadow-lg group-hover:border-primary/40 group-focus-visible:ring-2 group-focus-visible:ring-primary cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{s.label}</CardTitle>
+                <s.icon className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <Skeleton className="h-8 w-16" />
+                ) : (
+                  <div className="text-3xl font-bold text-primary">{s.value ?? 0}</div>
+                )}
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
 

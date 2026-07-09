@@ -18,6 +18,22 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
 
+export type ExtraHeadersGetter = () =>
+  | Record<string, string>
+  | null
+  | undefined;
+
+let _extraHeadersGetter: ExtraHeadersGetter | null = null;
+
+/**
+ * Register a getter that supplies extra headers to attach to every request
+ * (e.g. context hints like which portal the request originates from).
+ * Existing headers are never overwritten. Pass `null` to clear.
+ */
+export function setExtraHeadersGetter(getter: ExtraHeadersGetter | null): void {
+  _extraHeadersGetter = getter;
+}
+
 /**
  * Set a base URL that is prepended to every relative request URL
  * (i.e. paths that start with `/`).
@@ -347,6 +363,15 @@ export async function customFetch<T = unknown>(
 
   if (responseType === "json" && !headers.has("accept")) {
     headers.set("accept", DEFAULT_JSON_ACCEPT);
+  }
+
+  if (_extraHeadersGetter) {
+    const extra = _extraHeadersGetter();
+    if (extra) {
+      for (const [key, value] of Object.entries(extra)) {
+        if (!headers.has(key)) headers.set(key, value);
+      }
+    }
   }
 
   // Attach bearer token when an auth getter is configured and no

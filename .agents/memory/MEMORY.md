@@ -1,2 +1,3 @@
 - [Portal nav section scroll](portal-nav-scroll.md) — hash anchors don't scroll under Vite base + wouter; use scrollIntoView + scroll-mt-24 on sections.
 - [Payment plans model](payment-plans-model.md) — installment plan/progress derivation model for the portal.
+- [Dual-session auth precedence](dual-session-auth.md) — Clerk wins for students; staff cookie wins only with x-portal:admin hint + valid staff session; header is never an auth signal.

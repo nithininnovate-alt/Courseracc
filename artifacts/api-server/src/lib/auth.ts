@@ -42,25 +42,27 @@ export function isStaff(user: DbUser | null | undefined): boolean {
   return user?.role === "admin" || user?.role === "superadmin";
 }
 
-export async function resolveCurrentUser(req: Request): Promise<DbUser | null> {
+async function resolveStaffCookieUser(req: Request): Promise<DbUser | null> {
   const token = (req as Request & { cookies?: Record<string, string> }).cookies?.[
     STAFF_COOKIE
   ];
-  if (token) {
-    try {
-      const decoded = jwt.verify(token, SESSION_SECRET as string) as {
-        userId: number;
-      };
-      const [user] = await db
-        .select()
-        .from(usersTable)
-        .where(eq(usersTable.id, decoded.userId));
-      if (user) return user;
-    } catch {
-      // invalid/expired staff token — fall through to Clerk
-    }
+  if (!token) return null;
+  try {
+    const decoded = jwt.verify(token, SESSION_SECRET as string) as {
+      userId: number;
+    };
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, decoded.userId));
+    return user ?? null;
+  } catch {
+    // invalid/expired staff token
+    return null;
   }
+}
 
+async function resolveClerkUser(req: Request): Promise<DbUser | null> {
   const auth = getAuth(req);
   const clerkId = auth?.userId;
   if (clerkId) {
@@ -114,6 +116,27 @@ export async function resolveCurrentUser(req: Request): Promise<DbUser | null> {
   return null;
 }
 
+/**
+ * Resolve the current user. The Clerk session (student identity) takes
+ * precedence over the staff cookie so that a lingering admin session in the
+ * same browser can never leak another user's data into student pages.
+ *
+ * Exception: requests from the admin console send an `X-Portal: admin`
+ * header; for those, a valid staff cookie wins so admins with a coexisting
+ * Clerk session keep full admin visibility on shared endpoints. The header
+ * alone grants nothing — it only changes precedence, and elevation still
+ * requires a valid staff session cookie for an actual staff user.
+ */
+export async function resolveCurrentUser(req: Request): Promise<DbUser | null> {
+  if (req.get("x-portal") === "admin") {
+    const staffUser = await resolveStaffCookieUser(req);
+    if (isStaff(staffUser)) return staffUser;
+  }
+  const clerkUser = await resolveClerkUser(req);
+  if (clerkUser) return clerkUser;
+  return resolveStaffCookieUser(req);
+}
+
 export async function requireUser(
   req: AuthedRequest,
   res: Response,
@@ -133,7 +156,10 @@ export async function requireStaff(
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  const user = await resolveCurrentUser(req);
+  // Staff cookie first: admin console logins are cookie-based and must keep
+  // working even when a Clerk (student) session exists in the same browser.
+  let user = await resolveStaffCookieUser(req);
+  if (!isStaff(user)) user = await resolveClerkUser(req);
   if (!isStaff(user)) {
     res.status(401).json({ error: "Unauthorized" });
     return;

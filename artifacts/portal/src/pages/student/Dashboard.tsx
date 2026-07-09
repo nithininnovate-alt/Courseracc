@@ -31,11 +31,11 @@ export default function StudentDashboard() {
     [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Student";
 
   const stats = [
-    { label: "Enrolled Courses", value: data?.enrolledCourses, icon: BookOpen },
-    { label: "Completed Courses", value: data?.completedCourses, icon: CheckCircle2 },
-    { label: "Pending Assignments", value: data?.pendingAssignments, icon: FileText },
-    { label: "Upcoming Exams", value: data?.upcomingExams, icon: Clock },
-    { label: "Certificates", value: data?.certificates, icon: GraduationCap },
+    { label: "Enrolled Courses", value: data?.enrolledCourses, icon: BookOpen, href: "/portal/learning" },
+    { label: "Completed Courses", value: data?.completedCourses, icon: CheckCircle2, href: "/portal/learning" },
+    { label: "Pending Assignments", value: data?.pendingAssignments, icon: FileText, href: "/portal/assignments" },
+    { label: "Upcoming Exams", value: data?.upcomingExams, icon: Clock, href: "/portal/exams" },
+    { label: "Certificates", value: data?.certificates, icon: GraduationCap, href: "/portal/certificates" },
   ];
 
   return (
@@ -89,19 +89,21 @@ export default function StudentDashboard() {
       {/* Stats placeholders */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {stats.map((s) => (
-          <Card key={s.label} className="rounded-2xl">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{s.label}</CardTitle>
-              <s.icon className="w-4 h-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-8 w-12" />
-              ) : (
-                <div className="text-3xl font-bold text-primary">{s.value ?? 0}</div>
-              )}
-            </CardContent>
-          </Card>
+          <Link key={s.label} href={s.href} className="block group focus:outline-none">
+            <Card className="rounded-2xl h-full transition-all group-hover:shadow-lg group-hover:border-primary/40 group-focus-visible:ring-2 group-focus-visible:ring-primary cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{s.label}</CardTitle>
+                <s.icon className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <Skeleton className="h-8 w-12" />
+                ) : (
+                  <div className="text-3xl font-bold text-primary">{s.value ?? 0}</div>
+                )}
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
 

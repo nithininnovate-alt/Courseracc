@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Switch, Route, Router as WouterRouter, Redirect, useLocation, Link } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion, type Variants } from "framer-motion";
 import { ChevronRight, ChevronLeft, PlayCircle, BookOpen, Award, Globe, Users, ArrowRight, CheckCircle2, Menu, X, MonitorPlay, GraduationCap, Clock, HelpCircle, Laptop, Briefcase, LineChart, Megaphone, Lightbulb } from "lucide-react";
+import { setExtraHeadersGetter } from "@workspace/api-client-react";
 import { ClerkProvider, useUser } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
@@ -59,6 +60,15 @@ const clerkPubKey = publishableKeyFromHost(
 );
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 const basePath = import.meta.env.BASE_URL || "/";
+
+// Tag API requests originating from the admin console so the server prefers
+// the staff session when both a staff cookie and a Clerk session exist. The
+// header alone grants nothing — a valid staff cookie is still required.
+setExtraHeadersGetter(() =>
+  window.location.pathname.startsWith(`${basePath.replace(/\/$/, "")}/admin`)
+    ? { "x-portal": "admin" }
+    : null,
+);
 
 const clerkAppearance = {
   theme: shadcn,
@@ -652,6 +662,28 @@ function ClerkHomeRedirect() {
   return null;
 }
 
+// Clears all cached API data whenever the signed-in Clerk user changes so a
+// new sign-in never sees the previous user's cached dashboard/data.
+function QueryCacheUserSync() {
+  const { isLoaded, user } = useUser();
+  const previousUserId = useRef<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    const currentUserId = user?.id ?? null;
+    if (previousUserId.current === undefined) {
+      previousUserId.current = currentUserId;
+      return;
+    }
+    if (previousUserId.current !== currentUserId) {
+      previousUserId.current = currentUserId;
+      queryClient.clear();
+    }
+  }, [isLoaded, user?.id]);
+
+  return null;
+}
+
 function RequireSignedIn({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn } = useUser();
   if (!isLoaded) return null;
@@ -670,6 +702,7 @@ export default function App() {
       localization={clerkLocalization}
     >
       <QueryClientProvider client={queryClient}>
+        <QueryCacheUserSync />
         <WouterRouter base={basePath}>
           <TooltipProvider>
             <div className="min-h-screen bg-background">
