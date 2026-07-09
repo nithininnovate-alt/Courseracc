@@ -16,6 +16,11 @@ export const usersTable = pgTable("users", {
   dateOfBirth: text("date_of_birth"),
   address: text("address"),
   country: text("country"),
+  parentName: text("parent_name"),
+  parentRelationship: text("parent_relationship"),
+  parentPhone: text("parent_phone"),
+  parentEmail: text("parent_email"),
+  parentOccupation: text("parent_occupation"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

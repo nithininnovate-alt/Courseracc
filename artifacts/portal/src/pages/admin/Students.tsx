@@ -14,9 +14,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader, LoadingCard, EmptyCard } from "@/components/common/PageState";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { UserRoleUpdateRole } from "@workspace/api-client-react";
-import { FileText, Search } from "lucide-react";
+import { UserRoleUpdateRole, type User } from "@workspace/api-client-react";
+import { FileText, Search, Eye } from "lucide-react";
 
 const ROLES = Object.values(UserRoleUpdateRole);
 
@@ -31,6 +33,7 @@ export default function AdminStudents() {
 
   const [search, setSearch] = useState("");
   const [courseFilter, setCourseFilter] = useState("all");
+  const [detailUser, setDetailUser] = useState<User | null>(null);
 
   const isSuperadmin = currentUser?.role === "superadmin";
 
@@ -118,14 +121,27 @@ export default function AdminStudents() {
                   <TableHead className="hidden sm:table-cell">Email</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead className="hidden md:table-cell">Joined</TableHead>
+                  <TableHead className="text-right">Details</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredUsers.map((u) => (
                   <TableRow key={u.id}>
                     <TableCell className="font-medium">
-                      <div>{[u.firstName, u.lastName].filter(Boolean).join(" ") || "-"}</div>
-                      <div className="sm:hidden text-xs text-muted-foreground">{u.email}</div>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="w-8 h-8 border">
+                          {u.avatarUrl && (
+                            <AvatarImage src={`/api/storage${u.avatarUrl}`} alt="" className="object-cover" />
+                          )}
+                          <AvatarFallback className="text-xs">
+                            {[u.firstName?.[0], u.lastName?.[0]].filter(Boolean).join("").toUpperCase() || "?"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div>{[u.firstName, u.lastName].filter(Boolean).join(" ") || "-"}</div>
+                          <div className="sm:hidden text-xs text-muted-foreground">{u.email}</div>
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell text-muted-foreground">{u.email}</TableCell>
                     <TableCell>
@@ -148,6 +164,11 @@ export default function AdminStudents() {
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       {new Date(u.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" onClick={() => setDetailUser(u)}>
+                        <Eye className="w-4 h-4 mr-1" /> View
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -253,6 +274,92 @@ export default function AdminStudents() {
           </Card>
         )}
       </div>
+
+      <Dialog open={Boolean(detailUser)} onOpenChange={(open) => !open && setDetailUser(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-serif">Student Details</DialogTitle>
+          </DialogHeader>
+          {detailUser && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <Avatar className="w-16 h-16 border">
+                  {detailUser.avatarUrl && (
+                    <AvatarImage
+                      src={`/api/storage${detailUser.avatarUrl}`}
+                      alt=""
+                      className="object-cover"
+                    />
+                  )}
+                  <AvatarFallback className="text-lg">
+                    {[detailUser.firstName?.[0], detailUser.lastName?.[0]].filter(Boolean).join("").toUpperCase() || "?"}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">
+                    {[detailUser.firstName, detailUser.lastName].filter(Boolean).join(" ") || "-"}
+                  </p>
+                  <p className="text-sm text-muted-foreground">{detailUser.email}</p>
+                  <Badge variant="secondary" className="capitalize mt-1">{detailUser.role}</Badge>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-primary mb-2">Contact</h3>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                  <DetailRow label="Phone" value={detailUser.phone} />
+                  <DetailRow label="Date of Birth" value={detailUser.dateOfBirth} />
+                  <DetailRow label="Country" value={detailUser.country} />
+                  <DetailRow label="Address" value={detailUser.address} />
+                </dl>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-primary mb-2">Enrolled Courses</h3>
+                {(() => {
+                  const own = (enrollments ?? []).filter((e) => e.userId === detailUser.id);
+                  return own.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No enrollments.</p>
+                  ) : (
+                    <ul className="text-sm space-y-1">
+                      {own.map((e) => (
+                        <li key={e.id} className="flex justify-between gap-2">
+                          <span>{courseTitle(e.courseId)}</span>
+                          <span className="text-muted-foreground capitalize">{e.status} · {e.progress}%</span>
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                })()}
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-primary mb-2">Parent/Guardian</h3>
+                {detailUser.parentName || detailUser.parentPhone || detailUser.parentEmail ? (
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                    <DetailRow label="Name" value={detailUser.parentName} />
+                    <DetailRow label="Relationship" value={detailUser.parentRelationship} />
+                    <DetailRow label="Phone" value={detailUser.parentPhone} />
+                    <DetailRow label="Email" value={detailUser.parentEmail} />
+                    <DetailRow label="Occupation" value={detailUser.parentOccupation} />
+                  </dl>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No parent/guardian details on file.</p>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-right truncate">{value || "—"}</dd>
+    </>
   );
 }

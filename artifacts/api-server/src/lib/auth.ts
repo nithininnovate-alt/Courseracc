@@ -42,7 +42,7 @@ export function isStaff(user: DbUser | null | undefined): boolean {
   return user?.role === "admin" || user?.role === "superadmin";
 }
 
-async function resolveStaffCookieUser(req: Request): Promise<DbUser | null> {
+export async function resolveStaffCookieUser(req: Request): Promise<DbUser | null> {
   const token = (req as Request & { cookies?: Record<string, string> }).cookies?.[
     STAFF_COOKIE
   ];

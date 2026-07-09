@@ -40,6 +40,16 @@ export interface User {
   address?: string | null;
   /** @nullable */
   country?: string | null;
+  /** @nullable */
+  parentName?: string | null;
+  /** @nullable */
+  parentRelationship?: string | null;
+  /** @nullable */
+  parentPhone?: string | null;
+  /** @nullable */
+  parentEmail?: string | null;
+  /** @nullable */
+  parentOccupation?: string | null;
   createdAt: string;
 }
 
@@ -51,6 +61,11 @@ export interface UpdateProfileInput {
   address?: string;
   country?: string;
   avatarUrl?: string;
+  parentName?: string;
+  parentRelationship?: string;
+  parentPhone?: string;
+  parentEmail?: string;
+  parentOccupation?: string;
 }
 
 export type UserRoleUpdateRole = typeof UserRoleUpdateRole[keyof typeof UserRoleUpdateRole];

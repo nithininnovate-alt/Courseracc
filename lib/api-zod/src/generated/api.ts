@@ -42,6 +42,11 @@ export const StaffLoginResponse = zod.object({
   "dateOfBirth": zod.string().nullish(),
   "address": zod.string().nullish(),
   "country": zod.string().nullish(),
+  "parentName": zod.string().nullish(),
+  "parentRelationship": zod.string().nullish(),
+  "parentPhone": zod.string().nullish(),
+  "parentEmail": zod.string().nullish(),
+  "parentOccupation": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -70,6 +75,11 @@ export const GetCurrentUserResponse = zod.object({
   "dateOfBirth": zod.string().nullish(),
   "address": zod.string().nullish(),
   "country": zod.string().nullish(),
+  "parentName": zod.string().nullish(),
+  "parentRelationship": zod.string().nullish(),
+  "parentPhone": zod.string().nullish(),
+  "parentEmail": zod.string().nullish(),
+  "parentOccupation": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -84,7 +94,12 @@ export const UpdateCurrentUserBody = zod.object({
   "dateOfBirth": zod.string().optional(),
   "address": zod.string().optional(),
   "country": zod.string().optional(),
-  "avatarUrl": zod.string().optional()
+  "avatarUrl": zod.string().optional(),
+  "parentName": zod.string().optional(),
+  "parentRelationship": zod.string().optional(),
+  "parentPhone": zod.string().optional(),
+  "parentEmail": zod.string().optional(),
+  "parentOccupation": zod.string().optional()
 })
 
 export const UpdateCurrentUserResponse = zod.object({
@@ -100,6 +115,11 @@ export const UpdateCurrentUserResponse = zod.object({
   "dateOfBirth": zod.string().nullish(),
   "address": zod.string().nullish(),
   "country": zod.string().nullish(),
+  "parentName": zod.string().nullish(),
+  "parentRelationship": zod.string().nullish(),
+  "parentPhone": zod.string().nullish(),
+  "parentEmail": zod.string().nullish(),
+  "parentOccupation": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -120,6 +140,11 @@ export const ListUsersResponseItem = zod.object({
   "dateOfBirth": zod.string().nullish(),
   "address": zod.string().nullish(),
   "country": zod.string().nullish(),
+  "parentName": zod.string().nullish(),
+  "parentRelationship": zod.string().nullish(),
+  "parentPhone": zod.string().nullish(),
+  "parentEmail": zod.string().nullish(),
+  "parentOccupation": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 export const ListUsersResponse = zod.array(ListUsersResponseItem)
@@ -149,6 +174,11 @@ export const UpdateUserRoleResponse = zod.object({
   "dateOfBirth": zod.string().nullish(),
   "address": zod.string().nullish(),
   "country": zod.string().nullish(),
+  "parentName": zod.string().nullish(),
+  "parentRelationship": zod.string().nullish(),
+  "parentPhone": zod.string().nullish(),
+  "parentEmail": zod.string().nullish(),
+  "parentOccupation": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 

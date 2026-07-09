@@ -1553,6 +1553,11 @@ components:
         dateOfBirth: { type: ["string", "null"] }
         address: { type: ["string", "null"] }
         country: { type: ["string", "null"] }
+        parentName: { type: ["string", "null"] }
+        parentRelationship: { type: ["string", "null"] }
+        parentPhone: { type: ["string", "null"] }
+        parentEmail: { type: ["string", "null"] }
+        parentOccupation: { type: ["string", "null"] }
         createdAt: { type: string, format: date-time }
     UpdateProfileInput:
       type: object
@@ -1564,6 +1569,11 @@ components:
         address: { type: string }
         country: { type: string }
         avatarUrl: { type: string }
+        parentName: { type: string }
+        parentRelationship: { type: string }
+        parentPhone: { type: string }
+        parentEmail: { type: string }
+        parentOccupation: { type: string }
     UserRoleUpdate:
       type: object
       required: [role]

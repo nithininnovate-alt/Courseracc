@@ -1,17 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetCurrentUser,
   useUpdateCurrentUser,
   getGetCurrentUserQueryKey,
+  useListEnrollments,
+  useListCourses,
+  type User,
 } from "@workspace/api-client-react";
 import { useUser } from "@clerk/react";
+import { useUpload } from "@workspace/object-storage-web";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
 import { PageHeader, LoadingCard } from "@/components/common/PageState";
 import { useToast } from "@/hooks/use-toast";
+import { BookOpen, Camera, Users } from "lucide-react";
 
 export default function StudentProfile() {
   const { toast } = useToast();
@@ -41,6 +49,43 @@ export default function StudentProfile() {
       });
     }
   }, [user]);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { uploadFile, isUploading } = useUpload({
+    onError: () =>
+      toast({ title: "Upload failed", description: "Could not upload photo.", variant: "destructive" }),
+  });
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Invalid file", description: "Please choose an image file.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Too large", description: "Photo must be under 5 MB.", variant: "destructive" });
+      return;
+    }
+    const res = await uploadFile(file);
+    if (!res) return;
+    updateUser.mutate(
+      { data: { avatarUrl: res.objectPath } },
+      {
+        onSuccess: () => {
+          toast({ title: "Photo updated", description: "Your profile photo has been changed." });
+          qc.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+        },
+        onError: () =>
+          toast({ title: "Error", description: "Could not save your photo.", variant: "destructive" }),
+      },
+    );
+  };
+
+  const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Student";
+  const initials =
+    [user?.firstName?.[0], user?.lastName?.[0]].filter(Boolean).join("").toUpperCase() || "S";
 
   const text = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
@@ -82,6 +127,33 @@ export default function StudentProfile() {
               <CardDescription>Your email is managed through your sign-in provider.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="w-20 h-20 border">
+                  {user?.avatarUrl && (
+                    <AvatarImage src={`/api/storage${user.avatarUrl}`} alt={displayName} className="object-cover" />
+                  )}
+                  <AvatarFallback className="text-xl font-serif">{initials}</AvatarFallback>
+                </Avatar>
+                <div className="space-y-1">
+                  <p className="font-medium">{displayName}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading || updateUser.isPending}
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    {isUploading ? "Uploading..." : user?.avatarUrl ? "Change Photo" : "Upload Photo"}
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoChange}
+                  />
+                </div>
+              </div>
               <div className="space-y-2">
                 <Label>Email</Label>
                 <Input value={user?.email ?? ""} disabled className="h-11" />
@@ -125,9 +197,148 @@ export default function StudentProfile() {
           </Card>
 
           <PasswordCard hasPassword={Boolean(clerkUser?.passwordEnabled)} />
+
+          <EnrolledCoursesCard />
+
+          <ParentDetailsCard
+            user={user}
+            onSaved={() => qc.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() })}
+          />
         </div>
       )}
     </div>
+  );
+}
+
+function EnrolledCoursesCard() {
+  const { data: enrollments, isLoading } = useListEnrollments();
+  const { data: courses } = useListCourses();
+  const courseById = new Map((courses ?? []).map((c) => [c.id, c]));
+
+  return (
+    <Card className="rounded-2xl lg:col-span-2">
+      <CardHeader>
+        <CardTitle className="font-serif flex items-center gap-2">
+          <BookOpen className="w-5 h-5" /> Enrolled Courses
+        </CardTitle>
+        <CardDescription>Programs you are currently enrolled in.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        ) : !enrollments || enrollments.length === 0 ? (
+          <p className="text-sm text-muted-foreground">You are not enrolled in any courses yet.</p>
+        ) : (
+          <ul className="space-y-4">
+            {enrollments.map((e) => {
+              const course = courseById.get(e.courseId);
+              return (
+                <li key={e.id} className="space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="font-medium text-primary">{course?.title ?? `Course #${e.courseId}`}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {course?.level ? `${course.level} · ` : ""}
+                        Enrolled {new Date(e.enrolledAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Badge variant={e.status === "completed" ? "default" : "secondary"} className="capitalize">
+                      {e.status}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Progress value={e.progress} className="h-2" />
+                    <span className="text-xs text-muted-foreground w-10 text-right">{e.progress}%</span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ParentDetailsCard({ user, onSaved }: { user: User | undefined; onSaved: () => void }) {
+  const { toast } = useToast();
+  const updateUser = useUpdateCurrentUser();
+
+  const [form, setForm] = useState({
+    parentName: "",
+    parentRelationship: "",
+    parentPhone: "",
+    parentEmail: "",
+    parentOccupation: "",
+  });
+
+  useEffect(() => {
+    if (user) {
+      setForm({
+        parentName: user.parentName ?? "",
+        parentRelationship: user.parentRelationship ?? "",
+        parentPhone: user.parentPhone ?? "",
+        parentEmail: user.parentEmail ?? "",
+        parentOccupation: user.parentOccupation ?? "",
+      });
+    }
+  }, [user]);
+
+  const text = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm((f) => ({ ...f, [key]: e.target.value }));
+
+  const handleSave = () => {
+    updateUser.mutate(
+      { data: { ...form } },
+      {
+        onSuccess: () => {
+          toast({ title: "Saved", description: "Parent/guardian details have been updated." });
+          onSaved();
+        },
+        onError: () =>
+          toast({ title: "Error", description: "Could not save parent/guardian details.", variant: "destructive" }),
+      },
+    );
+  };
+
+  return (
+    <Card className="rounded-2xl h-fit">
+      <CardHeader>
+        <CardTitle className="font-serif flex items-center gap-2">
+          <Users className="w-5 h-5" /> Parent/Guardian Details
+        </CardTitle>
+        <CardDescription>Contact details of your parent or guardian.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="parentName">Full Name</Label>
+          <Input id="parentName" value={form.parentName} onChange={text("parentName")} className="h-11" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="parentRelationship">Relationship</Label>
+          <Input id="parentRelationship" placeholder="e.g. Father, Mother, Guardian" value={form.parentRelationship} onChange={text("parentRelationship")} className="h-11" />
+        </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="parentPhone">Phone</Label>
+            <Input id="parentPhone" value={form.parentPhone} onChange={text("parentPhone")} className="h-11" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="parentEmail">Email</Label>
+            <Input id="parentEmail" type="email" value={form.parentEmail} onChange={text("parentEmail")} className="h-11" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="parentOccupation">Occupation</Label>
+          <Input id="parentOccupation" value={form.parentOccupation} onChange={text("parentOccupation")} className="h-11" />
+        </div>
+        <div className="flex justify-end pt-2">
+          <Button onClick={handleSave} disabled={updateUser.isPending}>
+            {updateUser.isPending ? "Saving..." : "Save Details"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

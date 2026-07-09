@@ -3,6 +3,7 @@ import { Readable } from "stream";
 import { eq, and } from "drizzle-orm";
 import {
   db,
+  usersTable,
   applicationsTable,
   applicationDocumentsTable,
   submissionsTable,
@@ -15,7 +16,7 @@ import {
   RequestUploadUrlResponse,
 } from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
-import { resolveCurrentUser, isStaff } from "../lib/auth";
+import { resolveCurrentUser, resolveStaffCookieUser, isStaff } from "../lib/auth";
 import { userCanAccessMaterialObject } from "../lib/access";
 
 const router: IRouter = Router();
@@ -29,6 +30,13 @@ async function userOwnsObject(
   userId: number,
   objectPath: string,
 ): Promise<boolean> {
+  const [avatarOwner] = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(and(eq(usersTable.id, userId), eq(usersTable.avatarUrl, objectPath)))
+    .limit(1);
+  if (avatarOwner) return true;
+
   const [letter] = await db
     .select({ id: applicationsTable.id })
     .from(applicationsTable)
@@ -197,8 +205,14 @@ router.get("/storage/objects/*path", async (req: Request, res: Response) => {
     // Staff can view any object (needed to review student documents);
     // students may access objects they own, or study materials belonging to a
     // course they have access to (free or paid-for).
+    // Image/download requests cannot carry the X-Portal header, so when a
+    // Clerk session takes precedence over an admin's staff cookie we still
+    // honor a valid staff cookie for read access here.
+    const staffViaCookie = isStaff(user)
+      ? true
+      : isStaff(await resolveStaffCookieUser(req));
     if (
-      !isStaff(user) &&
+      !staffViaCookie &&
       !(await userOwnsObject(user.id, objectPath)) &&
       !(await userCanAccessMaterialObject(user.id, objectPath)) &&
       !(await isSharedAcademicAsset(objectPath))
