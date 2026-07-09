@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Switch, Route, Router as WouterRouter, useLocation, Link } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect, useLocation, Link } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -655,7 +655,9 @@ function ClerkHomeRedirect() {
 function RequireSignedIn({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn } = useUser();
   if (!isLoaded) return null;
-  if (!isSignedIn) return <SignInPage />;
+  // Redirect instead of rendering SignInPage inline: Clerk's <SignIn> uses
+  // path routing and will not render when the URL doesn't match /sign-in.
+  if (!isSignedIn) return <Redirect to="/sign-in" />;
   return <>{children}</>;
 }
 
@@ -675,6 +677,11 @@ export default function App() {
                 <Route path="/" component={ClerkHomeRedirect} />
                 <Route path="/sign-in/*?" component={SignInPage} />
                 <Route path="/sign-up/*?" component={SignUpPage} />
+                {/* Common URL aliases */}
+                <Route path="/signin"><Redirect to="/sign-in" /></Route>
+                <Route path="/login"><Redirect to="/sign-in" /></Route>
+                <Route path="/signup"><Redirect to="/sign-up" /></Route>
+                <Route path="/register"><Redirect to="/sign-up" /></Route>
                 <Route path="/admin/login" component={AdminLoginPage} />
                 <Route path="/apply">
                   <RequireSignedIn>
