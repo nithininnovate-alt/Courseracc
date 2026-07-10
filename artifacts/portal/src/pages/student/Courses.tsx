@@ -27,8 +27,15 @@ export default function StudentCourses() {
           toast({ title: "Enrolled", description: "You have been enrolled in this course." });
           qc.invalidateQueries();
         },
-        onError: () =>
-          toast({ title: "Error", description: "Could not enroll in this course.", variant: "destructive" }),
+        onError: (error) => {
+          const status = (error as { response?: { status?: number } })?.response?.status;
+          if (status === 409) {
+            toast({ title: "Already enrolled", description: "You are already enrolled in this course." });
+            qc.invalidateQueries();
+            return;
+          }
+          toast({ title: "Error", description: "Could not enroll in this course.", variant: "destructive" });
+        },
       },
     );
   };

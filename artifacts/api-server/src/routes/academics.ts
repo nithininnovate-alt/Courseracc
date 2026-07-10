@@ -107,7 +107,14 @@ router.post("/enrollments", requireUser, async (req: AuthedRequest, res) => {
   const [created] = await db
     .insert(enrollmentsTable)
     .values({ ...parsed.data, userId: req.currentUser!.id })
+    .onConflictDoNothing({
+      target: [enrollmentsTable.userId, enrollmentsTable.courseId],
+    })
     .returning();
+  if (!created) {
+    res.status(409).json({ error: "Already enrolled in this course" });
+    return;
+  }
 
   // Notify the student that their course has been activated.
   const student = req.currentUser!;

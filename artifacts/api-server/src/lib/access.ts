@@ -180,10 +180,14 @@ export async function ensureEnrollment(
     )
     .limit(1);
   if (existing) return false;
-  await db
+  const inserted = await db
     .insert(enrollmentsTable)
-    .values({ userId, courseId, status: "active", progress: 0 });
-  return true;
+    .values({ userId, courseId, status: "active", progress: 0 })
+    .onConflictDoNothing({
+      target: [enrollmentsTable.userId, enrollmentsTable.courseId],
+    })
+    .returning({ id: enrollmentsTable.id });
+  return inserted.length > 0;
 }
 
 /**

@@ -700,6 +700,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Enrollment"
+        "409":
+          description: Student is already enrolled in this course.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
 
   /assignments:
     get:

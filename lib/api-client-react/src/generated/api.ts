@@ -2574,7 +2574,7 @@ export const createEnrollment = async (enrollmentInput: EnrollmentInput, options
 
 
 
-export const getCreateEnrollmentMutationOptions = <TError = ErrorType<unknown>,
+export const getCreateEnrollmentMutationOptions = <TError = ErrorType<ErrorEnvelope>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEnrollment>>, TError,{data: BodyType<EnrollmentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createEnrollment>>, TError,{data: BodyType<EnrollmentInput>}, TContext> => {
 
@@ -2603,12 +2603,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateEnrollmentMutationResult = NonNullable<Awaited<ReturnType<typeof createEnrollment>>>
     export type CreateEnrollmentMutationBody = BodyType<EnrollmentInput>
-    export type CreateEnrollmentMutationError = ErrorType<unknown>
+    export type CreateEnrollmentMutationError = ErrorType<ErrorEnvelope>
 
     /**
  * @summary Enroll in a course
  */
-export const useCreateEnrollment = <TError = ErrorType<unknown>,
+export const useCreateEnrollment = <TError = ErrorType<ErrorEnvelope>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEnrollment>>, TError,{data: BodyType<EnrollmentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createEnrollment>>,
