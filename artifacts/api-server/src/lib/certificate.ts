@@ -1,10 +1,18 @@
 import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont } from "pdf-lib";
-
-const PRIMARY = rgb(0.12, 0.25, 0.46);
-const GOLD = rgb(0.72, 0.55, 0.21);
-const MUTED = rgb(0.4, 0.4, 0.4);
-const BLACK = rgb(0.1, 0.1, 0.1);
-const LINE = rgb(0.85, 0.85, 0.85);
+import {
+  PRIMARY,
+  GOLD,
+  MUTED,
+  BLACK,
+  LINE,
+  TABLE_BG,
+  PASS_GREEN,
+  FAIL_RED,
+  LETTERHEAD_HEIGHT,
+  drawLetterhead,
+  drawThemeFooter,
+  drawLogoBadge,
+} from "./pdfTheme";
 
 function centerText(
   page: PDFPage,
@@ -61,12 +69,18 @@ export async function generateDegreeCertificate(
     borderWidth: 1,
   });
 
-  // Header
-  centerText(page, "CENTRAL GLOBAL UNIVERSITY", height - 92, 28, serifBold, PRIMARY);
-  centerText(page, "Office of the Registrar", height - 116, 12, font, MUTED);
+  // Header: CGU logo badge + registrar letterhead
+  drawLogoBadge(page, fontBold, {
+    x: (width - 40) / 2,
+    y: height - 78,
+    size: 40,
+  });
+  centerText(page, "CENTRAL GLOBAL UNIVERSITY", height - 104, 26, serifBold, PRIMARY);
+  centerText(page, "OFFICE OF THE REGISTRAR", height - 122, 10, fontBold, GOLD);
+  centerText(page, "Georgia", height - 135, 9, font, MUTED);
   page.drawLine({
-    start: { x: width / 2 - 120, y: height - 132 },
-    end: { x: width / 2 + 120, y: height - 132 },
+    start: { x: width / 2 - 120, y: height - 146 },
+    end: { x: width / 2 + 120, y: height - 146 },
     thickness: 1,
     color: GOLD,
   });
@@ -140,7 +154,7 @@ export async function generateDegreeCertificate(
 
   centerText(
     page,
-    "Verify this certificate at registrar.cgu.edu using the certificate number above.",
+    "Verify this certificate at verification.cgu.edu.ge using the certificate number above.",
     50,
     8,
     serif,
@@ -235,53 +249,19 @@ export async function generateTranscript(data: TranscriptData): Promise<Uint8Arr
   const PAGE_H = 841.89;
   const margin = 56;
 
-  const drawHeader = (page: PDFPage) => {
-    page.drawRectangle({ x: 0, y: PAGE_H - 110, width: PAGE_W, height: 110, color: PRIMARY });
-    page.drawText("CENTRAL GLOBAL UNIVERSITY", {
-      x: margin,
-      y: PAGE_H - 42,
-      size: 18,
-      font: fontBold,
-      color: rgb(1, 1, 1),
-    });
-    page.drawText("OFFICE OF THE REGISTRAR & ACADEMIC RECORDS", {
-      x: margin,
-      y: PAGE_H - 60,
-      size: 10,
-      font: fontBold,
-      color: rgb(0.85, 0.89, 0.96),
-    });
-    page.drawText(
-      "Campus & Administrative Office: Georgia | Verification Portal: verification.cgu.edu.ge",
-      { x: margin, y: PAGE_H - 76, size: 8.5, font, color: rgb(0.85, 0.89, 0.96) },
-    );
-    page.drawText("OFFICIAL ACADEMIC TRANSCRIPT", {
-      x: PAGE_W - margin - fontBold.widthOfTextAtSize("OFFICIAL ACADEMIC TRANSCRIPT", 11),
-      y: PAGE_H - 96,
-      size: 11,
-      font: fontBold,
-      color: rgb(1, 1, 1),
-    });
-  };
-
-  const drawPageFooter = (page: PDFPage) => {
-    page.drawLine({
-      start: { x: margin, y: 56 },
-      end: { x: PAGE_W - margin, y: 56 },
-      thickness: 0.75,
-      color: LINE,
-    });
-    page.drawText(
-      "This is an official academic transcript issued by Central Global University. Verify at verification.cgu.edu.ge",
-      { x: margin, y: 42, size: 8, font, color: MUTED },
-    );
-  };
+  const fonts = { regular: font, bold: fontBold };
 
   const newPage = (): { page: PDFPage; y: number } => {
     const page = doc.addPage([PAGE_W, PAGE_H]);
-    drawHeader(page);
-    drawPageFooter(page);
-    return { page, y: PAGE_H - 148 };
+    drawLetterhead(page, fonts, {
+      office: "Office of the Registrar",
+      docLabel: "OFFICIAL ACADEMIC TRANSCRIPT",
+    });
+    drawThemeFooter(page, fonts, {
+      left: "Official Academic Transcript | Central Global University",
+      right: "Verify at verification.cgu.edu.ge",
+    });
+    return { page, y: PAGE_H - LETTERHEAD_HEIGHT - 36 };
   };
 
   const fmt = (d: Date | null) =>
@@ -321,7 +301,7 @@ export async function generateTranscript(data: TranscriptData): Promise<Uint8Arr
       y: y - 6,
       width: PAGE_W - margin * 2,
       height: 22,
-      color: rgb(0.95, 0.96, 0.98),
+      color: TABLE_BG,
     });
     page.drawText("MODULE CODE", { x: colCode, y, size: 8.5, font: fontBold, color: PRIMARY });
     page.drawText("MODULE TITLE", { x: colTitle, y, size: 8.5, font: fontBold, color: PRIMARY });
@@ -368,7 +348,7 @@ export async function generateTranscript(data: TranscriptData): Promise<Uint8Arr
         y,
         size: 9,
         font: fontBold,
-        color: row.passed ? rgb(0.13, 0.5, 0.23) : rgb(0.7, 0.16, 0.16),
+        color: row.passed ? PASS_GREEN : FAIL_RED,
       });
       page.drawLine({
         start: { x: margin, y: y - 6 },
@@ -400,7 +380,7 @@ export async function generateTranscript(data: TranscriptData): Promise<Uint8Arr
     y: y - 30,
     width: PAGE_W - margin * 2,
     height: 44,
-    color: rgb(0.95, 0.96, 0.98),
+    color: TABLE_BG,
     borderColor: LINE,
     borderWidth: 0.5,
   });

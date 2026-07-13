@@ -84,23 +84,153 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-/**
- * Deliver an email through Resend when RESEND_API_KEY is configured. When it is
- * not (e.g. local development), the rendered message is logged to the server
- * console so the trigger remains observable. Returns true on successful
- * delivery / logging, false on a delivery failure.
- */
-async function deliverEmail(msg: EmailMessage): Promise<boolean> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from =
-    process.env.EMAIL_FROM || "Central Global University <onboarding@resend.dev>";
+/* ------------------------------ transports ------------------------------ */
 
-  if (!apiKey) {
-    console.log(
-      `\n[email] (no RESEND_API_KEY — logging only) to=${msg.to} subject="${msg.subject}" template=${msg.template}\n${msg.body}\n`,
-    );
-    return true;
+/**
+ * Resolve the sender address for a given provider. Each provider requires a
+ * sender it can actually authenticate: SendGrid needs a verified sender
+ * (EMAIL_FROM or SENDGRID_FROM), Gmail SMTP sends as the authenticated
+ * account, and Resend falls back to its shared onboarding sender.
+ */
+function fromFor(provider: "sendgrid" | "gmail" | "resend"): string | null {
+  if (process.env.EMAIL_FROM) return process.env.EMAIL_FROM;
+  switch (provider) {
+    case "sendgrid":
+      return process.env.SENDGRID_FROM || null;
+    case "gmail":
+      return process.env.GMAIL_USER
+        ? `Central Global University <${process.env.GMAIL_USER}>`
+        : null;
+    case "resend":
+      return "Central Global University <onboarding@resend.dev>";
   }
+}
+
+/**
+ * Resolve a SendGrid API key: prefers the Replit SendGrid connector (when the
+ * user has connected their SendGrid account), falling back to a
+ * SENDGRID_API_KEY secret. Returns null when neither is available.
+ */
+async function getSendGridApiKey(): Promise<string | null> {
+  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
+  const xReplitToken = process.env.REPL_IDENTITY
+    ? "repl " + process.env.REPL_IDENTITY
+    : process.env.WEB_REPL_RENEWAL
+      ? "depl " + process.env.WEB_REPL_RENEWAL
+      : null;
+
+  if (hostname && xReplitToken) {
+    try {
+      const resp = await fetch(
+        `https://${hostname}/api/v2/connection?include_secrets=true&connector_names=sendgrid`,
+        {
+          headers: {
+            Accept: "application/json",
+            X_REPLIT_TOKEN: xReplitToken,
+          },
+        },
+      );
+      if (resp.ok) {
+        const data = (await resp.json()) as {
+          items?: { settings?: { api_key?: string; secret?: string } }[];
+        };
+        const settings = data.items?.[0]?.settings;
+        const key = settings?.api_key || settings?.secret;
+        if (key) return key;
+      }
+    } catch {
+      // Connector not available — fall through to the env secret.
+    }
+  }
+  return process.env.SENDGRID_API_KEY || null;
+}
+
+/** Send via the SendGrid HTTP API. Returns null when not configured. */
+async function sendViaSendGrid(msg: EmailMessage): Promise<boolean | null> {
+  const apiKey = await getSendGridApiKey();
+  if (!apiKey) return null;
+
+  const from = fromFor("sendgrid");
+  if (!from) {
+    console.warn(
+      "[email] SendGrid API key found but no verified sender configured — set EMAIL_FROM (or SENDGRID_FROM) to a sender verified in SendGrid. Skipping SendGrid.",
+    );
+    return null;
+  }
+
+  try {
+    const resp = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: msg.to }] }],
+        from: parseAddress(from),
+        subject: msg.subject,
+        content: [
+          { type: "text/plain", value: msg.body },
+          { type: "text/html", value: msg.html },
+        ],
+      }),
+    });
+    if (resp.status === 202) return true;
+    const detail = await resp.text().catch(() => "");
+    console.error(`[email] SendGrid delivery failed (${resp.status}): ${detail}`);
+    return false;
+  } catch (err) {
+    console.error("[email] SendGrid delivery threw", err);
+    return false;
+  }
+}
+
+/** Parse `Name <addr@host>` into SendGrid's {email, name} shape. */
+function parseAddress(value: string): { email: string; name?: string } {
+  const match = value.match(/^(.*)<([^>]+)>\s*$/);
+  if (match) {
+    const name = match[1].trim().replace(/^"|"$/g, "");
+    return { email: match[2].trim(), ...(name ? { name } : {}) };
+  }
+  return { email: value.trim() };
+}
+
+/**
+ * Send via Google (Gmail / Google Workspace) SMTP using nodemailer. Requires
+ * GMAIL_USER and GMAIL_APP_PASSWORD (a Google "app password", not the account
+ * password). Returns null when not configured.
+ */
+async function sendViaGoogleSmtp(msg: EmailMessage): Promise<boolean | null> {
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+  if (!user || !pass) return null;
+
+  try {
+    const { default: nodemailer } = await import("nodemailer");
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+      auth: { user, pass },
+    });
+    await transporter.sendMail({
+      from: fromFor("gmail")!,
+      to: msg.to,
+      subject: msg.subject,
+      text: msg.body,
+      html: msg.html,
+    });
+    return true;
+  } catch (err) {
+    console.error("[email] Google SMTP delivery failed", err);
+    return false;
+  }
+}
+
+/** Send via the Resend HTTP API. Returns null when not configured. */
+async function sendViaResend(msg: EmailMessage): Promise<boolean | null> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return null;
 
   try {
     const resp = await fetch("https://api.resend.com/emails", {
@@ -110,7 +240,7 @@ async function deliverEmail(msg: EmailMessage): Promise<boolean> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from,
+        from: fromFor("resend"),
         to: [msg.to],
         subject: msg.subject,
         html: msg.html,
@@ -127,6 +257,55 @@ async function deliverEmail(msg: EmailMessage): Promise<boolean> {
     console.error("[email] Resend delivery threw", err);
     return false;
   }
+}
+
+type Transport = (msg: EmailMessage) => Promise<boolean | null>;
+
+const TRANSPORTS: Record<string, Transport> = {
+  sendgrid: sendViaSendGrid,
+  gmail: sendViaGoogleSmtp,
+  resend: sendViaResend,
+};
+
+/**
+ * Deliver an email through the first configured transport.
+ *
+ * Order: SendGrid → Google SMTP (Gmail / Google Workspace) → Resend. Set
+ * EMAIL_PROVIDER=sendgrid|gmail|resend to pin a specific provider. If a
+ * configured transport fails, the next configured one is attempted. When no
+ * transport is configured (e.g. local development), the rendered message is
+ * logged to the server console so the trigger remains observable.
+ */
+async function deliverEmail(msg: EmailMessage): Promise<boolean> {
+  const pinned = (process.env.EMAIL_PROVIDER || "").toLowerCase();
+  if (pinned && !TRANSPORTS[pinned]) {
+    console.warn(
+      `[email] Unknown EMAIL_PROVIDER="${pinned}" — expected sendgrid, gmail, or resend. Using automatic provider selection.`,
+    );
+  }
+  const chain: Transport[] = TRANSPORTS[pinned]
+    ? [TRANSPORTS[pinned]]
+    : [sendViaSendGrid, sendViaGoogleSmtp, sendViaResend];
+
+  let anyConfigured = false;
+  for (const transport of chain) {
+    const result = await transport(msg);
+    if (result === null) continue; // not configured — try next
+    anyConfigured = true;
+    if (result) return true;
+  }
+  if (anyConfigured) return false;
+  if (TRANSPORTS[pinned]) {
+    console.error(
+      `[email] EMAIL_PROVIDER="${pinned}" is set but that provider is not fully configured — delivery failed for to=${msg.to} subject="${msg.subject}".`,
+    );
+    return false;
+  }
+
+  console.log(
+    `\n[email] (no email provider configured — logging only) to=${msg.to} subject="${msg.subject}" template=${msg.template}\n${msg.body}\n`,
+  );
+  return true;
 }
 
 /**

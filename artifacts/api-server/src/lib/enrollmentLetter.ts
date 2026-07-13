@@ -1,5 +1,16 @@
 import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont } from "pdf-lib";
 import { resolveProgramInfo } from "./programInfo";
+import {
+  PRIMARY,
+  MUTED,
+  BLACK,
+  LINE,
+  TABLE_BG,
+  PASS_GREEN,
+  LETTERHEAD_HEIGHT,
+  drawLetterhead,
+  drawThemeFooter,
+} from "./pdfTheme";
 
 export type EnrollmentLetterValidator = "ieac" | "eahea";
 
@@ -11,12 +22,7 @@ export interface EnrollmentLetterData {
   validator: EnrollmentLetterValidator;
 }
 
-const PRIMARY = rgb(0.12, 0.25, 0.46);
-const MUTED = rgb(0.4, 0.4, 0.4);
-const BLACK = rgb(0.1, 0.1, 0.1);
-const LINE = rgb(0.85, 0.85, 0.85);
-const TABLE_BG = rgb(0.95, 0.96, 0.98);
-const GREEN = rgb(0.13, 0.5, 0.23);
+const GREEN = PASS_GREEN;
 
 const PAGE_W = 595.28;
 const PAGE_H = 841.89;
@@ -73,7 +79,7 @@ export async function generateEnrollmentLetter(
     const page = doc.addPage([PAGE_W, PAGE_H]);
     drawHeader(page, fonts);
     drawFooter(page, fonts);
-    return { page, y: PAGE_H - 148 };
+    return { page, y: PAGE_H - LETTERHEAD_HEIGHT - 30 };
   };
 
   // ---------- Page 1 ----------
@@ -210,51 +216,16 @@ export async function generateEnrollmentLetter(
 }
 
 function drawHeader(page: PDFPage, fonts: Fonts) {
-  page.drawRectangle({ x: 0, y: PAGE_H - 110, width: PAGE_W, height: 110, color: PRIMARY });
-  page.drawText("CENTRAL GLOBAL UNIVERSITY", {
-    x: MARGIN,
-    y: PAGE_H - 42,
-    size: 18,
-    font: fonts.bold,
-    color: rgb(1, 1, 1),
-  });
-  page.drawText("OFFICE OF THE REGISTRAR", {
-    x: MARGIN,
-    y: PAGE_H - 60,
-    size: 10,
-    font: fonts.bold,
-    color: rgb(0.85, 0.89, 0.96),
-  });
-  page.drawText("Campus & Administrative Hub: Georgia", {
-    x: MARGIN,
-    y: PAGE_H - 76,
-    size: 8.5,
-    font: fonts.regular,
-    color: rgb(0.85, 0.89, 0.96),
-  });
-  page.drawText("Official Portal: www.cgu.edu.ge | Registrar Desk: registrar@cgu.edu.ge", {
-    x: MARGIN,
-    y: PAGE_H - 90,
-    size: 8.5,
-    font: fonts.regular,
-    color: rgb(0.85, 0.89, 0.96),
+  drawLetterhead(page, fonts, {
+    office: "Office of the Registrar",
+    docLabel: "ENROLLMENT RECORD",
   });
 }
 
 function drawFooter(page: PDFPage, fonts: Fonts) {
-  page.drawLine({
-    start: { x: MARGIN, y: 56 },
-    end: { x: PAGE_W - MARGIN, y: 56 },
-    thickness: 0.75,
-    color: LINE,
-  });
-  const label = "Official Enrollment Record | CGU";
-  page.drawText(label, {
-    x: PAGE_W - MARGIN - fonts.regular.widthOfTextAtSize(label, 8.5),
-    y: 42,
-    size: 8.5,
-    font: fonts.regular,
-    color: MUTED,
+  drawThemeFooter(page, fonts, {
+    left: "Official Enrollment Record | Central Global University",
+    right: "Verify at verification.cgu.edu.ge",
   });
 }
 

@@ -1,5 +1,15 @@
 import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont } from "pdf-lib";
 import { resolveProgramInfo, ACCREDITATIONS } from "./programInfo";
+import {
+  PRIMARY,
+  MUTED,
+  BLACK,
+  LINE,
+  TABLE_BG,
+  LETTERHEAD_HEIGHT,
+  drawLetterhead,
+  drawThemeFooter,
+} from "./pdfTheme";
 
 export interface AdmissionLetterData {
   applicantName: string;
@@ -7,12 +17,6 @@ export interface AdmissionLetterData {
   applicationId: number;
   reviewNote?: string | null;
 }
-
-const PRIMARY = rgb(0.12, 0.25, 0.46);
-const MUTED = rgb(0.4, 0.4, 0.4);
-const BLACK = rgb(0.1, 0.1, 0.1);
-const LINE = rgb(0.85, 0.85, 0.85);
-const TABLE_BG = rgb(0.95, 0.96, 0.98);
 
 const PAGE_W = 595.28;
 const PAGE_H = 841.89;
@@ -54,7 +58,7 @@ export async function generateAdmissionLetter(
     pageIndex++;
     drawHeader(page, fonts);
     drawPageFooter(page, fonts, pageIndex, totalPages);
-    return { page, y: PAGE_H - 128 };
+    return { page, y: PAGE_H - LETTERHEAD_HEIGHT - 28 };
   };
 
   // ---------- Page 1 ----------
@@ -234,48 +238,17 @@ export async function generateAdmissionLetter(
 }
 
 function drawHeader(page: PDFPage, fonts: Fonts) {
-  page.drawRectangle({ x: 0, y: PAGE_H - 96, width: PAGE_W, height: 96, color: PRIMARY });
-  page.drawText("CENTRAL GLOBAL UNIVERSITY", {
-    x: MARGIN,
-    y: PAGE_H - 42,
-    size: 18,
-    font: fonts.bold,
-    color: rgb(1, 1, 1),
+  drawLetterhead(page, fonts, {
+    office: "Office of Admissions & Registrar",
+    contact: "Verification Portal: verification.cgu.edu.ge | Email: admission@cgu.edu.ge",
+    docLabel: "LETTER OF ADMISSION",
   });
-  page.drawText("OFFICE OF ADMISSIONS & REGISTRAR", {
-    x: MARGIN,
-    y: PAGE_H - 60,
-    size: 10,
-    font: fonts.bold,
-    color: rgb(0.85, 0.89, 0.96),
-  });
-  page.drawText(
-    "Campus & Administrative Office: Georgia | Website: www.cgu.edu.ge | Email: admission@cgu.edu.ge",
-    { x: MARGIN, y: PAGE_H - 76, size: 8.5, font: fonts.regular, color: rgb(0.85, 0.89, 0.96) },
-  );
 }
 
 function drawPageFooter(page: PDFPage, fonts: Fonts, num: number, total: number) {
-  page.drawLine({
-    start: { x: MARGIN, y: 56 },
-    end: { x: PAGE_W - MARGIN, y: 56 },
-    thickness: 0.75,
-    color: LINE,
-  });
-  const label = `Page ${num} of ${total}`;
-  page.drawText(label, {
-    x: PAGE_W - MARGIN - fonts.regular.widthOfTextAtSize(label, 8.5),
-    y: 42,
-    size: 8.5,
-    font: fonts.regular,
-    color: MUTED,
-  });
-  page.drawText("Official Letter of Admission | Central Global University", {
-    x: MARGIN,
-    y: 42,
-    size: 8.5,
-    font: fonts.regular,
-    color: MUTED,
+  drawThemeFooter(page, fonts, {
+    left: "Official Letter of Admission | Central Global University",
+    right: `Page ${num} of ${total}`,
   });
 }
 
