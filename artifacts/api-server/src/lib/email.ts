@@ -201,8 +201,9 @@ function parseAddress(value: string): { email: string; name?: string } {
  * password). Returns null when not configured.
  */
 async function sendViaGoogleSmtp(msg: EmailMessage): Promise<boolean | null> {
-  const user = process.env.GMAIL_USER;
-  const pass = process.env.GMAIL_APP_PASSWORD;
+  const user = process.env.GMAIL_USER?.trim();
+  // Google displays app passwords with spaces (xxxx xxxx xxxx xxxx) — strip them.
+  const pass = process.env.GMAIL_APP_PASSWORD?.replace(/\s+/g, "");
   if (!user || !pass) return null;
 
   try {
