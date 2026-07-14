@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont } from "pdf-lib";
+import { PDFDocument, StandardFonts, type PDFPage, type PDFFont } from "pdf-lib";
 import {
   PRIMARY,
   GOLD,
@@ -8,10 +8,16 @@ import {
   TABLE_BG,
   PASS_GREEN,
   FAIL_RED,
-  LETTERHEAD_HEIGHT,
+  WHITE,
+  A4_PORTRAIT,
+  drawPaper,
   drawLetterhead,
   drawThemeFooter,
-  drawLogoBadge,
+  drawAttestationBlock,
+  drawImageW,
+  embedBrandImages,
+  type BrandImages,
+  type ThemeFonts,
 } from "./pdfTheme";
 
 function centerText(
@@ -27,6 +33,38 @@ function centerText(
   page.drawText(text, { x: (width - textWidth) / 2, y, size, font, color });
 }
 
+function centerWrapped(
+  page: PDFPage,
+  text: string,
+  topY: number,
+  size: number,
+  font: PDFFont,
+  color = BLACK,
+  maxWidth = 460,
+  lineHeight?: number,
+): number {
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let line = "";
+  for (const word of words) {
+    const cand = line ? `${line} ${word}` : word;
+    if (font.widthOfTextAtSize(cand, size) > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = cand;
+    }
+  }
+  if (line) lines.push(line);
+  let y = topY;
+  const lh = lineHeight ?? size * 1.5;
+  for (const l of lines) {
+    centerText(page, l, y, size, font, color);
+    y -= lh;
+  }
+  return y;
+}
+
 export interface DegreeCertificateData {
   studentName: string;
   courseTitle: string;
@@ -35,14 +73,24 @@ export interface DegreeCertificateData {
   issuedAt: Date;
 }
 
+function ordinalDay(d: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = d % 100;
+  if (v >= 11 && v <= 13) return `${d}th`;
+  return `${d}${s[d % 10] ?? "th"}`;
+}
+
 /**
- * Generate an ornate landscape degree/completion certificate.
+ * Generate the official portrait IEAC-accredited degree certificate,
+ * matched to the CGU accreditation certificate template, with a second
+ * "Official Institutional Status" appendix page.
  */
 export async function generateDegreeCertificate(
   data: DegreeCertificateData,
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
-  const page = doc.addPage([841.89, 595.28]); // A4 landscape
+  const images = await embedBrandImages(doc);
+  const page = doc.addPage(A4_PORTRAIT);
   const { width, height } = page.getSize();
 
   const font = await doc.embedFont(StandardFonts.Helvetica);
@@ -51,117 +99,246 @@ export async function generateDegreeCertificate(
   const serif = await doc.embedFont(StandardFonts.TimesRoman);
   const serifBold = await doc.embedFont(StandardFonts.TimesRomanBold);
 
-  // Outer + inner decorative borders
-  page.drawRectangle({
-    x: 24,
-    y: 24,
-    width: width - 48,
-    height: height - 48,
-    borderColor: PRIMARY,
-    borderWidth: 3,
-  });
-  page.drawRectangle({
-    x: 34,
-    y: 34,
-    width: width - 68,
-    height: height - 68,
-    borderColor: GOLD,
-    borderWidth: 1,
-  });
+  drawPaper(page);
 
-  // Header: CGU logo badge + registrar letterhead
-  drawLogoBadge(page, fontBold, {
-    x: (width - 40) / 2,
-    y: height - 78,
-    size: 40,
-  });
-  centerText(page, "CENTRAL GLOBAL UNIVERSITY", height - 104, 26, serifBold, PRIMARY);
-  centerText(page, "OFFICE OF THE REGISTRAR", height - 122, 10, fontBold, GOLD);
-  centerText(page, "Georgia", height - 135, 9, font, MUTED);
-  page.drawLine({
-    start: { x: width / 2 - 120, y: height - 146 },
-    end: { x: width / 2 + 120, y: height - 146 },
-    thickness: 1,
-    color: GOLD,
-  });
+  // Shield crest, centered at top
+  const shieldW = 86;
+  drawImageW(page, images.shield, (width - shieldW) / 2, height - 36, shieldW);
 
-  centerText(page, "CERTIFICATE OF COMPLETION", height - 178, 20, fontBold, BLACK);
+  centerText(page, "Central Global University", height - 168, 30, serifBold, PRIMARY);
+  centerText(page, "IEAC-Accredited Program", height - 196, 15, serifBold, BLACK);
 
-  centerText(page, "This is to certify that", height - 224, 14, fontItalic, MUTED);
-
-  // Recipient name
-  centerText(page, data.studentName, height - 268, 32, serifBold, PRIMARY);
-  page.drawLine({
-    start: { x: width / 2 - 200, y: height - 282 },
-    end: { x: width / 2 + 200, y: height - 282 },
-    thickness: 1,
-    color: LINE,
-  });
-
-  centerText(
+  let y = centerWrapped(
     page,
-    "has successfully completed all requirements for the",
-    height - 320,
-    14,
+    "By the authority of the Academic Board of Central Global University, and in alignment with the academic standards of the International Education Accreditation Council (UK), this degree is awarded upon completion of all required coursework, assessments, and quality assurance measures, with demonstrated academic excellence and ethical integrity.",
+    height - 226,
+    10.5,
     fontItalic,
-    MUTED,
+    BLACK,
+    440,
   );
 
-  centerText(page, data.courseTitle, height - 356, 22, serifBold, BLACK);
-  centerText(
+  y -= 22;
+  centerText(page, "Be it known that", y, 15, serifBold, BLACK);
+  y -= 30;
+  centerText(page, data.studentName, y, 22, serifBold, PRIMARY);
+  y -= 26;
+  centerText(page, "has been formally awarded the academic degree of", y, 11, fontItalic, BLACK);
+  y -= 34;
+  y = centerWrapped(page, data.courseTitle, y, 19, serifBold, BLACK, 460, 24);
+  y -= 8;
+  y = centerWrapped(
     page,
-    `(${data.courseLevel.toUpperCase()} PROGRAMME)`,
-    height - 378,
-    11,
-    font,
-    MUTED,
+    "with all rights, privileges, and responsibilities thereto pertaining, as an IEAC-accredited qualification benchmarked to international standards of higher education.",
+    y,
+    10.5,
+    fontItalic,
+    BLACK,
+    440,
   );
+  y -= 10;
+  y = centerWrapped(
+    page,
+    "In witness whereof, under the Seal of the University and the governance of its duly authorized officers, this degree has been issued on this",
+    y,
+    10.5,
+    fontItalic,
+    BLACK,
+    440,
+  );
+  y -= 8;
+  const d = data.issuedAt;
+  const dateLine = `${ordinalDay(d.getDate())} of ${d.toLocaleDateString("en-US", { month: "long" })}, ${d.getFullYear()}`;
+  centerText(page, dateLine, y, 12.5, serifBold, BLACK);
+  y -= 16;
+  centerText(page, "at Georgia", y, 10.5, fontItalic, BLACK);
 
-  const fmtDate = data.issuedAt.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
+  // Signature block (centered): Doromal signature over name
+  const sigW = 64;
+  const sigH = (images.sigDoromal.height / images.sigDoromal.width) * sigW;
+  page.drawImage(images.sigDoromal, {
+    x: width / 2 - sigW / 2,
+    y: 178,
+    width: sigW,
+    height: sigH,
   });
+  // Small registrar seal to the right of the signature
+  drawImageW(page, images.sealRegistrar, width / 2 + 70, 236, 66);
+  centerText(page, "Dr. Cherry M. Doromal", 168, 16, serifBold, BLACK);
+  centerText(page, "Director", 154, 9, fontItalic, MUTED);
 
-  // Footer: certificate number, date, signatures
-  const baseY = 96;
-  page.drawText("Certificate No.", { x: 80, y: baseY + 16, size: 9, font, color: MUTED });
-  page.drawText(data.certificateNumber, {
-    x: 80,
-    y: baseY,
-    size: 11,
+  // Red embossed seal, bottom-left
+  drawImageW(page, images.sealRed, 54, 148, 88);
+
+  // SID + verification, bottom-center-left
+  page.drawText(`SID: ${data.certificateNumber}`, {
+    x: 168,
+    y: 96,
+    size: 9.5,
     font: fontBold,
     color: BLACK,
   });
-
-  page.drawText("Date of Issue", {
-    x: width - 220,
-    y: baseY + 16,
-    size: 9,
+  page.drawText("Verification available at:", {
+    x: 168,
+    y: 82,
+    size: 8.5,
     font,
-    color: MUTED,
-  });
-  page.drawText(fmtDate, { x: width - 220, y: baseY, size: 11, font: fontBold, color: BLACK });
-
-  // Registrar signature line (center)
-  page.drawLine({
-    start: { x: width / 2 - 90, y: baseY + 14 },
-    end: { x: width / 2 + 90, y: baseY + 14 },
-    thickness: 1,
     color: BLACK,
   });
-  centerText(page, "Registrar", baseY, 10, font, MUTED);
+  page.drawText("verification.cgu.edu.ge", {
+    x: 168,
+    y: 70,
+    size: 8.5,
+    font,
+    color: PRIMARY,
+  });
 
-  centerText(
-    page,
-    "Verify this certificate at verification.cgu.edu.ge using the certificate number above.",
-    50,
-    8,
-    serif,
-    MUTED,
-  );
+  // IEAC badge, bottom-right
+  drawImageW(page, images.ieacBadge, width - 54 - 78, 128, 78);
+
+  // ---------- Page 2: Official Institutional Status appendix ----------
+  drawStatusAppendix(doc, images, { regular: font, bold: fontBold }, serif);
 
   return doc.save();
+}
+
+function drawStatusAppendix(
+  doc: PDFDocument,
+  images: BrandImages,
+  fonts: ThemeFonts,
+  serif: PDFFont,
+) {
+  const page = doc.addPage(A4_PORTRAIT);
+  const { width, height } = page.getSize();
+  drawPaper(page);
+  const M = 46;
+  const colW = width - M * 2 - 190; // left column width
+  const rightX = width - M - 172;
+
+  let y = height - 58;
+  page.drawText("OFFICIAL INSTITUTIONAL STATUS & INTERNATIONAL QUALITY VALIDATIONS", {
+    x: M,
+    y,
+    size: 11,
+    font: fonts.bold,
+    color: BLACK,
+  });
+  page.drawLine({
+    start: { x: M, y: y - 8 },
+    end: { x: width - M, y: y - 8 },
+    thickness: 1,
+    color: PRIMARY,
+  });
+  y -= 36;
+
+  const wrapped = (
+    text: string,
+    x: number,
+    topY: number,
+    size: number,
+    font: PDFFont,
+    maxWidth: number,
+    color = BLACK,
+  ): number => {
+    const words = text.split(/\s+/);
+    let line = "";
+    let yy = topY;
+    for (const word of words) {
+      const cand = line ? `${line} ${word}` : word;
+      if (font.widthOfTextAtSize(cand, size) > maxWidth && line) {
+        page.drawText(line, { x, y: yy, size, font, color });
+        yy -= size * 1.45;
+        line = word;
+      } else {
+        line = cand;
+      }
+    }
+    if (line) {
+      page.drawText(line, { x, y: yy, size, font, color });
+      yy -= size * 1.45;
+    }
+    return yy;
+  };
+
+  // Left column sections
+  page.drawText("I. INDEPENDENT GLOBAL MANDATE", { x: M, y, size: 9.5, font: fonts.bold, color: BLACK });
+  y -= 16;
+  y = wrapped(
+    "Central Global University (CGU) is established as an autonomous international institution operating outside the statutory framework of localized national education systems and is instead listed in recognized global accreditation directories. The university is strategically organized as a borderless global entity, specifically empowered to deliver transnational distance education models, formulate progressive curricular benchmarks, and confer academic credentials to cross-border professionals.",
+    M,
+    y,
+    8.5,
+    fonts.regular,
+    colW,
+  );
+  y -= 12;
+  page.drawText("II. International Education Accreditation Council", { x: M, y, size: 9.5, font: fonts.bold, color: BLACK });
+  y -= 12;
+  page.drawText("(Full Institutional Accreditation)", { x: M, y, size: 9.5, font: fonts.bold, color: BLACK });
+  y -= 20;
+  // Highlight box
+  const boxText =
+    "Central Global University operates under the rigorous quality management standards of international higher education and holds Full Institutional Accreditation from the International Education Accreditation Council (IEAC).";
+  page.drawRectangle({ x: M, y: y - 44, width: colW, height: 58, color: TABLE_BG, borderColor: GOLD, borderWidth: 0.75 });
+  wrapped(boxText, M + 8, y - 2, 8.5, fonts.bold, colW - 16);
+  y -= 60;
+  y = wrapped(
+    "The Full Institutional Accreditation from the International Education Accreditation Council (IEAC) serves as the primary external regulatory body governing the academic structures of CGU. This premier transnational validation ensures that all degree tracks, assessment matrices, and institutional operations strictly adhere to international quality assurance metrics, providing high-tier academic validity independent of local regional registries.",
+    M,
+    y,
+    8.5,
+    fonts.regular,
+    colW,
+  );
+  y -= 12;
+  page.drawText("III. CREDIT MATRIX & INTERNATIONAL MOBILITY", { x: M, y, size: 9.5, font: fonts.bold, color: BLACK });
+  y -= 16;
+  y = wrapped(
+    "Degrees conferred by Central Global University are mapped directly to universally recognized credit accounting principles (180 ECTS / 120 US semester credit hours). This structure delivers standardized, transparent metrics that facilitate international credential mobility, transcript evaluation, and performance authentication across global corporate, professional, and private enterprise networks.",
+    M,
+    y,
+    8.5,
+    fonts.regular,
+    colW,
+  );
+  y -= 16;
+  page.drawText("Areas of Excellence", { x: M, y, size: 10, font: serif, color: BLACK });
+
+  // Right column: shield + institutional profile
+  let ry = height - 92;
+  const shieldW2 = 74;
+  drawImageW(page, images.shield, rightX + (172 - shieldW2) / 2, ry + 14, shieldW2);
+  ry -= 84;
+  const cp = "INSTITUTIONAL PROFILE";
+  const cpw = fonts.bold.widthOfTextAtSize(cp, 8.5);
+  page.drawText(cp, { x: rightX + (172 - cpw) / 2, y: ry, size: 8.5, font: fonts.bold, color: BLACK });
+  ry -= 16;
+  const profile: [string, string][] = [
+    ["Institution:", "Central Global University"],
+    ["Type:", "Transnational Distance Learning"],
+    ["Validation:", "IEAC Fully Accredited"],
+    ["Registry:", "www.cgu.edu.ge"],
+  ];
+  for (const [k, v] of profile) {
+    page.drawText(k, { x: rightX, y: ry, size: 7.5, font: fonts.regular, color: MUTED });
+    const vw = fonts.bold.widthOfTextAtSize(v, 7.5);
+    page.drawText(v, { x: rightX + 172 - vw, y: ry, size: 7.5, font: fonts.bold, color: BLACK });
+    page.drawLine({ start: { x: rightX, y: ry - 4 }, end: { x: rightX + 172, y: ry - 4 }, thickness: 0.4, color: LINE });
+    ry -= 16;
+  }
+  ry -= 12;
+  page.drawRectangle({ x: rightX - 6, y: ry - 128, width: 184, height: 132, borderColor: GOLD, borderWidth: 0.75 });
+  page.drawText("SECURITY & AUTHENTICITY FEATURES", { x: rightX, y: ry - 12, size: 7.5, font: fonts.bold, color: BLACK });
+  let sy = ry - 26;
+  const feats: [string, string][] = [
+    ["Microtext Security Border:", "Authentic certificates utilize precision alphanumeric microprint patterns embedded along the margin limits."],
+    ["Digital QR Verification:", "Scan to access the secure registrar database and immediately verify matching permanent student transcript records."],
+    ["Embossed Foil Certification:", "The document face features an authenticated, tactile hot-stamped verification seal from the Office of the Registrar."],
+  ];
+  for (const [t, b] of feats) {
+    sy = wrapped(`\u2022 ${t} ${b}`, rightX, sy, 6.8, fonts.regular, 168, BLACK);
+    sy -= 4;
+  }
 }
 
 export interface TranscriptRow {
@@ -237,31 +414,72 @@ export function letterGradeFromPercent(pct: number): string {
   return "F";
 }
 
+const YEAR_SECTION_TITLES: Record<string, string[]> = {
+  bachelor: [
+    "CORE BUSINESS FOUNDATIONS",
+    "ADVANCED MANAGEMENT FRAMEWORKS",
+    "SPECIALIZATION TRACK",
+    "CAPSTONE & APPLIED RESEARCH",
+  ],
+  master: [
+    "CORE EXECUTIVE FRAMEWORKS",
+    "ADVANCED SPECIALIZATION & RESEARCH",
+    "STRATEGIC RESEARCH & THESIS",
+  ],
+  doctorate: [
+    "ADVANCED DOCTORAL CORE FOUNDATIONS",
+    "DOCTORAL STRATEGIC MANAGEMENT FRAMEWORKS",
+    "DOCTORAL DISSERTATION & RESEARCH DEFENSE",
+  ],
+};
+
+function methodologyFor(degree: string): string {
+  const d = degree.toLowerCase();
+  if (d.includes("doctor") || d.includes("dba") || d.includes("phd")) {
+    return "*Assessment Methodology: Evaluated based on Doctoral Advanced Framework benchmarks, requiring complete implementation of practical business models, extensive peer-reviewed literature contributions, an active research thesis monograph, and an official viva-voce board oral defense panel.";
+  }
+  if (d.includes("master") || d.includes("mba")) {
+    return "*Assessment Methodology: Based on Graduate Continuous Assessment Framework including Advanced Strategic Case Studies, Applied Research Monographs, Viva Voce Defense Seminars, and Master Thesis Projects. 1 ECTS = 25-30 Learning Hours.";
+  }
+  return "*Assessment Methodology: Based on Continuous Assessment Framework including Application-Oriented Assignments, Research Case Studies, Oral Defense Seminars, and Final Capstone Projects. 1 ECTS = 25-30 Learning Hours.";
+}
+
+function sectionTitlesFor(degree: string): string[] {
+  const d = degree.toLowerCase();
+  if (d.includes("doctor") || d.includes("dba") || d.includes("phd")) return YEAR_SECTION_TITLES.doctorate;
+  if (d.includes("master") || d.includes("mba")) return YEAR_SECTION_TITLES.master;
+  return YEAR_SECTION_TITLES.bachelor;
+}
+
 /**
- * Generate an official academic transcript (official registrar format).
+ * Generate the official academic transcript, matched to the CGU registrar
+ * template: cream paper, purple header table, year sections, totals block,
+ * grading key & methodology, and the attested registry record seal block.
  */
 export async function generateTranscript(data: TranscriptData): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
+  const images = await embedBrandImages(doc);
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const fonts: ThemeFonts = { regular: font, bold: fontBold };
 
   const PAGE_W = 595.28;
   const PAGE_H = 841.89;
-  const margin = 56;
-
-  const fonts = { regular: font, bold: fontBold };
+  const margin = 42;
+  const tableW = PAGE_W - margin * 2;
 
   const newPage = (): { page: PDFPage; y: number } => {
     const page = doc.addPage([PAGE_W, PAGE_H]);
-    drawLetterhead(page, fonts, {
-      office: "Office of the Registrar",
-      docLabel: "OFFICIAL ACADEMIC TRANSCRIPT",
-    });
+    const y = drawLetterhead(
+      page,
+      fonts,
+      { office: "Office of the Registrar", docLabel: "OFFICIAL ACADEMIC TRANSCRIPT" },
+      images,
+    );
     drawThemeFooter(page, fonts, {
       left: "Official Academic Transcript | Central Global University",
-      right: "Verify at verification.cgu.edu.ge",
     });
-    return { page, y: PAGE_H - LETTERHEAD_HEIGHT - 36 };
+    return { page, y };
   };
 
   const fmt = (d: Date | null) =>
@@ -271,50 +489,69 @@ export async function generateTranscript(data: TranscriptData): Promise<Uint8Arr
 
   let { page, y } = newPage();
 
-  // Student information block
-  const info: [string, string][] = [
-    ["Student Name", data.studentName],
-    ["Student ID", data.studentId],
-    ["Degree Awarded", data.degreeAwarded],
-    ["Transcript Ref", data.certificateNumber],
-    ["Enrollment Date", fmt(data.enrollmentDate)],
-    ["Completion Date", fmt(data.completionDate)],
-    ["Date of Issue", fmt(data.issuedAt)],
+  // Student information block: bordered label/value grid, two columns
+  const infoLeft: [string, string][] = [
+    ["Student Name:", data.studentName],
+    ["Student ID:", data.studentId],
+    ["Degree Awarded:", data.degreeAwarded],
   ];
-  for (const [label, value] of info) {
-    page.drawText(label.toUpperCase(), { x: margin, y, size: 8, font: fontBold, color: MUTED });
-    page.drawText(value, { x: margin + 130, y, size: 9.5, font: fontBold, color: BLACK });
-    y -= 16;
+  const infoRight: [string, string][] = [
+    ["Enrollment Date:", fmt(data.enrollmentDate)],
+    ["Completion Date:", fmt(data.completionDate)],
+    ["Transcript Ref:", data.certificateNumber],
+  ];
+  const infoRowH = 22;
+  const infoH = infoRowH * infoLeft.length + 8;
+  page.drawRectangle({
+    x: margin,
+    y: y - infoH + 14,
+    width: tableW,
+    height: infoH,
+    borderColor: PRIMARY,
+    borderWidth: 0.75,
+  });
+  let iy = y - 2;
+  const halfW = tableW / 2;
+  for (let i = 0; i < infoLeft.length; i++) {
+    const [lk, lv] = infoLeft[i];
+    const [rk, rv] = infoRight[i];
+    page.drawText(lk, { x: margin + 8, y: iy, size: 8.5, font: fontBold, color: BLACK });
+    page.drawText(lv.length > 46 ? `${lv.slice(0, 45)}…` : lv, {
+      x: margin + 92,
+      y: iy,
+      size: 8.5,
+      font,
+      color: BLACK,
+    });
+    page.drawText(rk, { x: margin + halfW + 16, y: iy, size: 8.5, font: fontBold, color: BLACK });
+    page.drawText(rv, { x: margin + halfW + 108, y: iy, size: 8.5, font, color: BLACK });
+    iy -= infoRowH;
   }
-  y -= 12;
+  y = y - infoH - 6;
 
   // Table columns
-  const colCode = margin + 4;
-  const colTitle = margin + 90;
-  const colCredits = PAGE_W - margin - 170;
-  const colGrade = PAGE_W - margin - 105;
-  const colStatus = PAGE_W - margin - 55;
+  const colCode = margin + 8;
+  const colTitle = margin + 78;
+  const colCredits = margin + tableW - 150;
+  const colGrade = margin + tableW - 95;
+  const colStatus = margin + tableW - 50;
 
   const drawTableHeader = () => {
-    page.drawRectangle({
-      x: margin,
-      y: y - 6,
-      width: PAGE_W - margin * 2,
-      height: 22,
-      color: TABLE_BG,
-    });
-    page.drawText("MODULE CODE", { x: colCode, y, size: 8.5, font: fontBold, color: PRIMARY });
-    page.drawText("MODULE TITLE", { x: colTitle, y, size: 8.5, font: fontBold, color: PRIMARY });
-    page.drawText("CREDITS", { x: colCredits, y, size: 8.5, font: fontBold, color: PRIMARY });
-    page.drawText("GRADE", { x: colGrade, y, size: 8.5, font: fontBold, color: PRIMARY });
-    page.drawText("STATUS", { x: colStatus, y, size: 8.5, font: fontBold, color: PRIMARY });
-    y -= 24;
+    page.drawRectangle({ x: margin, y: y - 9, width: tableW, height: 30, color: PRIMARY });
+    page.drawText("MODULE", { x: colCode, y: y + 8, size: 7.5, font: fontBold, color: WHITE });
+    page.drawText("CODE", { x: colCode, y: y - 2, size: 7.5, font: fontBold, color: WHITE });
+    page.drawText("MODULE TITLE", { x: colTitle, y: y + 3, size: 7.5, font: fontBold, color: WHITE });
+    page.drawText("CREDITS", { x: colCredits, y: y + 8, size: 7.5, font: fontBold, color: WHITE });
+    page.drawText("(ECTS)", { x: colCredits, y: y - 2, size: 7.5, font: fontBold, color: WHITE });
+    page.drawText("GRADE", { x: colGrade, y: y + 3, size: 7.5, font: fontBold, color: WHITE });
+    page.drawText("STATUS", { x: colStatus, y: y + 3, size: 7.5, font: fontBold, color: WHITE });
+    y -= 26;
   };
 
-  const ensureSpace = (needed: number) => {
-    if (y - needed < 90) {
+  const ensureSpace = (needed: number, withHeader = true) => {
+    if (y - needed < 60) {
       ({ page, y } = newPage());
-      drawTableHeader();
+      if (withHeader) drawTableHeader();
     }
   };
 
@@ -324,108 +561,132 @@ export async function generateTranscript(data: TranscriptData): Promise<Uint8Arr
   drawTableHeader();
 
   const years = [...new Set(data.rows.map((r) => r.year))].sort((a, b) => a - b);
-  const ordinal = ["FIRST", "SECOND", "THIRD", "FOURTH", "FIFTH"];
-  const { totalCredits, earnedCredits, gpa } = computeTranscriptSummary(data.rows);
+  const sectionTitles = sectionTitlesFor(data.degreeAwarded);
+  const { earnedCredits, gpa } = computeTranscriptSummary(data.rows);
 
   for (const yr of years) {
-    ensureSpace(40);
-    page.drawText(`${ordinal[yr - 1] ?? `YEAR ${yr}`} ACADEMIC YEAR`, {
+    ensureSpace(44);
+    const subtitle = sectionTitles[yr - 1] ?? "CONTINUED PROGRAMME MODULES";
+    page.drawRectangle({ x: margin, y: y - 5, width: tableW, height: 18, color: TABLE_BG });
+    page.drawText(`YEAR ${yr} - ${subtitle}`, {
       x: colCode,
       y,
-      size: 9,
+      size: 8,
       font: fontBold,
-      color: GOLD,
+      color: PRIMARY,
     });
     y -= 20;
     for (const row of data.rows.filter((r) => r.year === yr)) {
-      ensureSpace(22);
-      page.drawText(row.moduleCode, { x: colCode, y, size: 9, font: fontBold, color: BLACK });
-      page.drawText(truncate(row.moduleTitle, 52), { x: colTitle, y, size: 9, font, color: BLACK });
-      page.drawText(String(row.credits), { x: colCredits, y, size: 9, font, color: BLACK });
-      page.drawText(row.grade, { x: colGrade, y, size: 9, font: fontBold, color: BLACK });
+      ensureSpace(20);
+      page.drawText(row.moduleCode, { x: colCode, y, size: 8.5, font, color: BLACK });
+      page.drawText(truncate(row.moduleTitle, 58), { x: colTitle, y, size: 8.5, font, color: BLACK });
+      const credits = row.credits.toFixed(1);
+      page.drawText(credits, {
+        x: colCredits + 18 - font.widthOfTextAtSize(credits, 8.5) / 2,
+        y,
+        size: 8.5,
+        font,
+        color: BLACK,
+      });
+      page.drawText(row.grade, {
+        x: colGrade + 10 - font.widthOfTextAtSize(row.grade, 8.5) / 2,
+        y,
+        size: 8.5,
+        font,
+        color: BLACK,
+      });
       page.drawText(row.passed ? "Pass" : "Fail", {
         x: colStatus,
         y,
-        size: 9,
-        font: fontBold,
+        size: 8.5,
+        font,
         color: row.passed ? PASS_GREEN : FAIL_RED,
       });
       page.drawLine({
-        start: { x: margin, y: y - 6 },
-        end: { x: PAGE_W - margin, y: y - 6 },
-        thickness: 0.5,
+        start: { x: margin, y: y - 5 },
+        end: { x: PAGE_W - margin, y: y - 5 },
+        thickness: 0.4,
         color: LINE,
       });
-      y -= 20;
+      y -= 17;
     }
-    y -= 6;
   }
 
   if (data.rows.length === 0) {
     page.drawText("No published results on record.", {
       x: colCode,
       y,
-      size: 10,
+      size: 9.5,
       font,
       color: MUTED,
     });
     y -= 24;
   }
 
-  // Totals + GPA
-  ensureSpace(120);
-  y -= 8;
-  page.drawRectangle({
-    x: margin,
-    y: y - 30,
-    width: PAGE_W - margin * 2,
-    height: 44,
-    color: TABLE_BG,
-    borderColor: LINE,
-    borderWidth: 0.5,
-  });
-  page.drawText("TOTAL CREDITS EARNED", { x: margin + 10, y, size: 8.5, font: fontBold, color: MUTED });
-  page.drawText(`${earnedCredits} / ${totalCredits} ECTS`, {
-    x: margin + 10,
-    y: y - 16,
-    size: 11,
-    font: fontBold,
-    color: BLACK,
-  });
-  page.drawText("CUMULATIVE GPA", { x: PAGE_W / 2 + 10, y, size: 8.5, font: fontBold, color: MUTED });
-  page.drawText(`${gpa.toFixed(2)} / 4.00`, {
-    x: PAGE_W / 2 + 10,
-    y: y - 16,
-    size: 11,
-    font: fontBold,
-    color: BLACK,
-  });
-  y -= 56;
-
-  // Grading key
-  ensureSpace(60);
-  page.drawText("GRADING KEY", { x: margin, y, size: 9, font: fontBold, color: PRIMARY });
-  y -= 14;
-  const key =
-    "A = 4.00 | A- = 3.67 | B+ = 3.33 | B = 3.00 | B- = 2.67 | C+ = 2.33 | C = 2.00 | D = 1.00 | F = 0.00";
-  page.drawText(key, { x: margin, y, size: 8.5, font, color: BLACK });
+  // Totals block (right-aligned bordered rows, per template)
+  ensureSpace(90, false);
+  y -= 10;
+  const totalsX = margin + tableW - 240;
+  const totals: [string, string][] = [
+    ["Total Modules:", String(data.rows.length)],
+    ["Total ECTS Earned:", `${Number.isInteger(earnedCredits) ? earnedCredits : earnedCredits.toFixed(1)} ECTS`],
+    ["Cumulative GPA:", `${gpa.toFixed(2)} / 4.00`],
+  ];
+  for (const [k, v] of totals) {
+    page.drawRectangle({
+      x: totalsX,
+      y: y - 7,
+      width: 240,
+      height: 21,
+      borderColor: PRIMARY,
+      borderWidth: 0.6,
+    });
+    page.drawText(k, { x: totalsX + 8, y: y - 1, size: 8.5, font: fontBold, color: BLACK });
+    const vw = fontBold.widthOfTextAtSize(v, 8.5);
+    page.drawText(v, { x: totalsX + 240 - 12 - vw, y: y - 1, size: 8.5, font: fontBold, color: BLACK });
+    y -= 21;
+  }
   y -= 40;
 
-  // Registrar signature
-  ensureSpace(60);
-  page.drawLine({
-    start: { x: margin, y: y + 12 },
-    end: { x: margin + 180, y: y + 12 },
-    thickness: 1,
-    color: BLACK,
-  });
-  page.drawText("Office of the Registrar", { x: margin, y, size: 9.5, font: fontBold, color: BLACK });
-  page.drawText("Central Global University, Georgia Office", {
-    x: margin,
-    y: y - 13,
-    size: 8.5,
-    font,
-    color: MUTED,
+  // Grading key & methodology (left) + attested registry record (right)
+  ensureSpace(200, false);
+  const keyTop = y;
+  page.drawText("GRADING KEY & METHODOLOGY:", { x: margin, y, size: 8.5, font: fontBold, color: BLACK });
+  y -= 13;
+  const keyLines = [
+    "A (Excellent): 4.00 | A- : 3.67 | B+ : 3.33 | B (Good): 3.00 | B- : 2.67",
+    "C+ : 2.33 | C (Satisfactory): 2.00 | D (Passing): 1.00 | F (Failure): 0.00",
+  ];
+  for (const l of keyLines) {
+    page.drawText(l, { x: margin, y, size: 7.5, font, color: BLACK });
+    y -= 11;
+  }
+  // Methodology paragraph (wrapped to the left column)
+  const methodology = methodologyFor(data.degreeAwarded);
+  {
+    const maxW = 290;
+    const words = methodology.split(/\s+/);
+    let line = "";
+    for (const word of words) {
+      const cand = line ? `${line} ${word}` : word;
+      if (font.widthOfTextAtSize(cand, 7.5) > maxW && line) {
+        page.drawText(line, { x: margin, y, size: 7.5, font, color: BLACK });
+        y -= 11;
+        line = word;
+      } else {
+        line = cand;
+      }
+    }
+    if (line) {
+      page.drawText(line, { x: margin, y, size: 7.5, font, color: BLACK });
+      y -= 11;
+    }
+  }
+
+  // Attestation block, right side (seal + registrar signature)
+  drawAttestationBlock(page, fonts, images, {
+    x: PAGE_W - margin - 130,
+    topY: keyTop,
   });
 
   return doc.save();

@@ -9,9 +9,11 @@ import {
   FAIL_RED,
   MARGIN,
   A4_PORTRAIT,
-  LETTERHEAD_HEIGHT,
   drawLetterhead,
   drawThemeFooter,
+  drawSealedClosing,
+  embedBrandImages,
+  fitText,
 } from "./pdfTheme";
 
 export interface ResultReportData {
@@ -38,8 +40,9 @@ export async function generateResultReport(
   data: ResultReportData,
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
+  const images = await embedBrandImages(doc);
   const page = doc.addPage(A4_PORTRAIT);
-  const { width, height } = page.getSize();
+  const { width } = page.getSize();
 
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
@@ -47,13 +50,18 @@ export async function generateResultReport(
 
   const margin = MARGIN;
 
-  drawLetterhead(page, fonts, {
-    office: "Office of the Registrar",
-    docLabel: "RESULT SLIP",
-  });
+  const contentTop = drawLetterhead(
+    page,
+    fonts,
+    {
+      office: "Office of the Registrar",
+      docLabel: "RESULT SLIP",
+    },
+    images,
+  );
 
   // Meta block (right aligned)
-  let y = height - LETTERHEAD_HEIGHT - 40;
+  let y = contentTop;
   const fmtDate = data.publishedAt.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
@@ -67,7 +75,7 @@ export async function generateResultReport(
   }
 
   // Student block
-  y = height - LETTERHEAD_HEIGHT - 40;
+  y = contentTop;
   page.drawText("STUDENT", { x: margin, y, size: 10, font: fontBold, color: MUTED });
   y -= 18;
   page.drawText(data.studentName, { x: margin, y, size: 12, font: fontBold, color: BLACK });
@@ -75,7 +83,7 @@ export async function generateResultReport(
   page.drawText(data.studentEmail, { x: margin, y, size: 10, font, color: MUTED });
 
   // Course / subject
-  y = height - LETTERHEAD_HEIGHT - 140;
+  y = contentTop - 100;
   const infoRows: [string, string][] = [
     ["Course", data.courseTitle],
     ["Subject", data.subjectTitle],
@@ -83,7 +91,13 @@ export async function generateResultReport(
   ];
   for (const [label, value] of infoRows) {
     page.drawText(label, { x: margin, y, size: 10, font, color: MUTED });
-    page.drawText(value, { x: margin + 110, y, size: 11, font: fontBold, color: BLACK });
+    page.drawText(fitText(value, fontBold, 11, width - margin * 2 - 110), {
+      x: margin + 110,
+      y,
+      size: 11,
+      font: fontBold,
+      color: BLACK,
+    });
     y -= 22;
   }
 
@@ -94,7 +108,13 @@ export async function generateResultReport(
   page.drawText("MARKS", { x: width - margin - 120, y, size: 10, font: fontBold, color: PRIMARY });
 
   y -= 34;
-  page.drawText(data.examTitle, { x: margin + 10, y, size: 11, font, color: BLACK });
+  page.drawText(fitText(data.examTitle, font, 11, width - margin * 2 - 140), {
+    x: margin + 10,
+    y,
+    size: 11,
+    font,
+    color: BLACK,
+  });
   page.drawText(`${data.score} / ${data.totalMarks}`, {
     x: width - margin - 120,
     y,
@@ -129,10 +149,13 @@ export async function generateResultReport(
     page.drawText(remarks, { x: margin, y, size: 10, font, color: BLACK, maxWidth: width - margin * 2, lineHeight: 14 });
   }
 
+  // Sealed closing (registrar seal + signature)
+  y -= 44;
+  drawSealedClosing(page, fonts, images, { x: margin, topY: y });
+
   // Footer
   drawThemeFooter(page, fonts, {
     left: "Official Result Slip | Central Global University",
-    right: "Verify at verification.cgu.edu.ge",
   });
 
   return doc.save();

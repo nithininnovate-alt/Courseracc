@@ -7,9 +7,11 @@ import {
   TABLE_BG,
   MARGIN,
   A4_PORTRAIT,
-  LETTERHEAD_HEIGHT,
   drawLetterhead,
   drawThemeFooter,
+  drawSealedClosing,
+  embedBrandImages,
+  fitText,
 } from "./pdfTheme";
 
 export interface InvoiceData {
@@ -30,8 +32,9 @@ export interface InvoiceData {
  */
 export async function generateInvoice(data: InvoiceData): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
+  const images = await embedBrandImages(doc);
   const page = doc.addPage(A4_PORTRAIT);
-  const { width, height } = page.getSize();
+  const { width } = page.getSize();
 
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
@@ -39,13 +42,22 @@ export async function generateInvoice(data: InvoiceData): Promise<Uint8Array> {
 
   const margin = MARGIN;
 
-  drawLetterhead(page, fonts, {
-    office: "Office of the Bursar",
-    contact: "Verification Portal: verification.cgu.edu.ge | Email: bursar@cgu.edu.ge",
-    docLabel: "INVOICE",
-  });
+  const contentTop = drawLetterhead(
+    page,
+    fonts,
+    {
+      office: "Office of the Bursar",
+      contactLines: [
+        "Campus & Administrative Hub: Georgia",
+        "Official Portal: www.cgu.edu.ge",
+        "Bursar Desk: bursar@cgu.edu.ge",
+      ],
+      docLabel: "INVOICE",
+    },
+    images,
+  );
 
-  let y = height - LETTERHEAD_HEIGHT - 40;
+  let y = contentTop;
 
   const fmtDate = data.date.toLocaleDateString("en-US", {
     year: "numeric",
@@ -66,7 +78,7 @@ export async function generateInvoice(data: InvoiceData): Promise<Uint8Array> {
   }
 
   // Bill to
-  y = height - LETTERHEAD_HEIGHT - 40;
+  y = contentTop;
   page.drawText("BILL TO", { x: margin, y, size: 10, font: fontBold, color: MUTED });
   y -= 18;
   page.drawText(data.studentName, { x: margin, y, size: 12, font: fontBold, color: BLACK });
@@ -74,13 +86,16 @@ export async function generateInvoice(data: InvoiceData): Promise<Uint8Array> {
   page.drawText(data.studentEmail, { x: margin, y, size: 10, font, color: MUTED });
 
   // Table header
-  y = height - LETTERHEAD_HEIGHT - 140;
+  y = contentTop - 100;
   page.drawRectangle({ x: margin, y: y - 6, width: width - margin * 2, height: 26, color: TABLE_BG });
   page.drawText("DESCRIPTION", { x: margin + 10, y, size: 10, font: fontBold, color: PRIMARY });
   page.drawText("AMOUNT", { x: width - margin - 90, y, size: 10, font: fontBold, color: PRIMARY });
 
   y -= 34;
-  page.drawText(`Tuition — ${data.courseTitle}`, { x: margin + 10, y, size: 11, font, color: BLACK });
+  page.drawText(
+    fitText(`Tuition — ${data.courseTitle}`, font, 11, width - margin * 2 - 130),
+    { x: margin + 10, y, size: 11, font, color: BLACK },
+  );
   page.drawText(`${data.currency} ${data.amount.toFixed(2)}`, {
     x: width - margin - 90,
     y,
@@ -113,10 +128,21 @@ export async function generateInvoice(data: InvoiceData): Promise<Uint8Array> {
     page.drawText(`Transaction Reference: ${data.reference}`, { x: margin, y, size: 10, font, color: BLACK });
   }
 
+  // Sealed closing (registrar seal + signature)
+  y -= 40;
+  drawSealedClosing(page, fonts, images, {
+    x: margin,
+    topY: y,
+    lines: [
+      "Office of the Bursar",
+      "Central Global University (CGU)",
+      "Georgia Administrative Campus",
+    ],
+  });
+
   // Footer
   drawThemeFooter(page, fonts, {
     left: "Official Payment Receipt | Central Global University",
-    right: "Verify at verification.cgu.edu.ge",
   });
 
   return doc.save();

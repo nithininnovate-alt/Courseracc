@@ -6,9 +6,12 @@ import {
   BLACK,
   LINE,
   TABLE_BG,
-  LETTERHEAD_HEIGHT,
   drawLetterhead,
   drawThemeFooter,
+  drawSealedClosing,
+  embedBrandImages,
+  fitText,
+  type BrandImages,
 } from "./pdfTheme";
 
 export interface AdmissionLetterData {
@@ -36,6 +39,7 @@ export async function generateAdmissionLetter(
   data: AdmissionLetterData,
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
+  const images = await embedBrandImages(doc);
   const fonts: Fonts = {
     regular: await doc.embedFont(StandardFonts.Helvetica),
     bold: await doc.embedFont(StandardFonts.HelveticaBold),
@@ -56,9 +60,9 @@ export async function generateAdmissionLetter(
   const newPage = (): { page: PDFPage; y: number } => {
     const page = doc.addPage([PAGE_W, PAGE_H]);
     pageIndex++;
-    drawHeader(page, fonts);
+    const y = drawHeader(page, fonts, images);
     drawPageFooter(page, fonts, pageIndex, totalPages);
-    return { page, y: PAGE_H - LETTERHEAD_HEIGHT - 28 };
+    return { page, y };
   };
 
   // ---------- Page 1 ----------
@@ -132,7 +136,10 @@ export async function generateAdmissionLetter(
       borderWidth: 0.5,
     });
     page.drawText(label, { x: MARGIN + 10, y: y - 8, size: 10, font: fonts.bold, color: PRIMARY });
-    page.drawText(value, { x: MARGIN + labelW, y: y - 8, size: 10, font: fonts.regular, color: BLACK });
+    page.drawText(
+      fitText(value, fonts.regular, 10, PAGE_W - MARGIN * 2 - labelW - 10),
+      { x: MARGIN + labelW, y: y - 8, size: 10, font: fonts.regular, color: BLACK },
+    );
     y -= rowH;
   }
 
@@ -215,34 +222,35 @@ export async function generateAdmissionLetter(
 
   y -= 16;
   page.drawText("Sincerely,", { x: MARGIN, y, size: 10.5, font: fonts.regular, color: BLACK });
-  y -= 44;
-  page.drawText("Office of the Registrar", {
-    x: MARGIN,
-    y,
-    size: 11,
-    font: fonts.bold,
-    color: PRIMARY,
-  });
-  y -= 15;
-  page.drawText("Central Global University (CGU)", {
-    x: MARGIN,
-    y,
-    size: 10,
-    font: fonts.regular,
-    color: BLACK,
-  });
   y -= 14;
-  page.drawText("Georgia Office", { x: MARGIN, y, size: 10, font: fonts.regular, color: BLACK });
+  drawSealedClosing(page, fonts, images, {
+    x: MARGIN,
+    topY: y,
+    lines: [
+      "Office of the Registrar",
+      "Central Global University (CGU)",
+      "Georgia Office",
+    ],
+  });
 
   return doc.save();
 }
 
-function drawHeader(page: PDFPage, fonts: Fonts) {
-  drawLetterhead(page, fonts, {
-    office: "Office of Admissions & Registrar",
-    contact: "Verification Portal: verification.cgu.edu.ge | Email: admission@cgu.edu.ge",
-    docLabel: "LETTER OF ADMISSION",
-  });
+function drawHeader(page: PDFPage, fonts: Fonts, images: BrandImages): number {
+  return drawLetterhead(
+    page,
+    fonts,
+    {
+      office: "Office of Admissions & Registrar",
+      contactLines: [
+        "Campus & Administrative Hub: Georgia",
+        "Official Portal: www.cgu.edu.ge",
+        "Admissions Desk: admission@cgu.edu.ge",
+      ],
+      docLabel: "LETTER OF ADMISSION",
+    },
+    images,
+  );
 }
 
 function drawPageFooter(page: PDFPage, fonts: Fonts, num: number, total: number) {
