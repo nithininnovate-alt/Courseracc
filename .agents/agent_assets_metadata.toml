@@ -71,3 +71,39 @@ id = "KYeG4PEpa9NQ-32F6hon4"
 uri = "file://attached_assets/stock_images/hero_online.jpg"
 type = "image"
 title = "professional woman studying on laptop at home online education natural light"
+
+[[outputs]]
+id = "QhP1tZ1u5SP_6xhxzzk_Q"
+uri = "file://exports/pdf-previews/degree-certificate.png"
+type = "image"
+title = "Degree Certificate"
+
+[[outputs]]
+id = "adAwFlKXLYCXGX4r5KS9w"
+uri = "file://exports/pdf-previews/transcript.png"
+type = "image"
+title = "Official Academic Transcript"
+
+[[outputs]]
+id = "_qXh8imkUxRtpVGLLDCol"
+uri = "file://exports/pdf-previews/enrollment-letter.png"
+type = "image"
+title = "Enrollment Letter"
+
+[[outputs]]
+id = "M5G70sWhj-__zzOlO1va6"
+uri = "file://exports/pdf-previews/admission-letter.png"
+type = "image"
+title = "Admission Letter"
+
+[[outputs]]
+id = "74OPA0foiTJ1REykF4ipL"
+uri = "file://exports/pdf-previews/result-slip.png"
+type = "image"
+title = "Result Slip"
+
+[[outputs]]
+id = "47q4jkUbDRDZxqfC1Pfen"
+uri = "file://exports/pdf-previews/invoice.png"
+type = "image"
+title = "Invoice / Payment Receipt"
