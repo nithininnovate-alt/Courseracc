@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, ne, desc } from "drizzle-orm";
 import { ZipArchive, type ArchiverError } from "archiver";
 import {
   db,
@@ -16,6 +16,7 @@ import {
 import {
   CreateEnrollmentBody,
   CreateSubmissionBody,
+  SaveSubmissionDraftBody,
   CreateAssignmentBody,
   UpdateAssignmentBody,
   GradeSubmissionBody,
@@ -283,7 +284,12 @@ router.get(
       await db
         .select()
         .from(submissionsTable)
-        .where(eq(submissionsTable.assignmentId, id))
+        .where(
+          and(
+            eq(submissionsTable.assignmentId, id),
+            ne(submissionsTable.status, "draft"),
+          ),
+        )
         .orderBy(desc(submissionsTable.submittedAt)),
     );
   },
@@ -397,10 +403,22 @@ router.get("/submissions", async (req, res) => {
   res.json([]);
 });
 
+/** Count words in typed submission text. */
+function countWords(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
 router.post("/submissions", requireUser, async (req: AuthedRequest, res) => {
   const parsed = CreateSubmissionBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid input" });
+    return;
+  }
+  const hasText = Boolean(parsed.data.textContent?.trim());
+  if (!parsed.data.fileUrl && !hasText) {
+    res
+      .status(400)
+      .json({ error: "Attach a file or type your work before submitting" });
     return;
   }
   const userId = req.currentUser!.id;
@@ -436,11 +454,17 @@ router.post("/submissions", requireUser, async (req: AuthedRequest, res) => {
       ),
     );
 
+  const textContent = hasText ? parsed.data.textContent!.trim() : null;
+  const wordCount = textContent ? countWords(textContent) : null;
+
   if (existing) {
+    const wasDraft = existing.status === "draft";
     const [updated] = await db
       .update(submissionsTable)
       .set({
         fileUrl: parsed.data.fileUrl ?? null,
+        textContent,
+        wordCount,
         note: parsed.data.note ?? null,
         status: "submitted",
         score: null,
@@ -450,13 +474,29 @@ router.post("/submissions", requireUser, async (req: AuthedRequest, res) => {
       })
       .where(eq(submissionsTable.id, existing.id))
       .returning();
+    // A promoted draft is the student's first real submission — acknowledge it.
+    if (wasDraft) {
+      const [student] = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, userId));
+      if (student?.email) {
+        await sendEmail({
+          ...buildSubmissionReceived({
+            fullName: studentName(student),
+            assignmentTitle: assignment.title,
+          }),
+          to: student.email,
+        });
+      }
+    }
     res.status(201).json(updated);
     return;
   }
 
   const [created] = await db
     .insert(submissionsTable)
-    .values({ ...parsed.data, userId })
+    .values({ ...parsed.data, textContent, wordCount, userId })
     .returning();
 
   // Acknowledge receipt of the submission by email.
@@ -476,6 +516,87 @@ router.post("/submissions", requireUser, async (req: AuthedRequest, res) => {
 
   res.status(201).json(created);
 });
+
+router.post(
+  "/submissions/draft",
+  requireUser,
+  async (req: AuthedRequest, res) => {
+    const parsed = SaveSubmissionDraftBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid input" });
+      return;
+    }
+    const userId = req.currentUser!.id;
+
+    const [assignment] = await db
+      .select()
+      .from(assignmentsTable)
+      .where(eq(assignmentsTable.id, parsed.data.assignmentId));
+    if (!assignment) {
+      res.status(404).json({ error: "Assignment not found" });
+      return;
+    }
+    if (!(await isEnrolledInSubject(userId, assignment.subjectId))) {
+      res.status(403).json({ error: "You are not enrolled in this course" });
+      return;
+    }
+    if (assignment.dueDate.getTime() < Date.now()) {
+      res
+        .status(403)
+        .json({ error: "The deadline for this assignment has passed" });
+      return;
+    }
+
+    const textContent = parsed.data.textContent;
+    const wordCount = countWords(textContent);
+
+    const [existing] = await db
+      .select()
+      .from(submissionsTable)
+      .where(
+        and(
+          eq(submissionsTable.assignmentId, parsed.data.assignmentId),
+          eq(submissionsTable.userId, userId),
+        ),
+      );
+
+    if (existing && existing.status !== "draft") {
+      // Never silently overwrite submitted or graded work with an autosave.
+      res.status(409).json({
+        error: "Already submitted — resubmit explicitly to replace your work",
+      });
+      return;
+    }
+
+    if (existing) {
+      const [updated] = await db
+        .update(submissionsTable)
+        .set({
+          textContent,
+          wordCount,
+          note: parsed.data.note ?? existing.note,
+          submittedAt: new Date(),
+        })
+        .where(eq(submissionsTable.id, existing.id))
+        .returning();
+      res.json(updated);
+      return;
+    }
+
+    const [created] = await db
+      .insert(submissionsTable)
+      .values({
+        assignmentId: parsed.data.assignmentId,
+        userId,
+        status: "draft",
+        textContent,
+        wordCount,
+        note: parsed.data.note ?? null,
+      })
+      .returning();
+    res.json(created);
+  },
+);
 
 router.patch("/submissions/:id", requireStaff, async (req, res) => {
   const id = Number(req.params.id);

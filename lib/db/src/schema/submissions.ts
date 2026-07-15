@@ -9,6 +9,8 @@ export const submissionsTable = pgTable("submissions", {
   status: text("status").notNull().default("submitted"),
   score: integer("score"),
   fileUrl: text("file_url"),
+  textContent: text("text_content"),
+  wordCount: integer("word_count"),
   note: text("note"),
   feedback: text("feedback"),
   gradedAt: timestamp("graded_at", { withTimezone: true }),

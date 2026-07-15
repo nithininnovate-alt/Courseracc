@@ -10,6 +10,7 @@ export type SubmissionStatus = typeof SubmissionStatus[keyof typeof SubmissionSt
 
 
 export const SubmissionStatus = {
+  draft: 'draft',
   submitted: 'submitted',
   graded: 'graded',
   late: 'late',

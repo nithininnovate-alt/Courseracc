@@ -17,6 +17,10 @@ export interface Submission {
   /** @nullable */
   fileUrl?: string | null;
   /** @nullable */
+  textContent?: string | null;
+  /** @nullable */
+  wordCount?: number | null;
+  /** @nullable */
   note?: string | null;
   /** @nullable */
   feedback?: string | null;

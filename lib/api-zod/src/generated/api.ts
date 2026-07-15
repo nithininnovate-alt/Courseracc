@@ -959,9 +959,11 @@ export const ListAssignmentSubmissionsResponseItem = zod.object({
   "id": zod.number(),
   "assignmentId": zod.number(),
   "userId": zod.number(),
-  "status": zod.enum(['submitted', 'graded', 'late']),
+  "status": zod.enum(['draft', 'submitted', 'graded', 'late']),
   "score": zod.number().nullish(),
   "fileUrl": zod.string().nullish(),
+  "textContent": zod.string().nullish(),
+  "wordCount": zod.number().nullish(),
   "note": zod.string().nullish(),
   "feedback": zod.string().nullish(),
   "gradedAt": zod.coerce.date().nullish(),
@@ -977,9 +979,11 @@ export const ListSubmissionsResponseItem = zod.object({
   "id": zod.number(),
   "assignmentId": zod.number(),
   "userId": zod.number(),
-  "status": zod.enum(['submitted', 'graded', 'late']),
+  "status": zod.enum(['draft', 'submitted', 'graded', 'late']),
   "score": zod.number().nullish(),
   "fileUrl": zod.string().nullish(),
+  "textContent": zod.string().nullish(),
+  "wordCount": zod.number().nullish(),
   "note": zod.string().nullish(),
   "feedback": zod.string().nullish(),
   "gradedAt": zod.coerce.date().nullish(),
@@ -994,6 +998,7 @@ export const ListSubmissionsResponse = zod.array(ListSubmissionsResponseItem)
 export const CreateSubmissionBody = zod.object({
   "assignmentId": zod.number(),
   "fileUrl": zod.string().optional(),
+  "textContent": zod.string().optional(),
   "note": zod.string().optional()
 })
 
@@ -1001,9 +1006,36 @@ export const CreateSubmissionResponse = zod.object({
   "id": zod.number(),
   "assignmentId": zod.number(),
   "userId": zod.number(),
-  "status": zod.enum(['submitted', 'graded', 'late']),
+  "status": zod.enum(['draft', 'submitted', 'graded', 'late']),
   "score": zod.number().nullish(),
   "fileUrl": zod.string().nullish(),
+  "textContent": zod.string().nullish(),
+  "wordCount": zod.number().nullish(),
+  "note": zod.string().nullish(),
+  "feedback": zod.string().nullish(),
+  "gradedAt": zod.coerce.date().nullish(),
+  "submittedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Save a typed assignment draft (autosave)
+ */
+export const SaveSubmissionDraftBody = zod.object({
+  "assignmentId": zod.number(),
+  "textContent": zod.string(),
+  "note": zod.string().optional()
+})
+
+export const SaveSubmissionDraftResponse = zod.object({
+  "id": zod.number(),
+  "assignmentId": zod.number(),
+  "userId": zod.number(),
+  "status": zod.enum(['draft', 'submitted', 'graded', 'late']),
+  "score": zod.number().nullish(),
+  "fileUrl": zod.string().nullish(),
+  "textContent": zod.string().nullish(),
+  "wordCount": zod.number().nullish(),
   "note": zod.string().nullish(),
   "feedback": zod.string().nullish(),
   "gradedAt": zod.coerce.date().nullish(),
@@ -1031,9 +1063,11 @@ export const GradeSubmissionResponse = zod.object({
   "id": zod.number(),
   "assignmentId": zod.number(),
   "userId": zod.number(),
-  "status": zod.enum(['submitted', 'graded', 'late']),
+  "status": zod.enum(['draft', 'submitted', 'graded', 'late']),
   "score": zod.number().nullish(),
   "fileUrl": zod.string().nullish(),
+  "textContent": zod.string().nullish(),
+  "wordCount": zod.number().nullish(),
   "note": zod.string().nullish(),
   "feedback": zod.string().nullish(),
   "gradedAt": zod.coerce.date().nullish(),

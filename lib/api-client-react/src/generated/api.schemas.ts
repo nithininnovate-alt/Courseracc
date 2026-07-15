@@ -511,6 +511,7 @@ export type SubmissionStatus = typeof SubmissionStatus[keyof typeof SubmissionSt
 
 
 export const SubmissionStatus = {
+  draft: 'draft',
   submitted: 'submitted',
   graded: 'graded',
   late: 'late',
@@ -526,6 +527,10 @@ export interface Submission {
   /** @nullable */
   fileUrl?: string | null;
   /** @nullable */
+  textContent?: string | null;
+  /** @nullable */
+  wordCount?: number | null;
+  /** @nullable */
   note?: string | null;
   /** @nullable */
   feedback?: string | null;
@@ -537,6 +542,13 @@ export interface Submission {
 export interface SubmissionInput {
   assignmentId: number;
   fileUrl?: string;
+  textContent?: string;
+  note?: string;
+}
+
+export interface SubmissionDraftInput {
+  assignmentId: number;
+  textContent: string;
   note?: string;
 }
 

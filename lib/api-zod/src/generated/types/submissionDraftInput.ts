@@ -6,9 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface SubmissionInput {
+export interface SubmissionDraftInput {
   assignmentId: number;
-  fileUrl?: string;
-  textContent?: string;
+  textContent: string;
   note?: string;
 }

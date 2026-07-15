@@ -88,6 +88,7 @@ export * from './subject';
 export * from './subjectInput';
 export * from './subjectUpdate';
 export * from './submission';
+export * from './submissionDraftInput';
 export * from './submissionGrade';
 export * from './submissionInput';
 export * from './submissionStatus';

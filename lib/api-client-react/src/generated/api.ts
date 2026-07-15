@@ -74,6 +74,7 @@ import type {
   SubjectInput,
   SubjectUpdate,
   Submission,
+  SubmissionDraftInput,
   SubmissionGrade,
   SubmissionInput,
   UpdateProfileInput,
@@ -3206,6 +3207,76 @@ export const useCreateSubmission = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateSubmissionMutationOptions(options));
+    }
+
+export const getSaveSubmissionDraftUrl = () => {
+
+
+
+
+  return `/api/submissions/draft`
+}
+
+/**
+ * @summary Save a typed assignment draft (autosave)
+ */
+export const saveSubmissionDraft = async (submissionDraftInput: SubmissionDraftInput, options?: RequestInit): Promise<Submission> => {
+
+  return customFetch<Submission>(getSaveSubmissionDraftUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(submissionDraftInput)
+  }
+);}
+
+
+
+
+export const getSaveSubmissionDraftMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveSubmissionDraft>>, TError,{data: BodyType<SubmissionDraftInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveSubmissionDraft>>, TError,{data: BodyType<SubmissionDraftInput>}, TContext> => {
+
+const mutationKey = ['saveSubmissionDraft'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveSubmissionDraft>>, {data: BodyType<SubmissionDraftInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  saveSubmissionDraft(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveSubmissionDraftMutationResult = NonNullable<Awaited<ReturnType<typeof saveSubmissionDraft>>>
+    export type SaveSubmissionDraftMutationBody = BodyType<SubmissionDraftInput>
+    export type SaveSubmissionDraftMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Save a typed assignment draft (autosave)
+ */
+export const useSaveSubmissionDraft = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveSubmissionDraft>>, TError,{data: BodyType<SubmissionDraftInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveSubmissionDraft>>,
+        TError,
+        {data: BodyType<SubmissionDraftInput>},
+        TContext
+      > => {
+      return useMutation(getSaveSubmissionDraftMutationOptions(options));
     }
 
 export const getGradeSubmissionUrl = (id: number,) => {

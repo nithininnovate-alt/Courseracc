@@ -851,6 +851,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/Submission"
 
+  /submissions/draft:
+    post:
+      operationId: saveSubmissionDraft
+      tags: [assignments]
+      summary: Save a typed assignment draft (autosave)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmissionDraftInput"
+      responses:
+        "200":
+          description: Saved draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Submission"
+
   /submissions/{id}:
     patch:
       operationId: gradeSubmission
@@ -1896,9 +1915,11 @@ components:
         id: { type: integer }
         assignmentId: { type: integer }
         userId: { type: integer }
-        status: { type: string, enum: [submitted, graded, late] }
+        status: { type: string, enum: [draft, submitted, graded, late] }
         score: { type: ["integer", "null"] }
         fileUrl: { type: ["string", "null"] }
+        textContent: { type: ["string", "null"] }
+        wordCount: { type: ["integer", "null"] }
         note: { type: ["string", "null"] }
         feedback: { type: ["string", "null"] }
         gradedAt: { type: ["string", "null"], format: date-time }
@@ -1909,6 +1930,14 @@ components:
       properties:
         assignmentId: { type: integer }
         fileUrl: { type: string }
+        textContent: { type: string }
+        note: { type: string }
+    SubmissionDraftInput:
+      type: object
+      required: [assignmentId, textContent]
+      properties:
+        assignmentId: { type: integer }
+        textContent: { type: string }
         note: { type: string }
     SubmissionGrade:
       type: object

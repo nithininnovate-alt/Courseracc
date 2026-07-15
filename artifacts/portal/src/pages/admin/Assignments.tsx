@@ -368,7 +368,7 @@ function SubmissionsDialog({ assignment, onClose }: { assignment: Assignment; on
                   <TableHead>Student</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Score</TableHead>
-                  <TableHead>File</TableHead>
+                  <TableHead>Work</TableHead>
                   <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
@@ -379,11 +379,19 @@ function SubmissionsDialog({ assignment, onClose }: { assignment: Assignment; on
                     <TableCell><StatusBadge status={s.status} /></TableCell>
                     <TableCell>{s.score != null ? `${s.score}/${assignment.maxScore}` : "—"}</TableCell>
                     <TableCell>
-                      {s.fileUrl ? (
-                        <a className="text-primary underline" href={`/api/storage/objects/${s.fileUrl.replace(/^\/objects\//, "")}`} target="_blank" rel="noreferrer">
-                          View
-                        </a>
-                      ) : "—"}
+                      <div className="flex items-center gap-2">
+                        {s.fileUrl && (
+                          <a className="text-primary underline" href={`/api/storage/objects/${s.fileUrl.replace(/^\/objects\//, "")}`} target="_blank" rel="noreferrer">
+                            PDF
+                          </a>
+                        )}
+                        {s.textContent && (
+                          <span className="text-sm text-muted-foreground">
+                            Typed{s.wordCount != null ? ` · ${s.wordCount.toLocaleString()} words` : ""}
+                          </span>
+                        )}
+                        {!s.fileUrl && !s.textContent && "—"}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button size="sm" variant="outline" onClick={() => openGrade(s)}>Grade</Button>
@@ -399,6 +407,19 @@ function SubmissionsDialog({ assignment, onClose }: { assignment: Assignment; on
           <DialogContent>
             <DialogHeader><DialogTitle>Grade submission</DialogTitle></DialogHeader>
             <div className="space-y-4">
+              {grading?.textContent && (
+                <div className="space-y-2">
+                  <Label>
+                    Typed work
+                    {grading.wordCount != null && (
+                      <span className="ml-2 font-normal text-muted-foreground">{grading.wordCount.toLocaleString()} words</span>
+                    )}
+                  </Label>
+                  <div className="max-h-64 overflow-y-auto rounded-md border bg-muted/30 p-3 text-sm whitespace-pre-wrap">
+                    {grading.textContent}
+                  </div>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="score">Score (out of {assignment.maxScore})</Label>
                 <Input id="score" type="number" min="0" max={assignment.maxScore} value={score} onChange={(e) => setScore(e.target.value)} />
