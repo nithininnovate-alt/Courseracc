@@ -1966,7 +1966,7 @@ components:
         title: { type: string }
         scheduledAt: { type: string, format: date-time }
         durationMinutes: { type: integer }
-        totalMarks: { type: integer }
+        totalMarks: { type: number }
         questionUrl: { type: ["string", "null"] }
         startsAt: { type: ["string", "null"], format: date-time }
         endsAt: { type: ["string", "null"], format: date-time }
@@ -1978,7 +1978,7 @@ components:
         title: { type: string, minLength: 1 }
         scheduledAt: { type: string, format: date-time }
         durationMinutes: { type: integer, minimum: 1 }
-        totalMarks: { type: integer, minimum: 1 }
+        totalMarks: { type: number, minimum: 1 }
         questionUrl: { type: string }
         startsAt: { type: string, format: date-time }
         endsAt: { type: string, format: date-time }
@@ -1989,7 +1989,7 @@ components:
         title: { type: string, minLength: 1 }
         scheduledAt: { type: string, format: date-time }
         durationMinutes: { type: integer, minimum: 1 }
-        totalMarks: { type: integer, minimum: 1 }
+        totalMarks: { type: number, minimum: 1 }
         questionUrl: { type: string }
         startsAt: { type: string, format: date-time }
         endsAt: { type: string, format: date-time }
@@ -2022,7 +2022,7 @@ components:
         id: { type: integer }
         userId: { type: integer }
         examId: { type: integer }
-        score: { type: integer }
+        score: { type: number }
         grade: { type: ["string", "null"] }
         passed: { type: boolean }
         remarks: { type: ["string", "null"] }
@@ -2034,7 +2034,7 @@ components:
       properties:
         userId: { type: integer }
         examId: { type: integer }
-        score: { type: integer, minimum: 0 }
+        score: { type: number, minimum: 0 }
         grade: { type: string }
         passed: { type: boolean }
         remarks: { type: string }
@@ -2042,7 +2042,7 @@ components:
     ResultUpdate:
       type: object
       properties:
-        score: { type: integer, minimum: 0 }
+        score: { type: number, minimum: 0 }
         grade: { type: string }
         passed: { type: boolean }
         remarks: { type: string }

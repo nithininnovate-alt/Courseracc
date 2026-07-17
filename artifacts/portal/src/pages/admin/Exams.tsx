@@ -289,7 +289,7 @@ export default function AdminExams() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="totalMarks">Total Marks</Label>
-              <Input id="totalMarks" type="number" min="1" value={form.totalMarks} onChange={(e) => setForm({ ...form, totalMarks: e.target.value })} />
+              <Input id="totalMarks" type="number" min="1" step="any" value={form.totalMarks} onChange={(e) => setForm({ ...form, totalMarks: e.target.value })} />
             </div>
             <div className="space-y-2">
               <Label>Question Paper (PDF)</Label>
@@ -466,7 +466,7 @@ function MarksDialog({ exam, onClose }: { exam: Exam; onClose: () => void }) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="score">Score (out of {exam.totalMarks})</Label>
-                  <Input id="score" type="number" min="0" max={exam.totalMarks} value={score} onChange={(e) => setScore(e.target.value)} />
+                  <Input id="score" type="number" min="0" step="any" max={exam.totalMarks} value={score} onChange={(e) => setScore(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="grade">Grade</Label>
