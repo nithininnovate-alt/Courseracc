@@ -13,6 +13,10 @@ export interface ExamSubmission {
   userId: number;
   status: ExamSubmissionStatus;
   /** @nullable */
+  studentName?: string | null;
+  /** @nullable */
+  studentId?: string | null;
+  /** @nullable */
   fileUrl?: string | null;
   /** @nullable */
   note?: string | null;

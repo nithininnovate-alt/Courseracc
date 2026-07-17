@@ -27,4 +27,8 @@ export interface Submission {
   /** @nullable */
   gradedAt?: Date | null;
   submittedAt: Date;
+  /** @nullable */
+  studentName?: string | null;
+  /** @nullable */
+  studentId?: string | null;
 }

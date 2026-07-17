@@ -551,6 +551,10 @@ export interface Submission {
   /** @nullable */
   gradedAt?: string | null;
   submittedAt: string;
+  /** @nullable */
+  studentName?: string | null;
+  /** @nullable */
+  studentId?: string | null;
 }
 
 export interface SubmissionInput {
@@ -628,6 +632,10 @@ export interface ExamSubmission {
   examId: number;
   userId: number;
   status: ExamSubmissionStatus;
+  /** @nullable */
+  studentName?: string | null;
+  /** @nullable */
+  studentId?: string | null;
   /** @nullable */
   fileUrl?: string | null;
   /** @nullable */

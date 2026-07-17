@@ -422,7 +422,14 @@ function MarksDialog({ exam, onClose }: { exam: Exam; onClose: () => void }) {
                   const r = resultByUser.get(s.userId);
                   return (
                     <TableRow key={s.id}>
-                      <TableCell>#{s.userId}</TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{s.studentName ?? `#${s.userId}`}</p>
+                          {s.studentId && (
+                            <p className="text-xs text-muted-foreground font-mono">{s.studentId}</p>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell><StatusBadge status={s.status} /></TableCell>
                       <TableCell>
                         {s.fileUrl ? (

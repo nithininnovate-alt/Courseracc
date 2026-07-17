@@ -994,7 +994,9 @@ export const ListAssignmentSubmissionsResponseItem = zod.object({
   "note": zod.string().nullish(),
   "feedback": zod.string().nullish(),
   "gradedAt": zod.coerce.date().nullish(),
-  "submittedAt": zod.coerce.date()
+  "submittedAt": zod.coerce.date(),
+  "studentName": zod.string().nullish(),
+  "studentId": zod.string().nullish()
 })
 export const ListAssignmentSubmissionsResponse = zod.array(ListAssignmentSubmissionsResponseItem)
 
@@ -1014,7 +1016,9 @@ export const ListSubmissionsResponseItem = zod.object({
   "note": zod.string().nullish(),
   "feedback": zod.string().nullish(),
   "gradedAt": zod.coerce.date().nullish(),
-  "submittedAt": zod.coerce.date()
+  "submittedAt": zod.coerce.date(),
+  "studentName": zod.string().nullish(),
+  "studentId": zod.string().nullish()
 })
 export const ListSubmissionsResponse = zod.array(ListSubmissionsResponseItem)
 
@@ -1041,7 +1045,9 @@ export const CreateSubmissionResponse = zod.object({
   "note": zod.string().nullish(),
   "feedback": zod.string().nullish(),
   "gradedAt": zod.coerce.date().nullish(),
-  "submittedAt": zod.coerce.date()
+  "submittedAt": zod.coerce.date(),
+  "studentName": zod.string().nullish(),
+  "studentId": zod.string().nullish()
 })
 
 
@@ -1066,7 +1072,9 @@ export const SaveSubmissionDraftResponse = zod.object({
   "note": zod.string().nullish(),
   "feedback": zod.string().nullish(),
   "gradedAt": zod.coerce.date().nullish(),
-  "submittedAt": zod.coerce.date()
+  "submittedAt": zod.coerce.date(),
+  "studentName": zod.string().nullish(),
+  "studentId": zod.string().nullish()
 })
 
 
@@ -1098,7 +1106,9 @@ export const GradeSubmissionResponse = zod.object({
   "note": zod.string().nullish(),
   "feedback": zod.string().nullish(),
   "gradedAt": zod.coerce.date().nullish(),
-  "submittedAt": zod.coerce.date()
+  "submittedAt": zod.coerce.date(),
+  "studentName": zod.string().nullish(),
+  "studentId": zod.string().nullish()
 })
 
 
@@ -1231,6 +1241,8 @@ export const ListExamSubmissionsForExamResponseItem = zod.object({
   "examId": zod.number(),
   "userId": zod.number(),
   "status": zod.enum(['submitted', 'graded']),
+  "studentName": zod.string().nullish(),
+  "studentId": zod.string().nullish(),
   "fileUrl": zod.string().nullish(),
   "note": zod.string().nullish(),
   "submittedAt": zod.coerce.date()
@@ -1258,6 +1270,8 @@ export const ListExamSubmissionsResponseItem = zod.object({
   "examId": zod.number(),
   "userId": zod.number(),
   "status": zod.enum(['submitted', 'graded']),
+  "studentName": zod.string().nullish(),
+  "studentId": zod.string().nullish(),
   "fileUrl": zod.string().nullish(),
   "note": zod.string().nullish(),
   "submittedAt": zod.coerce.date()
@@ -1279,6 +1293,8 @@ export const CreateExamSubmissionResponse = zod.object({
   "examId": zod.number(),
   "userId": zod.number(),
   "status": zod.enum(['submitted', 'graded']),
+  "studentName": zod.string().nullish(),
+  "studentId": zod.string().nullish(),
   "fileUrl": zod.string().nullish(),
   "note": zod.string().nullish(),
   "submittedAt": zod.coerce.date()

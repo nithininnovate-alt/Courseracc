@@ -290,17 +290,30 @@ router.get(
   requireStaff,
   async (req, res) => {
     const id = Number(req.params.id);
+    const rows = await db
+      .select({
+        submission: submissionsTable,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+        email: usersTable.email,
+        sid: usersTable.studentId,
+      })
+      .from(submissionsTable)
+      .leftJoin(usersTable, eq(usersTable.id, submissionsTable.userId))
+      .where(
+        and(
+          eq(submissionsTable.assignmentId, id),
+          ne(submissionsTable.status, "draft"),
+        ),
+      )
+      .orderBy(desc(submissionsTable.submittedAt));
     res.json(
-      await db
-        .select()
-        .from(submissionsTable)
-        .where(
-          and(
-            eq(submissionsTable.assignmentId, id),
-            ne(submissionsTable.status, "draft"),
-          ),
-        )
-        .orderBy(desc(submissionsTable.submittedAt)),
+      rows.map(({ submission, firstName, lastName, email, sid }) => ({
+        ...submission,
+        studentName:
+          [firstName, lastName].filter(Boolean).join(" ") || email || null,
+        studentId: sid ?? null,
+      })),
     );
   },
 );
@@ -714,12 +727,25 @@ router.delete("/exams/:id", requireStaff, async (req, res) => {
 
 router.get("/exams/:id/submissions", requireStaff, async (req, res) => {
   const id = Number(req.params.id);
+  const rows = await db
+    .select({
+      submission: examSubmissionsTable,
+      firstName: usersTable.firstName,
+      lastName: usersTable.lastName,
+      email: usersTable.email,
+      sid: usersTable.studentId,
+    })
+    .from(examSubmissionsTable)
+    .leftJoin(usersTable, eq(usersTable.id, examSubmissionsTable.userId))
+    .where(eq(examSubmissionsTable.examId, id))
+    .orderBy(desc(examSubmissionsTable.submittedAt));
   res.json(
-    await db
-      .select()
-      .from(examSubmissionsTable)
-      .where(eq(examSubmissionsTable.examId, id))
-      .orderBy(desc(examSubmissionsTable.submittedAt)),
+    rows.map(({ submission, firstName, lastName, email, sid }) => ({
+      ...submission,
+      studentName:
+        [firstName, lastName].filter(Boolean).join(" ") || email || null,
+      studentId: sid ?? null,
+    })),
   );
 });
 

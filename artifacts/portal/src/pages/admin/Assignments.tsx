@@ -375,7 +375,14 @@ function SubmissionsDialog({ assignment, onClose }: { assignment: Assignment; on
               <TableBody>
                 {submissions.map((s) => (
                   <TableRow key={s.id}>
-                    <TableCell>#{s.userId}</TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{s.studentName ?? `#${s.userId}`}</p>
+                        {s.studentId && (
+                          <p className="text-xs text-muted-foreground font-mono">{s.studentId}</p>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell><StatusBadge status={s.status} /></TableCell>
                     <TableCell>{s.score != null ? `${s.score}/${assignment.maxScore}` : "—"}</TableCell>
                     <TableCell>
