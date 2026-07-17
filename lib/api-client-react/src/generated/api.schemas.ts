@@ -506,7 +506,7 @@ export interface AssignmentInput {
   description?: string;
   instructionsUrl?: string;
   dueDate: string;
-  /** @minimum 1 */
+  /** @exclusiveMinimum 0 */
   maxScore?: number;
 }
 
@@ -517,7 +517,7 @@ export interface AssignmentUpdate {
   description?: string;
   instructionsUrl?: string;
   dueDate?: string;
-  /** @minimum 1 */
+  /** @exclusiveMinimum 0 */
   maxScore?: number;
 }
 

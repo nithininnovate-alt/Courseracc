@@ -274,7 +274,7 @@ export default function AdminAssignments() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="maxScore">Max Score</Label>
-                <Input id="maxScore" type="number" min="1" value={form.maxScore} onChange={(e) => setForm({ ...form, maxScore: e.target.value })} />
+                <Input id="maxScore" type="number" min="0.5" step="any" value={form.maxScore} onChange={(e) => setForm({ ...form, maxScore: e.target.value })} />
               </div>
             </div>
             <div className="space-y-2">
@@ -429,7 +429,7 @@ function SubmissionsDialog({ assignment, onClose }: { assignment: Assignment; on
               )}
               <div className="space-y-2">
                 <Label htmlFor="score">Score (out of {assignment.maxScore})</Label>
-                <Input id="score" type="number" min="0" max={assignment.maxScore} value={score} onChange={(e) => setScore(e.target.value)} />
+                <Input id="score" type="number" min="0" step="any" max={assignment.maxScore} value={score} onChange={(e) => setScore(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="feedback">Feedback</Label>

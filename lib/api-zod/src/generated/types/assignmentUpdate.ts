@@ -13,6 +13,6 @@ export interface AssignmentUpdate {
   description?: string;
   instructionsUrl?: string;
   dueDate?: Date;
-  /** @minimum 1 */
+  /** @exclusiveMinimum 0 */
   maxScore?: number;
 }

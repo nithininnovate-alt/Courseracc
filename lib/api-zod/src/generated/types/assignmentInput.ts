@@ -13,6 +13,6 @@ export interface AssignmentInput {
   description?: string;
   instructionsUrl?: string;
   dueDate: Date;
-  /** @minimum 1 */
+  /** @exclusiveMinimum 0 */
   maxScore?: number;
 }

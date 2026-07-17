@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, real, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -9,7 +9,7 @@ export const assignmentsTable = pgTable("assignments", {
   description: text("description"),
   instructionsUrl: text("instructions_url"),
   dueDate: timestamp("due_date", { withTimezone: true }).notNull().defaultNow(),
-  maxScore: integer("max_score").notNull().default(100),
+  maxScore: real("max_score").notNull().default(100),
 });
 
 export const insertAssignmentSchema = createInsertSchema(assignmentsTable).omit({

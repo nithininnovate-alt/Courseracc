@@ -1896,7 +1896,7 @@ components:
         description: { type: ["string", "null"] }
         instructionsUrl: { type: ["string", "null"] }
         dueDate: { type: string, format: date-time }
-        maxScore: { type: integer }
+        maxScore: { type: number }
     AssignmentInput:
       type: object
       required: [subjectId, title, dueDate]
@@ -1906,7 +1906,7 @@ components:
         description: { type: string }
         instructionsUrl: { type: string }
         dueDate: { type: string, format: date-time }
-        maxScore: { type: integer, minimum: 1 }
+        maxScore: { type: number, exclusiveMinimum: 0 }
     AssignmentUpdate:
       type: object
       properties:
@@ -1915,7 +1915,7 @@ components:
         description: { type: string }
         instructionsUrl: { type: string }
         dueDate: { type: string, format: date-time }
-        maxScore: { type: integer, minimum: 1 }
+        maxScore: { type: number, exclusiveMinimum: 0 }
 
     Submission:
       type: object
@@ -1925,7 +1925,7 @@ components:
         assignmentId: { type: integer }
         userId: { type: integer }
         status: { type: string, enum: [draft, submitted, graded, late] }
-        score: { type: ["integer", "null"] }
+        score: { type: ["number", "null"] }
         fileUrl: { type: ["string", "null"] }
         textContent: { type: ["string", "null"] }
         wordCount: { type: ["integer", "null"] }
@@ -1954,7 +1954,7 @@ components:
       type: object
       required: [score]
       properties:
-        score: { type: integer, minimum: 0 }
+        score: { type: number, minimum: 0 }
         feedback: { type: string }
 
     Exam:

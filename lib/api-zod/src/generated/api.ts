@@ -891,6 +891,7 @@ export const ListAssignmentsResponse = zod.array(ListAssignmentsResponseItem)
  * @summary Create an assignment (admin)
  */
 
+export const createAssignmentBodyMaxScoreExclusiveMin = 0;
 
 
 
@@ -900,7 +901,7 @@ export const CreateAssignmentBody = zod.object({
   "description": zod.string().optional(),
   "instructionsUrl": zod.string().optional(),
   "dueDate": zod.coerce.date(),
-  "maxScore": zod.number().min(1).optional()
+  "maxScore": zod.number().gt(createAssignmentBodyMaxScoreExclusiveMin).optional()
 })
 
 export const CreateAssignmentResponse = zod.object({
@@ -940,6 +941,7 @@ export const UpdateAssignmentParams = zod.object({
 })
 
 
+export const updateAssignmentBodyMaxScoreExclusiveMin = 0;
 
 
 
@@ -949,7 +951,7 @@ export const UpdateAssignmentBody = zod.object({
   "description": zod.string().optional(),
   "instructionsUrl": zod.string().optional(),
   "dueDate": zod.coerce.date().optional(),
-  "maxScore": zod.number().min(1).optional()
+  "maxScore": zod.number().gt(updateAssignmentBodyMaxScoreExclusiveMin).optional()
 })
 
 export const UpdateAssignmentResponse = zod.object({
