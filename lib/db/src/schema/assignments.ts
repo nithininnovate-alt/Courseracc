@@ -9,7 +9,7 @@ export const assignmentsTable = pgTable("assignments", {
   description: text("description"),
   instructionsUrl: text("instructions_url"),
   dueDate: timestamp("due_date", { withTimezone: true }).notNull().defaultNow(),
-  maxScore: real("max_score").notNull().default(100),
+  maxScore: real("max_score").notNull().default(7.5),
 });
 
 export const insertAssignmentSchema = createInsertSchema(assignmentsTable).omit({
