@@ -8,7 +8,8 @@
 import type { ExamSubmissionStatus } from './examSubmissionStatus';
 
 export interface ExamSubmission {
-  id: number;
+  /** @nullable */
+  id?: number | null;
   examId: number;
   userId: number;
   status: ExamSubmissionStatus;
@@ -20,5 +21,6 @@ export interface ExamSubmission {
   fileUrl?: string | null;
   /** @nullable */
   note?: string | null;
-  submittedAt: Date;
+  /** @nullable */
+  submittedAt?: Date | null;
 }

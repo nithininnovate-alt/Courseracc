@@ -1996,17 +1996,17 @@ components:
 
     ExamSubmission:
       type: object
-      required: [id, examId, userId, status, submittedAt]
+      required: [examId, userId, status]
       properties:
-        id: { type: integer }
+        id: { type: ["integer", "null"] }
         examId: { type: integer }
         userId: { type: integer }
-        status: { type: string, enum: [submitted, graded] }
+        status: { type: string, enum: [submitted, graded, not_submitted] }
         studentName: { type: ["string", "null"] }
         studentId: { type: ["string", "null"] }
         fileUrl: { type: ["string", "null"] }
         note: { type: ["string", "null"] }
-        submittedAt: { type: string, format: date-time }
+        submittedAt: { type: ["string", "null"], format: date-time }
     ExamSubmissionInput:
       type: object
       required: [examId]

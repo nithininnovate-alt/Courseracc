@@ -739,14 +739,61 @@ router.get("/exams/:id/submissions", requireStaff, async (req, res) => {
     .leftJoin(usersTable, eq(usersTable.id, examSubmissionsTable.userId))
     .where(eq(examSubmissionsTable.examId, id))
     .orderBy(desc(examSubmissionsTable.submittedAt));
-  res.json(
-    rows.map(({ submission, firstName, lastName, email, sid }) => ({
+
+  const submissionRows = rows.map(
+    ({ submission, firstName, lastName, email, sid }) => ({
       ...submission,
       studentName:
         [firstName, lastName].filter(Boolean).join(" ") || email || null,
       studentId: sid ?? null,
-    })),
+    }),
   );
+
+  // Also include enrolled students who have not submitted an answer, so
+  // staff can enter or edit marks for every student in the course.
+  const [exam] = await db
+    .select({ subjectId: examsTable.subjectId })
+    .from(examsTable)
+    .where(eq(examsTable.id, id));
+  let rosterRows: Array<Record<string, unknown>> = [];
+  if (exam) {
+    const [subject] = await db
+      .select({ courseId: subjectsTable.courseId })
+      .from(subjectsTable)
+      .where(eq(subjectsTable.id, exam.subjectId));
+    if (subject) {
+      const submittedUserIds = new Set(submissionRows.map((s) => s.userId));
+      const enrolled = await db
+        .select({
+          userId: enrollmentsTable.userId,
+          firstName: usersTable.firstName,
+          lastName: usersTable.lastName,
+          email: usersTable.email,
+          sid: usersTable.studentId,
+        })
+        .from(enrollmentsTable)
+        .leftJoin(usersTable, eq(usersTable.id, enrollmentsTable.userId))
+        .where(eq(enrollmentsTable.courseId, subject.courseId));
+      rosterRows = enrolled
+        .filter((e) => !submittedUserIds.has(e.userId))
+        .map((e) => ({
+          id: null,
+          examId: id,
+          userId: e.userId,
+          status: "not_submitted",
+          studentName:
+            [e.firstName, e.lastName].filter(Boolean).join(" ") ||
+            e.email ||
+            null,
+          studentId: e.sid ?? null,
+          fileUrl: null,
+          note: null,
+          submittedAt: null,
+        }));
+    }
+  }
+
+  res.json([...submissionRows, ...rosterRows]);
 });
 
 router.post("/exams/:id/publish-results", requireStaff, async (req, res) => {

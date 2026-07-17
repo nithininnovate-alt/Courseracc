@@ -12,4 +12,5 @@ export type ExamSubmissionStatus = typeof ExamSubmissionStatus[keyof typeof Exam
 export const ExamSubmissionStatus = {
   submitted: 'submitted',
   graded: 'graded',
+  not_submitted: 'not_submitted',
 } as const;

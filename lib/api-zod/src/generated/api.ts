@@ -1239,15 +1239,15 @@ export const ListExamSubmissionsForExamParams = zod.object({
 })
 
 export const ListExamSubmissionsForExamResponseItem = zod.object({
-  "id": zod.number(),
+  "id": zod.number().nullish(),
   "examId": zod.number(),
   "userId": zod.number(),
-  "status": zod.enum(['submitted', 'graded']),
+  "status": zod.enum(['submitted', 'graded', 'not_submitted']),
   "studentName": zod.string().nullish(),
   "studentId": zod.string().nullish(),
   "fileUrl": zod.string().nullish(),
   "note": zod.string().nullish(),
-  "submittedAt": zod.coerce.date()
+  "submittedAt": zod.coerce.date().nullish()
 })
 export const ListExamSubmissionsForExamResponse = zod.array(ListExamSubmissionsForExamResponseItem)
 
@@ -1268,15 +1268,15 @@ export const PublishExamResultsResponse = zod.object({
  * @summary List the current student's exam submissions
  */
 export const ListExamSubmissionsResponseItem = zod.object({
-  "id": zod.number(),
+  "id": zod.number().nullish(),
   "examId": zod.number(),
   "userId": zod.number(),
-  "status": zod.enum(['submitted', 'graded']),
+  "status": zod.enum(['submitted', 'graded', 'not_submitted']),
   "studentName": zod.string().nullish(),
   "studentId": zod.string().nullish(),
   "fileUrl": zod.string().nullish(),
   "note": zod.string().nullish(),
-  "submittedAt": zod.coerce.date()
+  "submittedAt": zod.coerce.date().nullish()
 })
 export const ListExamSubmissionsResponse = zod.array(ListExamSubmissionsResponseItem)
 
@@ -1291,15 +1291,15 @@ export const CreateExamSubmissionBody = zod.object({
 })
 
 export const CreateExamSubmissionResponse = zod.object({
-  "id": zod.number(),
+  "id": zod.number().nullish(),
   "examId": zod.number(),
   "userId": zod.number(),
-  "status": zod.enum(['submitted', 'graded']),
+  "status": zod.enum(['submitted', 'graded', 'not_submitted']),
   "studentName": zod.string().nullish(),
   "studentId": zod.string().nullish(),
   "fileUrl": zod.string().nullish(),
   "note": zod.string().nullish(),
-  "submittedAt": zod.coerce.date()
+  "submittedAt": zod.coerce.date().nullish()
 })
 
 

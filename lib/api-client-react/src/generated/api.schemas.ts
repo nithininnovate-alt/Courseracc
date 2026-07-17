@@ -625,10 +625,12 @@ export type ExamSubmissionStatus = typeof ExamSubmissionStatus[keyof typeof Exam
 export const ExamSubmissionStatus = {
   submitted: 'submitted',
   graded: 'graded',
+  not_submitted: 'not_submitted',
 } as const;
 
 export interface ExamSubmission {
-  id: number;
+  /** @nullable */
+  id?: number | null;
   examId: number;
   userId: number;
   status: ExamSubmissionStatus;
@@ -640,7 +642,8 @@ export interface ExamSubmission {
   fileUrl?: string | null;
   /** @nullable */
   note?: string | null;
-  submittedAt: string;
+  /** @nullable */
+  submittedAt?: string | null;
 }
 
 export interface ExamSubmissionInput {

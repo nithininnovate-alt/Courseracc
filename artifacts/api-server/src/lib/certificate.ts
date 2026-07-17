@@ -317,6 +317,26 @@ function drawStatusAppendix(
   );
   y -= 16;
   page.drawText("Areas of Excellence", { x: M, y, size: 10, font: serif, color: BLACK });
+  y -= 14;
+  const areas = [
+    "Transnational distance education and borderless academic delivery",
+    "ECTS-aligned credit structures and international credential mobility",
+    "Rigorous quality assurance under IEAC full institutional accreditation",
+    "Secure digital verification of academic records and transcripts",
+  ];
+  for (const area of areas) {
+    y = wrapped(`\u2022 ${area}`, M, y, 8.5, fonts.regular, colW - 96);
+    y -= 2;
+  }
+  // IEAC "ACCREDITED" badge beside the Areas of Excellence list
+  const badgeW = 84;
+  const badgeH = (images.ieacBadge.height / images.ieacBadge.width) * badgeW;
+  page.drawImage(images.ieacBadge, {
+    x: M + colW - badgeW,
+    y: y + 6,
+    width: badgeW,
+    height: badgeH,
+  });
 
   // Right column: shield + institutional profile
   let ry = height - 92;

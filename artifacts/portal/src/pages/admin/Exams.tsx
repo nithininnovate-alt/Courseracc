@@ -403,7 +403,7 @@ function MarksDialog({ exam, onClose }: { exam: Exam; onClose: () => void }) {
         {isLoading ? (
           <LoadingCard />
         ) : !submissions || submissions.length === 0 ? (
-          <EmptyCard message="No answer submissions yet." />
+          <EmptyCard message="No enrolled students or submissions yet." />
         ) : (
           <div className="overflow-x-auto">
             <Table>
@@ -421,7 +421,7 @@ function MarksDialog({ exam, onClose }: { exam: Exam; onClose: () => void }) {
                 {submissions.map((s) => {
                   const r = resultByUser.get(s.userId);
                   return (
-                    <TableRow key={s.id}>
+                    <TableRow key={s.userId}>
                       <TableCell>
                         <div>
                           <p className="font-medium">{s.studentName ?? `#${s.userId}`}</p>
@@ -430,7 +430,13 @@ function MarksDialog({ exam, onClose }: { exam: Exam; onClose: () => void }) {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell><StatusBadge status={s.status} /></TableCell>
+                      <TableCell>
+                        {s.status === "not_submitted" ? (
+                          <Badge variant="secondary" className="bg-gray-100 text-gray-600 border-0">Not submitted</Badge>
+                        ) : (
+                          <StatusBadge status={s.status} />
+                        )}
+                      </TableCell>
                       <TableCell>
                         {s.fileUrl ? (
                           <a className="text-primary underline" href={`/api/storage/objects/${s.fileUrl.replace(/^\/objects\//, "")}`} target="_blank" rel="noreferrer">
