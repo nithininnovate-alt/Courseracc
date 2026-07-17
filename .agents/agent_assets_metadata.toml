@@ -107,3 +107,9 @@ id = "47q4jkUbDRDZxqfC1Pfen"
 uri = "file://exports/pdf-previews/invoice.png"
 type = "image"
 title = "Invoice / Payment Receipt"
+
+[[outputs]]
+id = "FbPIuojem9el21OduC_up"
+uri = "file://exports/degree-certificate-page2-ieac.png"
+type = "image"
+title = "Degree certificate page 2 — IEAC badge now shown"
