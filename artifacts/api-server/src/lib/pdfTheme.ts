@@ -12,7 +12,7 @@ import {
 
 /**
  * Shared CGU PDF design theme, matched to the official registrar templates:
- * cream paper, thin purple page border, purple headline letterhead with the
+ * cream paper (borderless), purple headline letterhead with the
  * CGU shield logo top-right, purple table headers, and the official
  * registrar seal / signature artwork.
  */
@@ -71,7 +71,7 @@ const ASSET_DIR_CANDIDATES = [
 ];
 
 const assetCache = new Map<string, Buffer>();
-function assetBytes(name: string): Buffer {
+export function assetBytes(name: string): Buffer {
   let buf = assetCache.get(name);
   if (!buf) {
     let lastErr: unknown;
@@ -106,6 +106,8 @@ export interface BrandImages {
   sigDashed: PDFImage;
   /** IEAC "ACCREDITED" badge. */
   ieacBadge: PDFImage;
+  /** The eight IEAC per-area star-rating mini badges. */
+  ieacMini: PDFImage[];
 }
 
 /** Embed the official CGU brand artwork into a document. */
@@ -119,6 +121,7 @@ export async function embedBrandImages(doc: PDFDocument): Promise<BrandImages> {
     sigDoromal,
     sigDashed,
     ieacBadge,
+    ...ieacMini
   ] = await Promise.all([
     doc.embedPng(assetBytes("logo-full.png")),
     doc.embedPng(assetBytes("shield-logo.png")),
@@ -128,6 +131,9 @@ export async function embedBrandImages(doc: PDFDocument): Promise<BrandImages> {
     doc.embedPng(assetBytes("sig-doromal.png")),
     doc.embedPng(assetBytes("sig-dashed.png")),
     doc.embedPng(assetBytes("ieac-badge.png")),
+    ...Array.from({ length: 8 }, (_, i) =>
+      doc.embedPng(assetBytes(`ieac-mini-${i + 1}.png`)),
+    ),
   ]);
   return {
     logo,
@@ -138,6 +144,7 @@ export async function embedBrandImages(doc: PDFDocument): Promise<BrandImages> {
     sigDoromal,
     sigDashed,
     ieacBadge,
+    ieacMini,
   };
 }
 
@@ -163,18 +170,10 @@ export function drawImageW(
 
 /* ------------------------------ page frame ------------------------------ */
 
-/** Cream paper background + thin purple page border, per the templates. */
+/** Cream paper background (borderless, per the official templates). */
 export function drawPaper(page: PDFPage) {
   const { width, height } = page.getSize();
   page.drawRectangle({ x: 0, y: 0, width, height, color: PAPER });
-  page.drawRectangle({
-    x: 6,
-    y: 6,
-    width: width - 12,
-    height: height - 12,
-    borderColor: PRIMARY,
-    borderWidth: 2.5,
-  });
 }
 
 /* ------------------------------ letterhead ------------------------------ */
@@ -197,7 +196,7 @@ export interface LetterheadOptions {
 export const LETTERHEAD_HEIGHT = 108;
 
 /**
- * Draw the official CGU letterhead: cream paper, purple page border, large
+ * Draw the official CGU letterhead: cream paper (borderless), large
  * purple university name top-left, office + contact lines, shield crest
  * top-right, and a purple double rule. Optionally a centered document title.
  *

@@ -1,4 +1,6 @@
 import { PDFDocument, StandardFonts, type PDFPage, type PDFFont } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
+import QRCode from "qrcode";
 import {
   PRIMARY,
   GOLD,
@@ -16,6 +18,7 @@ import {
   drawAttestationBlock,
   drawImageW,
   embedBrandImages,
+  assetBytes,
   type BrandImages,
   type ThemeFonts,
 } from "./pdfTheme";
@@ -31,6 +34,26 @@ function centerText(
   const width = page.getWidth();
   const textWidth = font.widthOfTextAtSize(text, size);
   page.drawText(text, { x: (width - textWidth) / 2, y, size, font, color });
+}
+
+/** Center text with extra letter spacing (for blackletter headlines). */
+function centerSpaced(
+  page: PDFPage,
+  text: string,
+  y: number,
+  size: number,
+  font: PDFFont,
+  color = BLACK,
+  spacing = 2,
+) {
+  const chars = [...text];
+  const total =
+    font.widthOfTextAtSize(text, size) + spacing * (chars.length - 1);
+  let x = (page.getWidth() - total) / 2;
+  for (const ch of chars) {
+    page.drawText(ch, { x, y, size, font, color });
+    x += font.widthOfTextAtSize(ch, size) + spacing;
+  }
 }
 
 function centerWrapped(
@@ -90,15 +113,17 @@ export async function generateDegreeCertificate(
   data: DegreeCertificateData,
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
+  doc.registerFontkit(fontkit);
   const images = await embedBrandImages(doc);
   const page = doc.addPage(A4_PORTRAIT);
   const { width, height } = page.getSize();
 
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
-  const fontItalic = await doc.embedFont(StandardFonts.TimesRomanItalic);
   const serif = await doc.embedFont(StandardFonts.TimesRoman);
-  const serifBold = await doc.embedFont(StandardFonts.TimesRomanBold);
+  // Official template typefaces: blackletter headings + Baskerville italics.
+  const blackletter = await doc.embedFont(assetBytes("font-blackletter.ttf"));
+  const fontItalic = await doc.embedFont(assetBytes("font-baskerville-italic.ttf"));
 
   drawPaper(page);
 
@@ -106,13 +131,13 @@ export async function generateDegreeCertificate(
   const shieldW = 86;
   drawImageW(page, images.shield, (width - shieldW) / 2, height - 36, shieldW);
 
-  centerText(page, "Central Global University", height - 168, 30, serifBold, PRIMARY);
-  centerText(page, "IEAC-Accredited Program", height - 196, 15, serifBold, BLACK);
+  centerSpaced(page, "Central Global University", height - 172, 30, blackletter, BLACK, 3.5);
+  centerSpaced(page, "IEAC-Accredited Program", height - 204, 17, blackletter, BLACK, 1.5);
 
   let y = centerWrapped(
     page,
     "By the authority of the Academic Board of Central Global University, and in alignment with the academic standards of the International Education Accreditation Council (UK), this degree is awarded upon completion of all required coursework, assessments, and quality assurance measures, with demonstrated academic excellence and ethical integrity.",
-    height - 226,
+    height - 234,
     10.5,
     fontItalic,
     BLACK,
@@ -120,13 +145,13 @@ export async function generateDegreeCertificate(
   );
 
   y -= 22;
-  centerText(page, "Be it known that", y, 15, serifBold, BLACK);
+  centerText(page, "Be it known that", y, 15, blackletter, BLACK);
   y -= 30;
-  centerText(page, data.studentName, y, 22, serifBold, PRIMARY);
+  centerText(page, data.studentName, y, 22, blackletter, BLACK);
   y -= 26;
   centerText(page, "has been formally awarded the academic degree of", y, 11, fontItalic, BLACK);
   y -= 34;
-  y = centerWrapped(page, data.courseTitle, y, 19, serifBold, BLACK, 460, 24);
+  y = centerWrapped(page, data.courseTitle, y, 20, blackletter, BLACK, 460, 26);
   y -= 8;
   y = centerWrapped(
     page,
@@ -150,7 +175,7 @@ export async function generateDegreeCertificate(
   y -= 8;
   const d = data.issuedAt;
   const dateLine = `${ordinalDay(d.getDate())} of ${d.toLocaleDateString("en-US", { month: "long" })}, ${d.getFullYear()}`;
-  centerText(page, dateLine, y, 12.5, serifBold, BLACK);
+  centerText(page, dateLine, y, 12.5, fontItalic, BLACK);
   y -= 16;
   centerText(page, "at Georgia", y, 10.5, fontItalic, BLACK);
 
@@ -165,13 +190,13 @@ export async function generateDegreeCertificate(
   });
   // Small registrar seal to the right of the signature
   drawImageW(page, images.sealRegistrar, width / 2 + 70, 236, 66);
-  centerText(page, "Dr. Cherry M. Doromal", 168, 16, serifBold, BLACK);
+  centerText(page, "Dr. Cherry M. Doromal", 168, 17, blackletter, BLACK);
   centerText(page, "Director", 154, 9, fontItalic, MUTED);
 
   // Red embossed seal, bottom-left
   drawImageW(page, images.sealRed, 54, 148, 88);
 
-  // SID + certificate number + verification, bottom-center-left
+  // SID + verification, bottom-center-left (per the official template)
   let infoY = 96;
   if (data.studentId) {
     page.drawText(`SID: ${data.studentId}`, {
@@ -181,16 +206,8 @@ export async function generateDegreeCertificate(
       font: fontBold,
       color: BLACK,
     });
-    infoY -= 13;
+    infoY -= 14;
   }
-  page.drawText(`Certificate No: ${data.certificateNumber}`, {
-    x: 168,
-    y: infoY,
-    size: 9.5,
-    font: fontBold,
-    color: BLACK,
-  });
-  infoY -= 14;
   page.drawText("Verification available at:", {
     x: 168,
     y: infoY,
@@ -206,6 +223,15 @@ export async function generateDegreeCertificate(
     font,
     color: PRIMARY,
   });
+
+  // QR verification code, bottom-center
+  const qrDataUrl = await QRCode.toDataURL(
+    `https://verification.cgu.edu.ge/?ref=${encodeURIComponent(data.certificateNumber)}`,
+    { margin: 0, width: 220, color: { dark: "#1a1a1a", light: "#faf6ec" } },
+  );
+  const qrImg = await doc.embedPng(qrDataUrl);
+  const qrW = 58;
+  page.drawImage(qrImg, { x: width / 2 - qrW / 2, y: 62, width: qrW, height: qrW });
 
   // IEAC badge, bottom-right
   drawImageW(page, images.ieacBadge, width - 54 - 78, 128, 78);
@@ -317,26 +343,20 @@ function drawStatusAppendix(
   );
   y -= 16;
   page.drawText("Areas of Excellence", { x: M, y, size: 10, font: serif, color: BLACK });
-  y -= 14;
-  const areas = [
-    "Transnational distance education and borderless academic delivery",
-    "ECTS-aligned credit structures and international credential mobility",
-    "Rigorous quality assurance under IEAC full institutional accreditation",
-    "Secure digital verification of academic records and transcripts",
-  ];
-  for (const area of areas) {
-    y = wrapped(`\u2022 ${area}`, M, y, 8.5, fonts.regular, colW - 96);
-    y -= 2;
+  y -= 12;
+  // Row of the eight IEAC accreditation badges (per the official template)
+  const rowW = width - M * 2;
+  const gap = 6;
+  const badgeW = (rowW - gap * 7) / 8;
+  const badgeH = (images.ieacMini[0]!.height / images.ieacMini[0]!.width) * badgeW;
+  for (let i = 0; i < images.ieacMini.length; i++) {
+    page.drawImage(images.ieacMini[i]!, {
+      x: M + i * (badgeW + gap),
+      y: y - badgeH,
+      width: badgeW,
+      height: badgeH,
+    });
   }
-  // IEAC "ACCREDITED" badge beside the Areas of Excellence list
-  const badgeW = 84;
-  const badgeH = (images.ieacBadge.height / images.ieacBadge.width) * badgeW;
-  page.drawImage(images.ieacBadge, {
-    x: M + colW - badgeW,
-    y: y + 6,
-    width: badgeW,
-    height: badgeH,
-  });
 
   // Right column: shield + institutional profile
   let ry = height - 92;
