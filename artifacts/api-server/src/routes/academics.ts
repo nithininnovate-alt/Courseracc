@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, ne, desc } from "drizzle-orm";
+import { eq, and, ne, desc, sql } from "drizzle-orm";
 import { ZipArchive, type ArchiverError } from "archiver";
 import {
   db,
@@ -442,10 +442,13 @@ router.post("/submissions", requireUser, async (req: AuthedRequest, res) => {
     return;
   }
 
-  // Upsert: one submission per (assignment, student). Re-submitting before the
-  // deadline replaces the previous file and resets any grading.
-  const [existing] = await db
-    .select()
+  const textContent = hasText ? parsed.data.textContent!.trim() : null;
+  const wordCount = textContent ? countWords(textContent) : null;
+
+  // Was this the first real submission (no row, or only a draft)? Used solely
+  // to decide whether to send the receipt email — a benign read.
+  const [prior] = await db
+    .select({ status: submissionsTable.status })
     .from(submissionsTable)
     .where(
       and(
@@ -453,16 +456,26 @@ router.post("/submissions", requireUser, async (req: AuthedRequest, res) => {
         eq(submissionsTable.userId, userId),
       ),
     );
+  const firstSubmission = !prior || prior.status === "draft";
 
-  const textContent = hasText ? parsed.data.textContent!.trim() : null;
-  const wordCount = textContent ? countWords(textContent) : null;
-
-  if (existing) {
-    const wasDraft = existing.status === "draft";
-    const [updated] = await db
-      .update(submissionsTable)
-      .set({
-        fileUrl: parsed.data.fileUrl ?? null,
+  // Atomic upsert: one submission per (assignment, student), enforced by a DB
+  // unique constraint. Re-submitting before the deadline replaces the work and
+  // resets any grading; an existing file attachment is kept unless replaced.
+  const [saved] = await db
+    .insert(submissionsTable)
+    .values({
+      assignmentId: parsed.data.assignmentId,
+      userId,
+      fileUrl: parsed.data.fileUrl ?? null,
+      textContent,
+      wordCount,
+      note: parsed.data.note ?? null,
+      status: "submitted",
+    })
+    .onConflictDoUpdate({
+      target: [submissionsTable.assignmentId, submissionsTable.userId],
+      set: {
+        fileUrl: parsed.data.fileUrl ?? sql`${submissionsTable.fileUrl}`,
         textContent,
         wordCount,
         note: parsed.data.note ?? null,
@@ -471,50 +484,28 @@ router.post("/submissions", requireUser, async (req: AuthedRequest, res) => {
         feedback: null,
         gradedAt: null,
         submittedAt: new Date(),
-      })
-      .where(eq(submissionsTable.id, existing.id))
-      .returning();
-    // A promoted draft is the student's first real submission — acknowledge it.
-    if (wasDraft) {
-      const [student] = await db
-        .select()
-        .from(usersTable)
-        .where(eq(usersTable.id, userId));
-      if (student?.email) {
-        await sendEmail({
-          ...buildSubmissionReceived({
-            fullName: studentName(student),
-            assignmentTitle: assignment.title,
-          }),
-          to: student.email,
-        });
-      }
-    }
-    res.status(201).json(updated);
-    return;
-  }
-
-  const [created] = await db
-    .insert(submissionsTable)
-    .values({ ...parsed.data, textContent, wordCount, userId })
+      },
+    })
     .returning();
 
   // Acknowledge receipt of the submission by email.
-  const [student] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.id, userId));
-  if (student?.email) {
-    await sendEmail({
-      ...buildSubmissionReceived({
-        fullName: studentName(student),
-        assignmentTitle: assignment.title,
-      }),
-      to: student.email,
-    });
+  if (firstSubmission) {
+    const [student] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, userId));
+    if (student?.email) {
+      await sendEmail({
+        ...buildSubmissionReceived({
+          fullName: studentName(student),
+          assignmentTitle: assignment.title,
+        }),
+        to: student.email,
+      });
+    }
   }
 
-  res.status(201).json(created);
+  res.status(201).json(saved);
 });
 
 router.post(
@@ -550,40 +541,10 @@ router.post(
     const textContent = parsed.data.textContent;
     const wordCount = countWords(textContent);
 
-    const [existing] = await db
-      .select()
-      .from(submissionsTable)
-      .where(
-        and(
-          eq(submissionsTable.assignmentId, parsed.data.assignmentId),
-          eq(submissionsTable.userId, userId),
-        ),
-      );
-
-    if (existing && existing.status !== "draft") {
-      // Never silently overwrite submitted or graded work with an autosave.
-      res.status(409).json({
-        error: "Already submitted — resubmit explicitly to replace your work",
-      });
-      return;
-    }
-
-    if (existing) {
-      const [updated] = await db
-        .update(submissionsTable)
-        .set({
-          textContent,
-          wordCount,
-          note: parsed.data.note ?? existing.note,
-          submittedAt: new Date(),
-        })
-        .where(eq(submissionsTable.id, existing.id))
-        .returning();
-      res.json(updated);
-      return;
-    }
-
-    const [created] = await db
+    // Atomic upsert guarded by the (assignment, user) unique constraint. The
+    // setWhere clause ensures an autosave never overwrites submitted or graded
+    // work — in that case no row is updated and we return a conflict.
+    const [saved] = await db
       .insert(submissionsTable)
       .values({
         assignmentId: parsed.data.assignmentId,
@@ -593,8 +554,26 @@ router.post(
         wordCount,
         note: parsed.data.note ?? null,
       })
+      .onConflictDoUpdate({
+        target: [submissionsTable.assignmentId, submissionsTable.userId],
+        set: {
+          textContent,
+          wordCount,
+          note: parsed.data.note ?? sql`${submissionsTable.note}`,
+          submittedAt: new Date(),
+        },
+        setWhere: eq(submissionsTable.status, "draft"),
+      })
       .returning();
-    res.json(created);
+
+    if (!saved) {
+      // Row exists but is submitted/graded — never clobber it with an autosave.
+      res.status(409).json({
+        error: "Already submitted — resubmit explicitly to replace your work",
+      });
+      return;
+    }
+    res.json(saved);
   },
 );
 
