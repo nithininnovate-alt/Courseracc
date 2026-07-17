@@ -43,7 +43,7 @@ const empty: AssignmentForm = {
   description: "",
   instructionsUrl: "",
   dueDate: "",
-  maxScore: "100",
+  maxScore: "7.5",
 };
 
 function toLocalInput(iso: string): string {
@@ -128,7 +128,7 @@ export default function AdminAssignments() {
       description: form.description || undefined,
       instructionsUrl: form.instructionsUrl || undefined,
       dueDate: new Date(form.dueDate).toISOString(),
-      maxScore: Number(form.maxScore) || 100,
+      maxScore: Number(form.maxScore) || 7.5,
     };
     const onSuccess = () => {
       toast({ title: editing ? "Assignment updated" : "Assignment created" });
@@ -194,7 +194,7 @@ export default function AdminAssignments() {
                   <TableHead>Course</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Due Date</TableHead>
-                  <TableHead>Max Score</TableHead>
+                  <TableHead>Max Score (ECTS)</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -273,7 +273,7 @@ export default function AdminAssignments() {
                 <Input id="dueDate" type="datetime-local" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="maxScore">Max Score</Label>
+                <Label htmlFor="maxScore">Max Score (ECTS)</Label>
                 <Input id="maxScore" type="number" min="0.5" step="any" value={form.maxScore} onChange={(e) => setForm({ ...form, maxScore: e.target.value })} />
               </div>
             </div>

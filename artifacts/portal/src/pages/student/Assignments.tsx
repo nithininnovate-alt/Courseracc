@@ -110,7 +110,7 @@ export default function StudentAssignments() {
                   <TableHead>Title</TableHead>
                   <TableHead>Instructions</TableHead>
                   <TableHead>Due Date</TableHead>
-                  <TableHead>Max Score</TableHead>
+                  <TableHead>Max Score (ECTS)</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Action</TableHead>
                 </TableRow>
