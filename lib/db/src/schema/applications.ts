@@ -14,6 +14,8 @@ export const applicationsTable = pgTable("applications", {
   phone: text("phone"),
   dateOfBirth: text("date_of_birth"),
   gender: text("gender"),
+  fatherName: text("father_name"),
+  motherName: text("mother_name"),
   nationality: text("nationality"),
   address: text("address"),
   city: text("city"),

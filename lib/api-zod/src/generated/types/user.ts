@@ -30,6 +30,12 @@ export interface User {
   /** @nullable */
   country?: string | null;
   /** @nullable */
+  studentId?: string | null;
+  /** @nullable */
+  fatherName?: string | null;
+  /** @nullable */
+  motherName?: string | null;
+  /** @nullable */
   parentName?: string | null;
   /** @nullable */
   parentRelationship?: string | null;

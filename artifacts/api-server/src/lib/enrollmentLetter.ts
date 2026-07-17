@@ -18,6 +18,7 @@ export type EnrollmentLetterValidator = "ieac" | "eahea";
 
 export interface EnrollmentLetterData {
   studentName: string;
+  studentId?: string | null;
   programName: string;
   userId: number;
   enrolledAt: Date;
@@ -70,7 +71,9 @@ export async function generateEnrollmentLetter(
   const program = resolveProgramInfo(data.programName);
   const validator = VALIDATOR_INFO[data.validator];
   const year = data.enrolledAt.getFullYear();
-  const studentId = `CGU-${year}-${program.code}-${String(data.userId).padStart(4, "0")}`;
+  const studentId =
+    data.studentId ??
+    `CGU-${year}-${program.code}-${String(data.userId).padStart(4, "0")}`;
   const letterRef = `CGU/ER/${new Date().getFullYear()}/${validator.refSuffix}`;
   const today = new Date().toLocaleDateString("en-US", {
     year: "numeric",

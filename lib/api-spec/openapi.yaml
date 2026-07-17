@@ -1578,6 +1578,9 @@ components:
         dateOfBirth: { type: ["string", "null"] }
         address: { type: ["string", "null"] }
         country: { type: ["string", "null"] }
+        studentId: { type: ["string", "null"] }
+        fatherName: { type: ["string", "null"] }
+        motherName: { type: ["string", "null"] }
         parentName: { type: ["string", "null"] }
         parentRelationship: { type: ["string", "null"] }
         parentPhone: { type: ["string", "null"] }
@@ -1594,6 +1597,8 @@ components:
         address: { type: string }
         country: { type: string }
         avatarUrl: { type: string }
+        fatherName: { type: string }
+        motherName: { type: string }
         parentName: { type: string }
         parentRelationship: { type: string }
         parentPhone: { type: string }
@@ -1646,6 +1651,8 @@ components:
         phone: { type: ["string", "null"] }
         dateOfBirth: { type: ["string", "null"] }
         gender: { type: ["string", "null"] }
+        fatherName: { type: ["string", "null"] }
+        motherName: { type: ["string", "null"] }
         nationality: { type: ["string", "null"] }
         address: { type: ["string", "null"] }
         city: { type: ["string", "null"] }
@@ -1675,6 +1682,8 @@ components:
         phone: { type: string }
         dateOfBirth: { type: string }
         gender: { type: string }
+        fatherName: { type: string }
+        motherName: { type: string }
         nationality: { type: string }
         address: { type: string }
         city: { type: string }

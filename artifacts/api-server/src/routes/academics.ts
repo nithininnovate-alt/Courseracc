@@ -42,6 +42,7 @@ import {
 } from "../lib/email";
 import { generateResultReport } from "../lib/resultReport";
 import { generateEnrollmentLetter } from "../lib/enrollmentLetter";
+import { ensureStudentId } from "../lib/studentId";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 
 const router: IRouter = Router();
@@ -123,6 +124,14 @@ router.post("/enrollments", requireUser, async (req: AuthedRequest, res) => {
     .select({ title: coursesTable.title })
     .from(coursesTable)
     .where(eq(coursesTable.id, created.courseId));
+
+  // Allocate the permanent Student ID on first enrollment.
+  try {
+    await ensureStudentId(student.id, course?.title);
+  } catch (err) {
+    req.log.error({ err }, "Failed to allocate student ID");
+  }
+
   if (student.email && course) {
     await sendEmail({
       ...buildCourseActivation({
@@ -176,6 +185,7 @@ router.get("/enrollments/:id/letter", async (req, res) => {
 
   const pdf = await generateEnrollmentLetter({
     studentName: studentName(student),
+    studentId: await ensureStudentId(student.id, course.title),
     programName: course.title,
     userId: enrollment.userId,
     enrolledAt: enrollment.enrolledAt ?? new Date(),
@@ -993,6 +1003,7 @@ router.get("/results/:id/report", async (req, res) => {
 
   const pdf = await generateResultReport({
     studentName: student ? studentName(student) : "Student",
+    studentId: student ? await ensureStudentId(student.id, courseTitle !== "—" ? courseTitle : null) : null,
     studentEmail: student?.email ?? "",
     examTitle: exam?.title ?? "Examination",
     subjectTitle,

@@ -25,6 +25,8 @@ interface FormState {
   phone: string;
   dateOfBirth: string;
   gender: string;
+  fatherName: string;
+  motherName: string;
   nationality: string;
   address: string;
   city: string;
@@ -43,6 +45,8 @@ const EMPTY_FORM: FormState = {
   phone: "",
   dateOfBirth: "",
   gender: "",
+  fatherName: "",
+  motherName: "",
   nationality: "",
   address: "",
   city: "",
@@ -97,6 +101,8 @@ export default function ApplyPage() {
           phone: form.phone || undefined,
           dateOfBirth: form.dateOfBirth || undefined,
           gender: form.gender || undefined,
+          fatherName: form.fatherName || undefined,
+          motherName: form.motherName || undefined,
           nationality: form.nationality || undefined,
           address: form.address || undefined,
           city: form.city || undefined,
@@ -229,6 +235,16 @@ export default function ApplyPage() {
                         <SelectItem value="undisclosed">Prefer not to say</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fatherName">Father/Husband Name</Label>
+                    <Input id="fatherName" value={form.fatherName} onChange={text("fatherName")} className="h-12" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="motherName">Mother Name</Label>
+                    <Input id="motherName" value={form.motherName} onChange={text("motherName")} className="h-12" />
                   </div>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-4">
@@ -439,6 +455,8 @@ function ReviewStep({ form, documents }: { form: FormState; documents: Applicati
         <ReviewRow label="Phone" value={form.phone} />
         <ReviewRow label="Date of Birth" value={form.dateOfBirth} />
         <ReviewRow label="Gender" value={form.gender} />
+        <ReviewRow label="Father/Husband Name" value={form.fatherName} />
+        <ReviewRow label="Mother Name" value={form.motherName} />
         <ReviewRow label="Nationality" value={form.nationality} />
         <ReviewRow label="City" value={form.city} />
         <ReviewRow label="Country" value={form.country} />

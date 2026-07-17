@@ -16,6 +16,7 @@ import {
 
 export interface AdmissionLetterData {
   applicantName: string;
+  studentId?: string | null;
   programName: string;
   applicationId: number;
   reviewNote?: string | null;
@@ -117,6 +118,7 @@ export async function generateAdmissionLetter(
   // Program details table
   y -= 6;
   const rows: [string, string][] = [
+    ...(data.studentId ? ([["Student ID", data.studentId]] as [string, string][]) : []),
     ["Degree Program", data.programName],
     ["Mode of Delivery", "Online / Distance Learning / Hybrid"],
     ["Duration", program.duration],

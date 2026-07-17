@@ -149,6 +149,8 @@ export default function AdminApplications() {
                 <Detail label="Phone" value={active.phone} />
                 <Detail label="Date of Birth" value={active.dateOfBirth} />
                 <Detail label="Gender" value={active.gender} />
+                <Detail label="Father/Husband Name" value={active.fatherName} />
+                <Detail label="Mother Name" value={active.motherName} />
                 <Detail label="Nationality" value={active.nationality} />
                 <Detail label="City" value={active.city} />
                 <Detail label="Country" value={active.country} />

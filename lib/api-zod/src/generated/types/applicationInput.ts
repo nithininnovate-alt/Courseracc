@@ -18,6 +18,8 @@ export interface ApplicationInput {
   phone?: string;
   dateOfBirth?: string;
   gender?: string;
+  fatherName?: string;
+  motherName?: string;
   nationality?: string;
   address?: string;
   city?: string;

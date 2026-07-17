@@ -49,6 +49,7 @@ import {
   buildCourseActivation,
 } from "../lib/email";
 import { ensureEnrollment, getPlanStatus } from "../lib/access";
+import { ensureStudentId } from "../lib/studentId";
 
 const router: IRouter = Router();
 
@@ -836,10 +837,10 @@ router.get("/certificates/:id/download", async (req, res) => {
           eq(enrollmentsTable.courseId, certificate.courseId),
         ),
       );
-    const programCode = PROGRAM_CODE[course?.level ?? ""] ?? "PRG";
+    const sid = await ensureStudentId(certificate.userId, course?.title);
     pdf = await generateTranscript({
       studentName,
-      studentId: `CGU${programCode}${1000 + certificate.userId}`,
+      studentId: sid ?? certificate.certificateNumber,
       degreeAwarded: course?.title ?? "Programme",
       certificateNumber: certificate.certificateNumber,
       enrollmentDate: enrollment?.enrolledAt ?? null,
@@ -853,6 +854,7 @@ router.get("/certificates/:id/download", async (req, res) => {
   } else {
     pdf = await generateDegreeCertificate({
       studentName,
+      studentId: await ensureStudentId(certificate.userId, course?.title),
       courseTitle: course?.title ?? "Programme",
       courseLevel: course?.level ?? "certificate",
       certificateNumber: certificate.certificateNumber,

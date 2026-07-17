@@ -67,6 +67,7 @@ function centerWrapped(
 
 export interface DegreeCertificateData {
   studentName: string;
+  studentId?: string | null;
   courseTitle: string;
   courseLevel: string;
   certificateNumber: string;
@@ -170,24 +171,37 @@ export async function generateDegreeCertificate(
   // Red embossed seal, bottom-left
   drawImageW(page, images.sealRed, 54, 148, 88);
 
-  // SID + verification, bottom-center-left
-  page.drawText(`SID: ${data.certificateNumber}`, {
+  // SID + certificate number + verification, bottom-center-left
+  let infoY = 96;
+  if (data.studentId) {
+    page.drawText(`SID: ${data.studentId}`, {
+      x: 168,
+      y: infoY,
+      size: 9.5,
+      font: fontBold,
+      color: BLACK,
+    });
+    infoY -= 13;
+  }
+  page.drawText(`Certificate No: ${data.certificateNumber}`, {
     x: 168,
-    y: 96,
+    y: infoY,
     size: 9.5,
     font: fontBold,
     color: BLACK,
   });
+  infoY -= 14;
   page.drawText("Verification available at:", {
     x: 168,
-    y: 82,
+    y: infoY,
     size: 8.5,
     font,
     color: BLACK,
   });
+  infoY -= 12;
   page.drawText("verification.cgu.edu.ge", {
     x: 168,
-    y: 70,
+    y: infoY,
     size: 8.5,
     font,
     color: PRIMARY,

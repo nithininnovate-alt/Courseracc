@@ -16,6 +16,7 @@ import {
   buildAdmissionRejection,
 } from "../lib/email";
 import { generateAdmissionLetter } from "../lib/admissionLetter";
+import { ensureStudentId } from "../lib/studentId";
 import { ObjectStorageService } from "../lib/objectStorage";
 
 const router: IRouter = Router();
@@ -154,8 +155,12 @@ router.patch("/applications/:id", requireStaff, async (req, res) => {
   // Generate the admission letter PDF on approval and store it.
   if (status === "approved") {
     try {
+      const studentId = existing.userId
+        ? await ensureStudentId(existing.userId, existing.programName)
+        : null;
       const pdfBytes = await generateAdmissionLetter({
         applicantName: existing.fullName,
+        studentId,
         programName: existing.programName,
         applicationId: existing.id,
         reviewNote: parsed.data.reviewNote ?? existing.reviewNote,

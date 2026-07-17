@@ -24,6 +24,10 @@ export interface Application {
   /** @nullable */
   gender?: string | null;
   /** @nullable */
+  fatherName?: string | null;
+  /** @nullable */
+  motherName?: string | null;
+  /** @nullable */
   nationality?: string | null;
   /** @nullable */
   address?: string | null;

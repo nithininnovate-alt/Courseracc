@@ -18,6 +18,7 @@ import {
 
 export interface ResultReportData {
   studentName: string;
+  studentId?: string | null;
   studentEmail: string;
   examTitle: string;
   subjectTitle: string;
@@ -80,6 +81,16 @@ export async function generateResultReport(
   y -= 18;
   page.drawText(data.studentName, { x: margin, y, size: 12, font: fontBold, color: BLACK });
   y -= 16;
+  if (data.studentId) {
+    page.drawText(`Student ID: ${data.studentId}`, {
+      x: margin,
+      y,
+      size: 10,
+      font: fontBold,
+      color: BLACK,
+    });
+    y -= 14;
+  }
   page.drawText(data.studentEmail, { x: margin, y, size: 10, font, color: MUTED });
 
   // Course / subject

@@ -1,6 +1,9 @@
-import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, pgSequence, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+
+// Sequence backing permanent Student ID allocation (e.g. CGUBBA2600).
+export const studentIdSeq = pgSequence("student_id_seq", { startWith: 2600 });
 
 export const usersTable = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -16,6 +19,9 @@ export const usersTable = pgTable("users", {
   dateOfBirth: text("date_of_birth"),
   address: text("address"),
   country: text("country"),
+  studentId: text("student_id").unique(),
+  fatherName: text("father_name"),
+  motherName: text("mother_name"),
   parentName: text("parent_name"),
   parentRelationship: text("parent_relationship"),
   parentPhone: text("parent_phone"),

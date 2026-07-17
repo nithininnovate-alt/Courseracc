@@ -35,6 +35,8 @@ export default function StudentProfile() {
     dateOfBirth: "",
     address: "",
     country: "",
+    fatherName: "",
+    motherName: "",
   });
 
   useEffect(() => {
@@ -46,6 +48,8 @@ export default function StudentProfile() {
         dateOfBirth: user.dateOfBirth ?? "",
         address: user.address ?? "",
         country: user.country ?? "",
+        fatherName: user.fatherName ?? "",
+        motherName: user.motherName ?? "",
       });
     }
   }, [user]);
@@ -100,6 +104,8 @@ export default function StudentProfile() {
           dateOfBirth: form.dateOfBirth || undefined,
           address: form.address || undefined,
           country: form.country || undefined,
+          fatherName: form.fatherName || undefined,
+          motherName: form.motherName || undefined,
         },
       },
       {
@@ -136,6 +142,11 @@ export default function StudentProfile() {
                 </Avatar>
                 <div className="space-y-1">
                   <p className="font-medium">{displayName}</p>
+                  {user?.studentId && (
+                    <Badge variant="secondary" className="font-mono tracking-wide">
+                      Student ID: {user.studentId}
+                    </Badge>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -158,6 +169,12 @@ export default function StudentProfile() {
                 <Label>Email</Label>
                 <Input value={user?.email ?? ""} disabled className="h-11" />
               </div>
+              {user?.studentId && (
+                <div className="space-y-2">
+                  <Label>Student ID</Label>
+                  <Input value={user.studentId} disabled className="h-11 font-mono" />
+                </div>
+              )}
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">First Name</Label>
@@ -176,6 +193,16 @@ export default function StudentProfile() {
                 <div className="space-y-2">
                   <Label htmlFor="dateOfBirth">Date of Birth</Label>
                   <Input id="dateOfBirth" type="date" value={form.dateOfBirth} onChange={text("dateOfBirth")} className="h-11" />
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fatherName">Father/Husband Name</Label>
+                  <Input id="fatherName" value={form.fatherName} onChange={text("fatherName")} className="h-11" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="motherName">Mother Name</Label>
+                  <Input id="motherName" value={form.motherName} onChange={text("motherName")} className="h-11" />
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">

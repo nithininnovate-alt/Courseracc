@@ -41,6 +41,12 @@ export interface User {
   /** @nullable */
   country?: string | null;
   /** @nullable */
+  studentId?: string | null;
+  /** @nullable */
+  fatherName?: string | null;
+  /** @nullable */
+  motherName?: string | null;
+  /** @nullable */
   parentName?: string | null;
   /** @nullable */
   parentRelationship?: string | null;
@@ -61,6 +67,8 @@ export interface UpdateProfileInput {
   address?: string;
   country?: string;
   avatarUrl?: string;
+  fatherName?: string;
+  motherName?: string;
   parentName?: string;
   parentRelationship?: string;
   parentPhone?: string;
@@ -136,6 +144,10 @@ export interface Application {
   /** @nullable */
   gender?: string | null;
   /** @nullable */
+  fatherName?: string | null;
+  /** @nullable */
+  motherName?: string | null;
+  /** @nullable */
   nationality?: string | null;
   /** @nullable */
   address?: string | null;
@@ -175,6 +187,8 @@ export interface ApplicationInput {
   phone?: string;
   dateOfBirth?: string;
   gender?: string;
+  fatherName?: string;
+  motherName?: string;
   nationality?: string;
   address?: string;
   city?: string;

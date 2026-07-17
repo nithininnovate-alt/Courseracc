@@ -300,7 +300,12 @@ export default function AdminStudents() {
                     {[detailUser.firstName, detailUser.lastName].filter(Boolean).join(" ") || "-"}
                   </p>
                   <p className="text-sm text-muted-foreground">{detailUser.email}</p>
-                  <Badge variant="secondary" className="capitalize mt-1">{detailUser.role}</Badge>
+                  <div className="flex flex-wrap items-center gap-1 mt-1">
+                    <Badge variant="secondary" className="capitalize">{detailUser.role}</Badge>
+                    {detailUser.studentId && (
+                      <Badge variant="outline" className="font-mono">{detailUser.studentId}</Badge>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -311,6 +316,8 @@ export default function AdminStudents() {
                   <DetailRow label="Date of Birth" value={detailUser.dateOfBirth} />
                   <DetailRow label="Country" value={detailUser.country} />
                   <DetailRow label="Address" value={detailUser.address} />
+                  <DetailRow label="Father/Husband Name" value={detailUser.fatherName} />
+                  <DetailRow label="Mother Name" value={detailUser.motherName} />
                 </dl>
               </div>
 
