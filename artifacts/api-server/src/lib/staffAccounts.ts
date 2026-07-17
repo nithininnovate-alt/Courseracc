@@ -41,7 +41,12 @@ const STAFF: StaffSpec[] = [
  * with a loud log so the operator knows to set them.
  */
 export async function ensureStaffAccounts(): Promise<void> {
-  const isProd = process.env.NODE_ENV === "production";
+  // Treat any deployed environment as production even if NODE_ENV is
+  // misconfigured, so dev fallback passwords can never leak into a
+  // published app.
+  const isProd =
+    process.env.NODE_ENV === "production" ||
+    Boolean(process.env.REPLIT_DEPLOYMENT);
   for (const spec of STAFF) {
     try {
       const [existing] = await db

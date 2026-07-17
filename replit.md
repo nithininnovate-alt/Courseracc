@@ -11,6 +11,12 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
 
+## Staff login (admin panel)
+
+- Staff accounts (`superadmin`, `admin`) are ensured automatically on API server startup (`artifacts/api-server/src/lib/staffAccounts.ts`) — idempotent, never overwrites existing accounts or passwords.
+- Production passwords come from the secrets `SEED_SUPERADMIN_PASSWORD` / `SEED_ADMIN_PASSWORD`. If a secret is missing in production, the account is NOT created and an error is logged.
+- Development falls back to `superadmin123` / `admin123` when the secrets are unset. To change an existing account's password, update it in the DB (startup routine never resets passwords).
+
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
