@@ -124,7 +124,10 @@ export async function generateDegreeCertificate(
   const serif = await doc.embedFont(StandardFonts.TimesRoman);
   // Official template typefaces: blackletter headings + Baskerville italics.
   const blackletter = await embedAssetFont(doc, "font-blackletter.ttf");
-  const fontItalic = await embedAssetFont(doc, "font-baskerville-italic.ttf");
+  const fontItalic = await embedAssetFont(doc, "font-garamond-italic.ttf");
+  const nameItalic = await embedAssetFont(doc, "font-baskerville-italic.ttf");
+  const script = await embedAssetFont(doc, "font-script.ttf");
+  const cinzel = await embedAssetFont(doc, "font-cinzel-bold.ttf");
 
   drawPaper(page, { withBorder: false });
   drawCertFrame(page);
@@ -147,13 +150,13 @@ export async function generateDegreeCertificate(
   );
 
   y -= 22;
-  centerText(page, "Be it known that", y, 15, blackletter, BLACK);
+  centerText(page, "Be it known that", y, 24, script, BLACK);
   y -= 30;
-  centerText(page, data.studentName, y, 22, blackletter, BLACK);
+  centerText(page, data.studentName, y, 22, nameItalic, BLACK);
   y -= 26;
   centerText(page, "has been formally awarded the academic degree of", y, 11, fontItalic, BLACK);
   y -= 34;
-  y = centerWrapped(page, data.courseTitle, y, 20, blackletter, BLACK, 460, 26);
+  y = centerWrapped(page, data.courseTitle, y, 17, cinzel, BLACK, 470, 24);
   y -= 8;
   y = centerWrapped(
     page,
@@ -239,7 +242,7 @@ export async function generateDegreeCertificate(
   drawImageW(page, images.ieacBadge, width - 54 - 78, 128, 78);
 
   // ---------- Page 2: Official Institutional Status appendix ----------
-  drawStatusAppendix(doc, images, { regular: font, bold: fontBold }, serif);
+  drawStatusAppendix(doc, images, { regular: font, bold: fontBold, heading: cinzel }, serif);
 
   return doc.save();
 }
@@ -263,7 +266,7 @@ function drawStatusAppendix(
     x: M,
     y,
     size: 11,
-    font: fonts.bold,
+    font: fonts.heading ?? fonts.bold,
     color: BLACK,
   });
   page.drawLine({
@@ -519,7 +522,7 @@ export async function generateTranscript(data: TranscriptData): Promise<Uint8Arr
   const images = await embedBrandImages(doc);
   const font = await embedAssetFont(doc, "font-plexsans.ttf");
   const fontBold = await embedAssetFont(doc, "font-poppins-semibold.ttf");
-  const fonts: ThemeFonts = { regular: font, bold: fontBold };
+  const fonts: ThemeFonts = { regular: font, bold: fontBold, heading: await embedAssetFont(doc, "font-cinzel-bold.ttf") };
 
   const PAGE_W = 595.28;
   const PAGE_H = 841.89;

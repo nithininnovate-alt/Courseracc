@@ -50,6 +50,8 @@ export const VERIFICATION_LINE =
 export interface ThemeFonts {
   regular: PDFFont;
   bold: PDFFont;
+  /** Classical engraved heading font (Cinzel) for document titles. */
+  heading?: PDFFont;
 }
 
 
@@ -63,6 +65,7 @@ export async function embedThemeFonts(doc: PDFDocument): Promise<ThemeFonts> {
   return {
     regular: await embedAssetFont(doc, "font-plexsans.ttf"),
     bold: await embedAssetFont(doc, "font-poppins-semibold.ttf"),
+    heading: await embedAssetFont(doc, "font-cinzel-bold.ttf"),
   };
 }
 
@@ -315,12 +318,13 @@ export function drawLetterhead(
   let contentY = ruleY - 24;
   if (opts.docLabel) {
     const size = 14;
-    const w = fonts.bold.widthOfTextAtSize(opts.docLabel, size);
+    const hf = fonts.heading ?? fonts.bold;
+    const w = hf.widthOfTextAtSize(opts.docLabel, size);
     page.drawText(opts.docLabel, {
       x: (width - w) / 2,
       y: contentY,
       size,
-      font: fonts.bold,
+      font: hf,
       color: PRIMARY,
     });
     contentY -= 28;
