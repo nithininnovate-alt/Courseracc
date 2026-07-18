@@ -143,3 +143,15 @@ id = "QiqqBdH0NioF8gFdV5vIR"
 uri = "file://exports/degree-certificate-final.png"
 type = "image"
 title = "Degree certificate (final)"
+
+[[outputs]]
+id = "hB4BSac5NC5grrGpzLtbC"
+uri = "file://exports/degree-certificate-v3.png"
+type = "image"
+title = "Degree Certificate — new fonts & starburst seal"
+
+[[outputs]]
+id = "M-AFDR5lxY_JekS1woiNl"
+uri = "file://exports/transcript-cinzel.png"
+type = "image"
+title = "Transcript — Cinzel heading"
