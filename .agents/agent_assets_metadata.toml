@@ -125,3 +125,9 @@ id = "wLvV55Bp7eeSUXtz_3Cas"
 uri = "file://exports/degree-certificate-framed-page2.png"
 type = "image"
 title = "Degree certificate with frame (page 2)"
+
+[[outputs]]
+id = "XVET0le4gkZbxEvttL4xr"
+uri = "file://exports/degree-certificate-new-seal.png"
+type = "image"
+title = "Degree certificate with new wax seal"
