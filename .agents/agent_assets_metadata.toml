@@ -113,3 +113,15 @@ id = "FbPIuojem9el21OduC_up"
 uri = "file://exports/degree-certificate-page2-ieac.png"
 type = "image"
 title = "Degree certificate page 2 — IEAC badge now shown"
+
+[[outputs]]
+id = "uw96-aQ00SZK1qpjghQ7F"
+uri = "file://exports/degree-certificate-framed-page1.png"
+type = "image"
+title = "Degree certificate with frame (page 1)"
+
+[[outputs]]
+id = "wLvV55Bp7eeSUXtz_3Cas"
+uri = "file://exports/degree-certificate-framed-page2.png"
+type = "image"
+title = "Degree certificate with frame (page 2)"

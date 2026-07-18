@@ -176,6 +176,39 @@ export function drawPaper(page: PDFPage) {
   page.drawRectangle({ x: 0, y: 0, width, height, color: PAPER });
 }
 
+/** Tan/bronze frame color used on the formal degree certificate. */
+const FRAME_BROWN = rgb(0.647, 0.529, 0.373);
+
+/**
+ * Draw the formal double-line certificate frame with concave (scalloped)
+ * corners, matching the official degree certificate template.
+ */
+export function drawCertFrame(page: PDFPage) {
+  const { width: w, height: h } = page.getSize();
+  const frame = (m: number, r: number, lw: number) => {
+    const d = [
+      `M ${m + r} ${m}`,
+      `H ${w - m - r}`,
+      `A ${r} ${r} 0 0 0 ${w - m} ${m + r}`,
+      `V ${h - m - r}`,
+      `A ${r} ${r} 0 0 0 ${w - m - r} ${h - m}`,
+      `H ${m + r}`,
+      `A ${r} ${r} 0 0 0 ${m} ${h - m - r}`,
+      `V ${m + r}`,
+      `A ${r} ${r} 0 0 0 ${m + r} ${m}`,
+      "Z",
+    ].join(" ");
+    page.drawSvgPath(d, {
+      x: 0,
+      y: h,
+      borderColor: FRAME_BROWN,
+      borderWidth: lw,
+    });
+  };
+  frame(22, 16, 2.2);
+  frame(32, 11, 0.8);
+}
+
 /* ------------------------------ letterhead ------------------------------ */
 
 export interface LetterheadOptions {

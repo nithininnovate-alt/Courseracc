@@ -13,6 +13,7 @@ import {
   WHITE,
   A4_PORTRAIT,
   drawPaper,
+  drawCertFrame,
   drawLetterhead,
   drawThemeFooter,
   drawAttestationBlock,
@@ -126,6 +127,7 @@ export async function generateDegreeCertificate(
   const fontItalic = await doc.embedFont(assetBytes("font-baskerville-italic.ttf"));
 
   drawPaper(page);
+  drawCertFrame(page);
 
   // Shield crest, centered at top
   const shieldW = 86;
@@ -251,6 +253,7 @@ function drawStatusAppendix(
   const page = doc.addPage(A4_PORTRAIT);
   const { width, height } = page.getSize();
   drawPaper(page);
+  drawCertFrame(page);
   const M = 46;
   const colW = width - M * 2 - 190; // left column width
   const rightX = width - M - 172;
