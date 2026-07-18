@@ -131,3 +131,15 @@ id = "XVET0le4gkZbxEvttL4xr"
 uri = "file://exports/degree-certificate-new-seal.png"
 type = "image"
 title = "Degree certificate with new wax seal"
+
+[[outputs]]
+id = "GuK-11vDtr1Fuy4eyNteH"
+uri = "file://exports/transcript-new-fonts.png"
+type = "image"
+title = "Transcript with reference fonts and border"
+
+[[outputs]]
+id = "QiqqBdH0NioF8gFdV5vIR"
+uri = "file://exports/degree-certificate-final.png"
+type = "image"
+title = "Degree certificate (final)"

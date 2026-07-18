@@ -1,4 +1,5 @@
-import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont } from "pdf-lib";
+import { PDFDocument, rgb, type PDFPage, type PDFFont } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
 import { resolveProgramInfo } from "./programInfo";
 import {
   PRIMARY,
@@ -12,6 +13,7 @@ import {
   drawSealedClosing,
   embedBrandImages,
   type BrandImages,
+  embedAssetFont,
 } from "./pdfTheme";
 
 export type EnrollmentLetterValidator = "ieac" | "eahea";
@@ -62,10 +64,11 @@ export async function generateEnrollmentLetter(
   data: EnrollmentLetterData,
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
+  doc.registerFontkit(fontkit);
   const images = await embedBrandImages(doc);
   const fonts: Fonts = {
-    regular: await doc.embedFont(StandardFonts.Helvetica),
-    bold: await doc.embedFont(StandardFonts.HelveticaBold),
+    regular: await embedAssetFont(doc, "font-plexsans.ttf"),
+    bold: await embedAssetFont(doc, "font-poppins-semibold.ttf"),
   };
 
   const program = resolveProgramInfo(data.programName);

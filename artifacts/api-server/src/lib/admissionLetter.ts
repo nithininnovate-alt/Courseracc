@@ -1,4 +1,5 @@
-import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont } from "pdf-lib";
+import { PDFDocument, rgb, type PDFPage, type PDFFont } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
 import { resolveProgramInfo, ACCREDITATIONS } from "./programInfo";
 import {
   PRIMARY,
@@ -12,6 +13,7 @@ import {
   embedBrandImages,
   fitText,
   type BrandImages,
+  embedAssetFont,
 } from "./pdfTheme";
 
 export interface AdmissionLetterData {
@@ -40,11 +42,12 @@ export async function generateAdmissionLetter(
   data: AdmissionLetterData,
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
+  doc.registerFontkit(fontkit);
   const images = await embedBrandImages(doc);
   const fonts: Fonts = {
-    regular: await doc.embedFont(StandardFonts.Helvetica),
-    bold: await doc.embedFont(StandardFonts.HelveticaBold),
-    italic: await doc.embedFont(StandardFonts.HelveticaOblique),
+    regular: await embedAssetFont(doc, "font-plexsans.ttf"),
+    bold: await embedAssetFont(doc, "font-poppins-semibold.ttf"),
+    italic: await embedAssetFont(doc, "font-plexsans-italic.ttf"),
   };
 
   const program = resolveProgramInfo(data.programName);

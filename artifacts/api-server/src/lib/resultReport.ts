@@ -1,4 +1,5 @@
-import { PDFDocument, StandardFonts } from "pdf-lib";
+import { PDFDocument } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
 import {
   PRIMARY,
   MUTED,
@@ -14,6 +15,7 @@ import {
   drawSealedClosing,
   embedBrandImages,
   fitText,
+  embedAssetFont,
 } from "./pdfTheme";
 
 export interface ResultReportData {
@@ -41,12 +43,13 @@ export async function generateResultReport(
   data: ResultReportData,
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
+  doc.registerFontkit(fontkit);
   const images = await embedBrandImages(doc);
   const page = doc.addPage(A4_PORTRAIT);
   const { width } = page.getSize();
 
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const font = await embedAssetFont(doc, "font-plexsans.ttf");
+  const fontBold = await embedAssetFont(doc, "font-poppins-semibold.ttf");
   const fonts = { regular: font, bold: fontBold };
 
   const margin = MARGIN;

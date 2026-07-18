@@ -19,9 +19,9 @@ import {
   drawAttestationBlock,
   drawImageW,
   embedBrandImages,
-  assetBytes,
   type BrandImages,
   type ThemeFonts,
+  embedAssetFont,
 } from "./pdfTheme";
 
 function centerText(
@@ -119,14 +119,14 @@ export async function generateDegreeCertificate(
   const page = doc.addPage(A4_PORTRAIT);
   const { width, height } = page.getSize();
 
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const font = await embedAssetFont(doc, "font-plexsans.ttf");
+  const fontBold = await embedAssetFont(doc, "font-poppins-semibold.ttf");
   const serif = await doc.embedFont(StandardFonts.TimesRoman);
   // Official template typefaces: blackletter headings + Baskerville italics.
-  const blackletter = await doc.embedFont(assetBytes("font-blackletter.ttf"));
-  const fontItalic = await doc.embedFont(assetBytes("font-baskerville-italic.ttf"));
+  const blackletter = await embedAssetFont(doc, "font-blackletter.ttf");
+  const fontItalic = await embedAssetFont(doc, "font-baskerville-italic.ttf");
 
-  drawPaper(page);
+  drawPaper(page, { withBorder: false });
   drawCertFrame(page);
 
   // Shield crest, centered at top
@@ -252,7 +252,7 @@ function drawStatusAppendix(
 ) {
   const page = doc.addPage(A4_PORTRAIT);
   const { width, height } = page.getSize();
-  drawPaper(page);
+  drawPaper(page, { withBorder: false });
   drawCertFrame(page);
   const M = 46;
   const colW = width - M * 2 - 190; // left column width
@@ -515,9 +515,10 @@ function sectionTitlesFor(degree: string): string[] {
  */
 export async function generateTranscript(data: TranscriptData): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
+  doc.registerFontkit(fontkit);
   const images = await embedBrandImages(doc);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const font = await embedAssetFont(doc, "font-plexsans.ttf");
+  const fontBold = await embedAssetFont(doc, "font-poppins-semibold.ttf");
   const fonts: ThemeFonts = { regular: font, bold: fontBold };
 
   const PAGE_W = 595.28;

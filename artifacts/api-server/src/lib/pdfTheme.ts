@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import fontkit from "@pdf-lib/fontkit";
 import {
   PDFDocument,
   StandardFonts,
@@ -51,10 +52,17 @@ export interface ThemeFonts {
   bold: PDFFont;
 }
 
+
+/** Embed an asset TTF with ligatures disabled (avoids "fi " gaps in pdf-lib). */
+export async function embedAssetFont(doc: PDFDocument, name: string) {
+  return doc.embedFont(assetBytes(name), { features: { liga: false, rlig: false } });
+}
+
 export async function embedThemeFonts(doc: PDFDocument): Promise<ThemeFonts> {
+  doc.registerFontkit(fontkit);
   return {
-    regular: await doc.embedFont(StandardFonts.Helvetica),
-    bold: await doc.embedFont(StandardFonts.HelveticaBold),
+    regular: await embedAssetFont(doc, "font-plexsans.ttf"),
+    bold: await embedAssetFont(doc, "font-poppins-semibold.ttf"),
   };
 }
 
@@ -170,10 +178,24 @@ export function drawImageW(
 
 /* ------------------------------ page frame ------------------------------ */
 
-/** Cream paper background (borderless, per the official templates). */
-export function drawPaper(page: PDFPage) {
+/**
+ * Cream paper background. Themed registrar documents (transcript, letters)
+ * carry a thin purple page border per the official template; the degree
+ * certificate passes `withBorder: false` and draws its own bronze frame.
+ */
+export function drawPaper(page: PDFPage, opts?: { withBorder?: boolean }) {
   const { width, height } = page.getSize();
   page.drawRectangle({ x: 0, y: 0, width, height, color: PAPER });
+  if (opts?.withBorder !== false) {
+    page.drawRectangle({
+      x: 8,
+      y: 8,
+      width: width - 16,
+      height: height - 16,
+      borderColor: PRIMARY,
+      borderWidth: 1.2,
+    });
+  }
 }
 
 /** Tan/bronze frame color used on the formal degree certificate. */
