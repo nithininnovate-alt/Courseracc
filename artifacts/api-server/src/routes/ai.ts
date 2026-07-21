@@ -14,6 +14,7 @@ import { requireUser, isStaff, type AuthedRequest } from "../lib/auth";
 import {
   getCourseIdForMaterial,
   getCourseAccess,
+  getUnlockedYears,
   isYearUnlocked,
 } from "../lib/access";
 import { logger } from "../lib/logger";
@@ -41,10 +42,24 @@ async function buildStudentContext(userId: number): Promise<string> {
     .from(coursesTable)
     .where(inArray(coursesTable.id, courseIds));
 
-  const subjects = await db
+  const allSubjects = await db
     .select()
     .from(subjectsTable)
     .where(inArray(subjectsTable.courseId, courseIds));
+
+  // Only expose subjects from curriculum years the student has unlocked —
+  // the AI context must never leak locked-year material.
+  const yearAccessByCourse = new Map(
+    await Promise.all(
+      courseIds.map(
+        async (id) => [id, await getUnlockedYears(userId, id)] as const,
+      ),
+    ),
+  );
+  const subjects = allSubjects.filter((s) => {
+    const ya = yearAccessByCourse.get(s.courseId);
+    return ya ? ya.allYearsUnlocked || ya.unlockedYears.includes(s.year) : false;
+  });
 
   const subjectIds = subjects.map((s) => s.id);
   const materials = subjectIds.length

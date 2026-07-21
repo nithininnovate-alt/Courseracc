@@ -22,6 +22,8 @@ const mocks = vi.hoisted(() => ({
     getCourseIdForMaterial: vi.fn(),
     getCourseAccess: vi.fn(),
     isUserEnrolled: vi.fn(),
+    getUnlockedYears: vi.fn(),
+    isYearUnlocked: vi.fn(),
   },
   openaiCreate: vi.fn(),
 }));
@@ -175,5 +177,58 @@ describe("POST /ai/chat authorization matrix", () => {
     expect(text).toContain("Hello ");
     expect(text).toContain("world");
     expect(text).toContain('"done":true');
+  });
+
+  it("excludes locked-year subjects and materials from the AI context", async () => {
+    // Enrolled in course 1, which has Year 1 (unlocked) and Year 2 (locked).
+    mocks.selectQueue.push(
+      [{ courseId: 1 }], // enrollments
+      [{ id: 1, title: "BSc Medicine", description: null }], // courses
+      [
+        { id: 10, courseId: 1, year: 1, title: "Anatomy", description: null },
+        {
+          id: 20,
+          courseId: 1,
+          year: 2,
+          title: "Pharmacology",
+          description: null,
+        },
+      ], // subjects
+      [
+        {
+          id: 100,
+          subjectId: 10,
+          title: "Bones",
+          type: "text",
+          content: "Year one bones content",
+        },
+      ], // materials (only unlocked-year subjects are queried)
+    );
+    mocks.access.getUnlockedYears.mockResolvedValue({
+      courseId: 1,
+      years: [1, 2],
+      allYearsUnlocked: false,
+      unlockedYears: [1],
+    });
+    mocks.openaiCreate.mockResolvedValue(
+      (async function* () {
+        yield { choices: [{ delta: { content: "ok" } }] };
+      })(),
+    );
+
+    const res = await postChat(validBody, true);
+    expect(res.status).toBe(200);
+    await res.text();
+
+    expect(mocks.openaiCreate).toHaveBeenCalledTimes(1);
+    const call = mocks.openaiCreate.mock.calls[0][0] as {
+      messages: { role: string; content: string }[];
+    };
+    const systemPrompt = call.messages.find((m) => m.role === "system")!
+      .content;
+    // Unlocked Year 1 subject is present; locked Year 2 subject is not.
+    expect(systemPrompt).toContain("Anatomy");
+    expect(systemPrompt).toContain("Year one bones content");
+    expect(systemPrompt).not.toContain("Pharmacology");
   });
 });

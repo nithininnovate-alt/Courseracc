@@ -120,7 +120,7 @@ export default function StudentCourseLearning() {
         onSuccess: () => {
           toast({
             title: "Payment successful",
-            description: "You now have full access to this course.",
+            description: "Your payment was received and your course content is unlocked.",
           });
           qc.invalidateQueries();
         },
@@ -147,7 +147,7 @@ export default function StudentCourseLearning() {
         onSuccess: () => {
           toast({
             title: "Payment successful",
-            description: "You now have full access to this course.",
+            description: "Your payment was received and your course content is unlocked.",
           });
           qc.invalidateQueries();
         },
@@ -313,7 +313,7 @@ export default function StudentCourseLearning() {
               </h3>
               <p className="text-muted-foreground mt-1">
                 {configuredPlans.length > 0
-                  ? "Choose how you would like to pay. Your first payment unlocks all lectures and study materials."
+                  ? "Choose how you would like to pay. Paying in full unlocks everything at once; installments unlock curriculum years as you go."
                   : "Complete your tuition payment to access all lectures and study materials."}
               </p>
             </div>
