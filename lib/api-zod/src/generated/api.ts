@@ -1582,6 +1582,43 @@ export const CapturePaypalOrderResponse = zod.object({
 
 
 /**
+ * @summary Create a Bank of Georgia card payment order for a course
+ */
+export const CreateBogOrderBody = zod.object({
+  "courseId": zod.number(),
+  "planId": zod.number().optional(),
+  "returnUrl": zod.string()
+})
+
+export const CreateBogOrderResponse = zod.object({
+  "paymentId": zod.number(),
+  "orderId": zod.string(),
+  "redirectUrl": zod.string()
+})
+
+
+/**
+ * @summary Confirm a Bank of Georgia payment after redirect
+ */
+export const CompleteBogPaymentBody = zod.object({
+  "paymentId": zod.number()
+})
+
+export const CompleteBogPaymentResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "courseId": zod.number().nullish(),
+  "amount": zod.number(),
+  "currency": zod.string(),
+  "status": zod.enum(['pending', 'completed', 'failed', 'refunded']),
+  "provider": zod.string(),
+  "reference": zod.string().nullish(),
+  "invoiceNumber": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
  * @summary List the current student's certificates
  */
 export const ListCertificatesResponseItem = zod.object({

@@ -18,6 +18,8 @@ import {
   CreatePaymentBody,
   CreatePaypalOrderBody,
   CapturePaypalOrderBody,
+  CreateBogOrderBody,
+  CompleteBogPaymentBody,
   CreatePaymentPlanBody,
   UpdatePaymentPlanBody,
   IssueCertificateBody,
@@ -32,6 +34,12 @@ import {
   type AuthedRequest,
 } from "../lib/auth";
 import { isPaypalConfigured, createOrder, captureOrder } from "../lib/paypal";
+import {
+  isBogConfigured,
+  createBogOrder,
+  getBogPaymentDetails,
+  verifyBogCallbackSignature,
+} from "../lib/bog";
 import { generateInvoice } from "../lib/invoice";
 import {
   generateDegreeCertificate,
@@ -69,6 +77,198 @@ function serializePlan(p: PlanRow) {
 
 function makeInvoiceNumber(id: number, date: Date): string {
   return `INV-${date.getFullYear()}-${String(id).padStart(5, "0")}`;
+}
+
+// Work out how much the user owes next for a course: the next installment on
+// an in-progress plan, the first installment of a chosen plan, or the legacy
+// one-time course price. Shared by all checkout providers.
+type PaymentDue =
+  | {
+      ok: true;
+      amount: number;
+      planId: number | null;
+      installmentIndex: number;
+      installmentCount: number;
+      course: typeof coursesTable.$inferSelect;
+    }
+  | { ok: false; status: number; error: string };
+
+async function derivePaymentDue(
+  userId: number,
+  courseId: number,
+  planId: number | null | undefined,
+): Promise<PaymentDue> {
+  const [course] = await db
+    .select()
+    .from(coursesTable)
+    .where(eq(coursesTable.id, courseId));
+  if (!course) {
+    return { ok: false, status: 404, error: "Course not found" };
+  }
+
+  const completedRows = await db
+    .select()
+    .from(paymentsTable)
+    .where(
+      and(
+        eq(paymentsTable.userId, userId),
+        eq(paymentsTable.courseId, courseId),
+        eq(paymentsTable.status, "completed"),
+      ),
+    );
+
+  let amount: number;
+  let usePlanId: number | null = null;
+  let installmentIndex = 1;
+  let installmentCount = 1;
+
+  if (completedRows.length > 0) {
+    // Continuing an existing purchase — derive the next installment due.
+    const existingPlanId =
+      completedRows.find((p) => p.planId != null)?.planId ?? null;
+    if (existingPlanId == null) {
+      return {
+        ok: false,
+        status: 400,
+        error: "You already have full access to this course",
+      };
+    }
+    const [plan] = await db
+      .select()
+      .from(paymentPlansTable)
+      .where(eq(paymentPlansTable.id, existingPlanId));
+    if (!plan) {
+      return { ok: false, status: 400, error: "Payment plan no longer exists" };
+    }
+    const paidForPlan = completedRows.filter(
+      (p) => p.planId === existingPlanId,
+    ).length;
+    if (paidForPlan >= plan.installmentCount) {
+      return { ok: false, status: 400, error: "This plan is already fully paid" };
+    }
+    amount = Number(plan.installmentAmount);
+    usePlanId = plan.id;
+    installmentIndex = paidForPlan + 1;
+    installmentCount = plan.installmentCount;
+  } else if (planId != null) {
+    // First payment on a chosen plan.
+    const [plan] = await db
+      .select()
+      .from(paymentPlansTable)
+      .where(eq(paymentPlansTable.id, planId));
+    if (!plan || plan.courseId !== courseId) {
+      return { ok: false, status: 400, error: "Invalid payment plan" };
+    }
+    amount = Number(plan.installmentAmount);
+    usePlanId = plan.id;
+    installmentIndex = 1;
+    installmentCount = plan.installmentCount;
+  } else {
+    // Legacy one-time payment at the course price.
+    amount = Number(course.price);
+  }
+
+  if (amount <= 0) {
+    return { ok: false, status: 400, error: "This course is free" };
+  }
+  return {
+    ok: true,
+    amount,
+    planId: usePlanId,
+    installmentIndex,
+    installmentCount,
+    course,
+  };
+}
+
+/**
+ * Whether this pending payment's installment slot has already been satisfied
+ * by another completed payment (double-click, reload, duplicate order).
+ */
+async function isDuplicateOfCompleted(
+  payment: PaymentRow,
+): Promise<boolean> {
+  if (!payment.courseId) return false;
+  const priorCompleted = await db
+    .select()
+    .from(paymentsTable)
+    .where(
+      and(
+        eq(paymentsTable.userId, payment.userId),
+        eq(paymentsTable.courseId, payment.courseId),
+        eq(paymentsTable.status, "completed"),
+      ),
+    );
+  return payment.planId == null
+    ? priorCompleted.some((p) => p.planId == null)
+    : priorCompleted.filter((p) => p.planId === payment.planId).length >=
+        (payment.installmentIndex ?? 1);
+}
+
+/**
+ * Mark a pending payment completed and run all side effects: invoice number,
+ * enrollment activation, and confirmation emails. Uses a compare-and-set on
+ * status so concurrent finalizers (e.g. bank callback racing the browser's
+ * complete call) run side effects exactly once — returns null when another
+ * caller already finalized this payment. Shared by all checkout providers.
+ */
+async function finalizeCompletedPayment(
+  payment: PaymentRow,
+  reference: string,
+): Promise<PaymentRow | null> {
+  const invoiceNumber = makeInvoiceNumber(payment.id, new Date());
+  const [updated] = await db
+    .update(paymentsTable)
+    .set({ status: "completed", invoiceNumber, reference })
+    .where(
+      and(
+        eq(paymentsTable.id, payment.id),
+        eq(paymentsTable.status, "pending"),
+      ),
+    )
+    .returning();
+  if (!updated) return null;
+
+  const [student] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, payment.userId));
+  const studentEmail = student?.email;
+  const fullName =
+    [student?.firstName, student?.lastName].filter(Boolean).join(" ") ||
+    studentEmail ||
+    "Student";
+
+  let course: { title: string } | undefined;
+  let newlyEnrolled = false;
+  if (payment.courseId) {
+    newlyEnrolled = await ensureEnrollment(payment.userId, payment.courseId);
+    [course] = await db
+      .select({ title: coursesTable.title })
+      .from(coursesTable)
+      .where(eq(coursesTable.id, payment.courseId));
+  }
+
+  if (studentEmail) {
+    await sendEmail({
+      ...buildPaymentConfirmation({
+        fullName,
+        amount: Number(updated.amount),
+        currency: updated.currency,
+        courseTitle: course?.title ?? null,
+        invoiceNumber,
+      }),
+      to: studentEmail,
+    });
+    // Notify of course activation only when access was newly granted.
+    if (newlyEnrolled && course) {
+      await sendEmail({
+        ...buildCourseActivation({ fullName, courseTitle: course.title }),
+        to: studentEmail,
+      });
+    }
+  }
+  return updated;
 }
 
 router.get("/payments", async (req, res) => {
@@ -123,84 +323,13 @@ router.post(
       return;
     }
     const { courseId, planId, returnUrl, cancelUrl } = parsed.data;
-    const [course] = await db
-      .select()
-      .from(coursesTable)
-      .where(eq(coursesTable.id, courseId));
-    if (!course) {
-      res.status(404).json({ error: "Course not found" });
-      return;
-    }
-
     const userId = req.currentUser!.id;
-    const completedRows = await db
-      .select()
-      .from(paymentsTable)
-      .where(
-        and(
-          eq(paymentsTable.userId, userId),
-          eq(paymentsTable.courseId, courseId),
-          eq(paymentsTable.status, "completed"),
-        ),
-      );
-
-    let amount: number;
-    let usePlanId: number | null = null;
-    let installmentIndex = 1;
-    let installmentCount = 1;
-
-    if (completedRows.length > 0) {
-      // Continuing an existing purchase — derive the next installment due.
-      const existingPlanId =
-        completedRows.find((p) => p.planId != null)?.planId ?? null;
-      if (existingPlanId == null) {
-        res
-          .status(400)
-          .json({ error: "You already have full access to this course" });
-        return;
-      }
-      const [plan] = await db
-        .select()
-        .from(paymentPlansTable)
-        .where(eq(paymentPlansTable.id, existingPlanId));
-      if (!plan) {
-        res.status(400).json({ error: "Payment plan no longer exists" });
-        return;
-      }
-      const paidForPlan = completedRows.filter(
-        (p) => p.planId === existingPlanId,
-      ).length;
-      if (paidForPlan >= plan.installmentCount) {
-        res.status(400).json({ error: "This plan is already fully paid" });
-        return;
-      }
-      amount = Number(plan.installmentAmount);
-      usePlanId = plan.id;
-      installmentIndex = paidForPlan + 1;
-      installmentCount = plan.installmentCount;
-    } else if (planId != null) {
-      // First payment on a chosen plan.
-      const [plan] = await db
-        .select()
-        .from(paymentPlansTable)
-        .where(eq(paymentPlansTable.id, planId));
-      if (!plan || plan.courseId !== courseId) {
-        res.status(400).json({ error: "Invalid payment plan" });
-        return;
-      }
-      amount = Number(plan.installmentAmount);
-      usePlanId = plan.id;
-      installmentIndex = 1;
-      installmentCount = plan.installmentCount;
-    } else {
-      // Legacy one-time payment at the course price.
-      amount = Number(course.price);
-    }
-
-    if (amount <= 0) {
-      res.status(400).json({ error: "This course is free" });
+    const due = await derivePaymentDue(userId, courseId, planId);
+    if (!due.ok) {
+      res.status(due.status).json({ error: due.error });
       return;
     }
+    const { amount, installmentIndex, installmentCount, course } = due;
 
     const description =
       installmentCount > 1
@@ -225,7 +354,7 @@ router.post(
           status: "pending",
           provider: "paypal",
           reference: order.orderId,
-          planId: usePlanId,
+          planId: due.planId,
           installmentIndex,
         })
         .returning();
@@ -277,28 +406,11 @@ router.post(
     // Guard against double-collection from duplicate/concurrent pending orders
     // (e.g. double-click, reload). Check BEFORE capturing so no money is taken
     // if this installment has already been satisfied.
-    if (payment.courseId) {
-      const priorCompleted = await db
-        .select()
-        .from(paymentsTable)
-        .where(
-          and(
-            eq(paymentsTable.userId, req.currentUser!.id),
-            eq(paymentsTable.courseId, payment.courseId),
-            eq(paymentsTable.status, "completed"),
-          ),
-        );
-      const alreadyPaid =
-        payment.planId == null
-          ? priorCompleted.some((p) => p.planId == null)
-          : priorCompleted.filter((p) => p.planId === payment.planId).length >=
-            (payment.installmentIndex ?? 1);
-      if (alreadyPaid) {
-        res
-          .status(409)
-          .json({ error: "This payment has already been completed" });
-        return;
-      }
+    if (await isDuplicateOfCompleted(payment)) {
+      res
+        .status(409)
+        .json({ error: "This payment has already been completed" });
+      return;
     }
 
     try {
@@ -307,54 +419,20 @@ router.post(
         res.status(402).json({ error: `Payment ${result.status}` });
         return;
       }
-      const invoiceNumber = makeInvoiceNumber(payment.id, new Date());
-      const [updated] = await db
-        .update(paymentsTable)
-        .set({
-          status: "completed",
-          invoiceNumber,
-          reference: result.captureId ?? orderId,
-        })
-        .where(eq(paymentsTable.id, payment.id))
-        .returning();
-
-      const student = req.currentUser!;
-      const studentEmail = student.email;
-      const fullName =
-        [student.firstName, student.lastName].filter(Boolean).join(" ") ||
-        studentEmail;
-
-      let course: { title: string } | undefined;
-      let newlyEnrolled = false;
-      if (payment.courseId) {
-        newlyEnrolled = await ensureEnrollment(student.id, payment.courseId);
-        [course] = await db
-          .select({ title: coursesTable.title })
-          .from(coursesTable)
-          .where(eq(coursesTable.id, payment.courseId));
+      const updated = await finalizeCompletedPayment(
+        payment,
+        result.captureId ?? orderId,
+      );
+      if (updated) {
+        res.json(serializePayment(updated));
+        return;
       }
-
-      if (studentEmail) {
-        await sendEmail({
-          ...buildPaymentConfirmation({
-            fullName,
-            amount: Number(updated.amount),
-            currency: updated.currency,
-            courseTitle: course?.title ?? null,
-            invoiceNumber,
-          }),
-          to: studentEmail,
-        });
-        // Notify of course activation only when access was newly granted.
-        if (newlyEnrolled && course) {
-          await sendEmail({
-            ...buildCourseActivation({ fullName, courseTitle: course.title }),
-            to: studentEmail,
-          });
-        }
-      }
-
-      res.json(serializePayment(updated));
+      // Another request finalized concurrently — return the completed row.
+      const [current] = await db
+        .select()
+        .from(paymentsTable)
+        .where(eq(paymentsTable.id, payment.id));
+      res.json(serializePayment(current ?? payment));
     } catch (err) {
       res
         .status(502)
@@ -362,6 +440,254 @@ router.post(
     }
   },
 );
+
+// --- Bank of Georgia checkout ----------------------------------------------
+
+router.post(
+  "/payments/bog/create-order",
+  requireUser,
+  async (req: AuthedRequest, res) => {
+    const parsed = CreateBogOrderBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid input" });
+      return;
+    }
+    if (!isBogConfigured()) {
+      res.status(503).json({ error: "Bank of Georgia is not configured" });
+      return;
+    }
+    const { courseId, planId, returnUrl } = parsed.data;
+    const userId = req.currentUser!.id;
+    const due = await derivePaymentDue(userId, courseId, planId);
+    if (!due.ok) {
+      res.status(due.status).json({ error: due.error });
+      return;
+    }
+    const { amount, installmentIndex } = due;
+
+    // One pending BoG payment row per installment slot: reuse an existing
+    // pending row (double-click, abandoned checkout) instead of stacking
+    // duplicate orders that could each be charged at the bank.
+    const pendingRows = await db
+      .select()
+      .from(paymentsTable)
+      .where(
+        and(
+          eq(paymentsTable.userId, userId),
+          eq(paymentsTable.courseId, courseId),
+          eq(paymentsTable.provider, "bog"),
+          eq(paymentsTable.status, "pending"),
+        ),
+      );
+    const existing = pendingRows.find(
+      (p) =>
+        (p.planId ?? null) === (due.planId ?? null) &&
+        (p.installmentIndex ?? 1) === installmentIndex,
+    );
+
+    const payment =
+      existing ??
+      (
+        await db
+          .insert(paymentsTable)
+          .values({
+            userId,
+            courseId,
+            amount: String(amount),
+            currency: "USD",
+            status: "pending",
+            provider: "bog",
+            planId: due.planId,
+            installmentIndex,
+          })
+          .returning()
+      )[0];
+
+    const successUrl = new URL(returnUrl);
+    successUrl.searchParams.set("bogPaymentId", String(payment.id));
+    const failUrl = new URL(returnUrl);
+    failUrl.searchParams.set("bogPaymentFailed", "1");
+    // Callback must go to OUR api — derive from the request, never from
+    // client-supplied URLs.
+    const callbackUrl = `${req.protocol}://${req.get("host")}/api/payments/bog/callback`;
+
+    try {
+      const order = await createBogOrder({
+        amount,
+        currency: "USD",
+        externalOrderId: String(payment.id),
+        productId: `course-${courseId}`,
+        callbackUrl,
+        successUrl: successUrl.toString(),
+        failUrl: failUrl.toString(),
+      });
+      const [updated] = await db
+        .update(paymentsTable)
+        .set({ reference: order.orderId, amount: String(amount) })
+        .where(eq(paymentsTable.id, payment.id))
+        .returning();
+      res.status(201).json({
+        paymentId: updated.id,
+        orderId: order.orderId,
+        redirectUrl: order.redirectUrl,
+      });
+    } catch (err) {
+      // The bank order was never created; drop the row only if it was
+      // created fresh for this request.
+      if (!existing) {
+        await db.delete(paymentsTable).where(eq(paymentsTable.id, payment.id));
+      }
+      res.status(502).json({
+        error:
+          err instanceof Error ? err.message : "Bank of Georgia error",
+      });
+    }
+  },
+);
+
+router.post(
+  "/payments/bog/complete",
+  requireUser,
+  async (req: AuthedRequest, res) => {
+    const parsed = CompleteBogPaymentBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid input" });
+      return;
+    }
+    if (!isBogConfigured()) {
+      res.status(503).json({ error: "Bank of Georgia is not configured" });
+      return;
+    }
+    const { paymentId } = parsed.data;
+    const [payment] = await db
+      .select()
+      .from(paymentsTable)
+      .where(
+        and(
+          eq(paymentsTable.id, paymentId),
+          eq(paymentsTable.userId, req.currentUser!.id),
+        ),
+      );
+    if (!payment || payment.provider !== "bog" || !payment.reference) {
+      res.status(404).json({ error: "Payment not found" });
+      return;
+    }
+    if (payment.status === "completed") {
+      res.json(serializePayment(payment));
+      return;
+    }
+    if (await isDuplicateOfCompleted(payment)) {
+      res
+        .status(409)
+        .json({ error: "This payment has already been completed" });
+      return;
+    }
+
+    try {
+      // Never trust the redirect alone — confirm with the bank.
+      const details = await getBogPaymentDetails(payment.reference);
+      if (details.statusKey !== "completed") {
+        res.status(402).json({ error: `Payment ${details.statusKey}` });
+        return;
+      }
+      const updated = await finalizeCompletedPayment(
+        payment,
+        payment.reference,
+      );
+      if (updated) {
+        res.json(serializePayment(updated));
+        return;
+      }
+      // The bank callback finalized concurrently — return the completed row.
+      const [current] = await db
+        .select()
+        .from(paymentsTable)
+        .where(eq(paymentsTable.id, payment.id));
+      res.json(serializePayment(current ?? payment));
+    } catch (err) {
+      res.status(502).json({
+        error: err instanceof Error ? err.message : "Bank of Georgia error",
+      });
+    }
+  },
+);
+
+// Server-to-server payment notification from Bank of Georgia. Authenticated
+// by the RSA signature over the raw body, not by a user session.
+router.post("/payments/bog/callback", async (req, res) => {
+  const rawBody = (req as { rawBody?: Buffer }).rawBody;
+  const signature = req.get("Callback-Signature");
+  if (!rawBody || !verifyBogCallbackSignature(rawBody, signature)) {
+    res.status(401).json({ error: "Invalid callback signature" });
+    return;
+  }
+  const body = req.body as {
+    event?: string;
+    body?: {
+      order_id?: string;
+      external_order_id?: string;
+      order_status?: { key?: string };
+    };
+  };
+  if (body.event !== "order_payment" || !body.body?.order_id) {
+    res.status(400).json({ error: "Unsupported callback" });
+    return;
+  }
+  const orderId = body.body.order_id;
+  let [payment] = await db
+    .select()
+    .from(paymentsTable)
+    .where(
+      and(
+        eq(paymentsTable.reference, orderId),
+        eq(paymentsTable.provider, "bog"),
+      ),
+    );
+  if (!payment && body.body.external_order_id) {
+    // The row's reference may point at a newer re-created order; our
+    // external_order_id is the payment row id, so fall back to it.
+    const externalId = Number(body.body.external_order_id);
+    if (Number.isInteger(externalId)) {
+      const [byId] = await db
+        .select()
+        .from(paymentsTable)
+        .where(
+          and(
+            eq(paymentsTable.id, externalId),
+            eq(paymentsTable.provider, "bog"),
+          ),
+        );
+      payment = byId;
+    }
+  }
+  // Always acknowledge with 200 so the bank stops retrying; log anomalies.
+  if (!payment) {
+    req.log?.warn?.({ orderId }, "BoG callback for unknown order");
+    res.status(200).json({ ok: true });
+    return;
+  }
+  if (payment.status === "completed") {
+    res.status(200).json({ ok: true });
+    return;
+  }
+  const statusKey = body.body.order_status?.key;
+  if (statusKey === "completed") {
+    if (await isDuplicateOfCompleted(payment)) {
+      req.log?.warn?.(
+        { paymentId: payment.id },
+        "BoG callback duplicate of an already-satisfied installment",
+      );
+    } else {
+      await finalizeCompletedPayment(payment, orderId);
+    }
+  } else if (statusKey === "rejected") {
+    await db
+      .update(paymentsTable)
+      .set({ status: "failed" })
+      .where(eq(paymentsTable.id, payment.id));
+  }
+  res.status(200).json({ ok: true });
+});
 
 // --- Payment plans ---------------------------------------------------------
 

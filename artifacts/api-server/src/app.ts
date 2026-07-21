@@ -13,6 +13,9 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
+// Behind the Replit proxy: trust X-Forwarded-* so req.protocol/host reflect
+// the public origin (used to build payment callback URLs).
+app.set("trust proxy", true);
 
 app.use(
   pinoHttp({
@@ -37,7 +40,15 @@ app.use(
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
 app.use(cors({ credentials: true, origin: true }));
-app.use(express.json());
+app.use(
+  express.json({
+    // Keep the raw body bytes for endpoints that must verify signatures over
+    // the exact payload (e.g. Bank of Georgia payment callbacks).
+    verify: (req, _res, buf) => {
+      (req as { rawBody?: Buffer }).rawBody = buf;
+    },
+  }),
+);
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 

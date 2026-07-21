@@ -1290,6 +1290,44 @@ paths:
               schema:
                 $ref: "#/components/schemas/Payment"
 
+  /payments/bog/create-order:
+    post:
+      operationId: createBogOrder
+      tags: [payments]
+      summary: Create a Bank of Georgia card payment order for a course
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BogOrderInput"
+      responses:
+        "201":
+          description: Created Bank of Georgia order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BogOrderResponse"
+
+  /payments/bog/complete:
+    post:
+      operationId: completeBogPayment
+      tags: [payments]
+      summary: Confirm a Bank of Georgia payment after redirect
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BogCompleteInput"
+      responses:
+        "200":
+          description: Completed payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
   /certificates:
     get:
       operationId: listCertificates
@@ -1889,6 +1927,25 @@ components:
       required: [orderId]
       properties:
         orderId: { type: string }
+    BogOrderInput:
+      type: object
+      required: [courseId, returnUrl]
+      properties:
+        courseId: { type: integer }
+        planId: { type: integer }
+        returnUrl: { type: string }
+    BogOrderResponse:
+      type: object
+      required: [paymentId, orderId, redirectUrl]
+      properties:
+        paymentId: { type: integer }
+        orderId: { type: string }
+        redirectUrl: { type: string }
+    BogCompleteInput:
+      type: object
+      required: [paymentId]
+      properties:
+        paymentId: { type: integer }
 
     Assignment:
       type: object

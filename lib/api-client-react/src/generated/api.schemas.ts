@@ -489,6 +489,22 @@ export interface PaypalCaptureInput {
   orderId: string;
 }
 
+export interface BogOrderInput {
+  courseId: number;
+  planId?: number;
+  returnUrl: string;
+}
+
+export interface BogOrderResponse {
+  paymentId: number;
+  orderId: string;
+  redirectUrl: string;
+}
+
+export interface BogCompleteInput {
+  paymentId: number;
+}
+
 export interface Assignment {
   id: number;
   subjectId: number;

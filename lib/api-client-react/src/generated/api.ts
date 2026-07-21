@@ -29,6 +29,9 @@ import type {
   AssignmentInput,
   AssignmentUpdate,
   AuthMessage,
+  BogCompleteInput,
+  BogOrderInput,
+  BogOrderResponse,
   Certificate,
   CertificateInput,
   CourierRequestInput,
@@ -4878,6 +4881,146 @@ export const useCapturePaypalOrder = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCapturePaypalOrderMutationOptions(options));
+    }
+
+export const getCreateBogOrderUrl = () => {
+
+
+
+
+  return `/api/payments/bog/create-order`
+}
+
+/**
+ * @summary Create a Bank of Georgia card payment order for a course
+ */
+export const createBogOrder = async (bogOrderInput: BogOrderInput, options?: RequestInit): Promise<BogOrderResponse> => {
+
+  return customFetch<BogOrderResponse>(getCreateBogOrderUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bogOrderInput)
+  }
+);}
+
+
+
+
+export const getCreateBogOrderMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBogOrder>>, TError,{data: BodyType<BogOrderInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createBogOrder>>, TError,{data: BodyType<BogOrderInput>}, TContext> => {
+
+const mutationKey = ['createBogOrder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBogOrder>>, {data: BodyType<BogOrderInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createBogOrder(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateBogOrderMutationResult = NonNullable<Awaited<ReturnType<typeof createBogOrder>>>
+    export type CreateBogOrderMutationBody = BodyType<BogOrderInput>
+    export type CreateBogOrderMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a Bank of Georgia card payment order for a course
+ */
+export const useCreateBogOrder = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBogOrder>>, TError,{data: BodyType<BogOrderInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createBogOrder>>,
+        TError,
+        {data: BodyType<BogOrderInput>},
+        TContext
+      > => {
+      return useMutation(getCreateBogOrderMutationOptions(options));
+    }
+
+export const getCompleteBogPaymentUrl = () => {
+
+
+
+
+  return `/api/payments/bog/complete`
+}
+
+/**
+ * @summary Confirm a Bank of Georgia payment after redirect
+ */
+export const completeBogPayment = async (bogCompleteInput: BogCompleteInput, options?: RequestInit): Promise<Payment> => {
+
+  return customFetch<Payment>(getCompleteBogPaymentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bogCompleteInput)
+  }
+);}
+
+
+
+
+export const getCompleteBogPaymentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeBogPayment>>, TError,{data: BodyType<BogCompleteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeBogPayment>>, TError,{data: BodyType<BogCompleteInput>}, TContext> => {
+
+const mutationKey = ['completeBogPayment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeBogPayment>>, {data: BodyType<BogCompleteInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  completeBogPayment(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteBogPaymentMutationResult = NonNullable<Awaited<ReturnType<typeof completeBogPayment>>>
+    export type CompleteBogPaymentMutationBody = BodyType<BogCompleteInput>
+    export type CompleteBogPaymentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Confirm a Bank of Georgia payment after redirect
+ */
+export const useCompleteBogPayment = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeBogPayment>>, TError,{data: BodyType<BogCompleteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof completeBogPayment>>,
+        TError,
+        {data: BodyType<BogCompleteInput>},
+        TContext
+      > => {
+      return useMutation(getCompleteBogPaymentMutationOptions(options));
     }
 
 export const getListCertificatesUrl = () => {

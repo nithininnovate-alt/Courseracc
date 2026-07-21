@@ -12,6 +12,8 @@ import {
   useGetPlanStatus,
   useCreatePaypalOrder,
   useCapturePaypalOrder,
+  useCreateBogOrder,
+  useCompleteBogPayment,
   useGetLessonExplanation,
   getGetLessonExplanationQueryKey,
   type Subject,
@@ -87,11 +89,51 @@ export default function StudentCourseLearning() {
 
   const createOrder = useCreatePaypalOrder();
   const captureOrder = useCapturePaypalOrder();
+  const createBogOrder = useCreateBogOrder();
+  const completeBogPayment = useCompleteBogPayment();
+  const checkoutPending = createOrder.isPending || createBogOrder.isPending;
   const record = useRecordProgress();
 
   const [selected, setSelected] = useState<StudyMaterial | null>(null);
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   const effectivePlanId = selectedPlanId ?? configuredPlans[0]?.id ?? null;
+
+  // Confirm a Bank of Georgia payment when returning from the payment page
+  // (?bogPaymentId=ID on success, ?bogPaymentFailed=1 on failure).
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const bogPaymentId = sp.get("bogPaymentId");
+    const bogFailed = sp.get("bogPaymentFailed");
+    if (!bogPaymentId && !bogFailed) return;
+    window.history.replaceState({}, "", window.location.pathname);
+    if (bogFailed) {
+      toast({
+        title: "Payment not completed",
+        description: "The card payment was cancelled or declined.",
+        variant: "destructive",
+      });
+      return;
+    }
+    completeBogPayment.mutate(
+      { data: { paymentId: Number(bogPaymentId) } },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Payment successful",
+            description: "You now have full access to this course.",
+          });
+          qc.invalidateQueries();
+        },
+        onError: () =>
+          toast({
+            title: "Payment not completed",
+            description: "We could not confirm your payment.",
+            variant: "destructive",
+          }),
+      },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Capture a PayPal order when returning from approval (?token=ORDER_ID).
   useEffect(() => {
@@ -120,6 +162,17 @@ export default function StudentCourseLearning() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const onCheckoutError = (err: unknown) => {
+    const msg = err instanceof Error ? err.message : "Could not start checkout.";
+    toast({
+      title: "Checkout unavailable",
+      description: msg.includes("not configured")
+        ? "Online payment is not configured yet. Please contact the bursar."
+        : msg,
+      variant: "destructive",
+    });
+  };
+
   const handlePay = (planId?: number) => {
     createOrder.mutate(
       {
@@ -134,17 +187,25 @@ export default function StudentCourseLearning() {
         onSuccess: (res) => {
           window.location.href = res.approveUrl;
         },
-        onError: (err) => {
-          const msg =
-            err instanceof Error ? err.message : "Could not start checkout.";
-          toast({
-            title: "Checkout unavailable",
-            description: msg.includes("not configured")
-              ? "Online payment is not configured yet. Please contact the bursar."
-              : msg,
-            variant: "destructive",
-          });
+        onError: onCheckoutError,
+      },
+    );
+  };
+
+  const handlePayCard = (planId?: number) => {
+    createBogOrder.mutate(
+      {
+        data: {
+          courseId,
+          ...(planId != null ? { planId } : {}),
+          returnUrl: appUrl(courseId),
         },
+      },
+      {
+        onSuccess: (res) => {
+          window.location.href = res.redirectUrl;
+        },
+        onError: onCheckoutError,
       },
     );
   };
@@ -204,18 +265,26 @@ export default function StudentCourseLearning() {
                       : ""}
                   </p>
                 </div>
-                <Button
-                  onClick={() => handlePay()}
-                  disabled={createOrder.isPending}
-                >
-                  {createOrder.isPending
-                    ? "Starting checkout…"
-                    : `Pay next installment${
-                        planStatus.nextAmountDue != null
-                          ? ` — $${planStatus.nextAmountDue.toLocaleString()}`
-                          : ""
-                      }`}
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => handlePay()} disabled={checkoutPending}>
+                    {createOrder.isPending
+                      ? "Starting checkout…"
+                      : `PayPal${
+                          planStatus.nextAmountDue != null
+                            ? ` — $${planStatus.nextAmountDue.toLocaleString()}`
+                            : ""
+                        }`}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handlePayCard()}
+                    disabled={checkoutPending}
+                  >
+                    {createBogOrder.isPending
+                      ? "Starting checkout…"
+                      : "Pay with card"}
+                  </Button>
+                </div>
               </div>
               <Progress
                 value={
@@ -282,36 +351,63 @@ export default function StudentCourseLearning() {
                     );
                   })}
                 </div>
-                <Button
-                  size="lg"
-                  onClick={() =>
-                    effectivePlanId != null && handlePay(effectivePlanId)
-                  }
-                  disabled={createOrder.isPending || effectivePlanId == null}
-                >
-                  {createOrder.isPending
-                    ? "Starting checkout…"
-                    : "Continue with PayPal"}
-                </Button>
+                <div className="flex flex-wrap justify-center gap-3">
+                  <Button
+                    size="lg"
+                    onClick={() =>
+                      effectivePlanId != null && handlePay(effectivePlanId)
+                    }
+                    disabled={checkoutPending || effectivePlanId == null}
+                  >
+                    {createOrder.isPending
+                      ? "Starting checkout…"
+                      : "Continue with PayPal"}
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={() =>
+                      effectivePlanId != null && handlePayCard(effectivePlanId)
+                    }
+                    disabled={checkoutPending || effectivePlanId == null}
+                  >
+                    {createBogOrder.isPending
+                      ? "Starting checkout…"
+                      : "Pay with card"}
+                  </Button>
+                </div>
               </>
             ) : (
               <>
                 <div className="text-3xl font-bold text-primary">
                   ${access?.price.toLocaleString()}
                 </div>
-                <Button
-                  size="lg"
-                  onClick={() => handlePay()}
-                  disabled={createOrder.isPending}
-                >
-                  {createOrder.isPending
-                    ? "Starting checkout…"
-                    : "Pay with PayPal"}
-                </Button>
+                <div className="flex flex-wrap justify-center gap-3">
+                  <Button
+                    size="lg"
+                    onClick={() => handlePay()}
+                    disabled={checkoutPending}
+                  >
+                    {createOrder.isPending
+                      ? "Starting checkout…"
+                      : "Pay with PayPal"}
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={() => handlePayCard()}
+                    disabled={checkoutPending}
+                  >
+                    {createBogOrder.isPending
+                      ? "Starting checkout…"
+                      : "Pay with card"}
+                  </Button>
+                </div>
               </>
             )}
             <p className="text-xs text-muted-foreground">
-              You will be redirected to PayPal to complete your payment securely.
+              You will be redirected to PayPal or Bank of Georgia to complete
+              your payment securely.
             </p>
           </CardContent>
         </Card>
