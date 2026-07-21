@@ -329,19 +329,26 @@ export async function userCanAccessMaterialObject(
   userId: number,
   objectPath: string,
 ): Promise<boolean> {
-  const [row] = await db
-    .select({ courseId: subjectsTable.courseId, year: subjectsTable.year })
+  // Multiple materials (across different courses) can share the same object
+  // URL — e.g. the sample lecture video. Grant access if ANY material using
+  // this object is in a course/year the user has unlocked.
+  const rows = await db
+    .selectDistinct({
+      courseId: subjectsTable.courseId,
+      year: subjectsTable.year,
+    })
     .from(studyMaterialsTable)
     .innerJoin(
       subjectsTable,
       eq(studyMaterialsTable.subjectId, subjectsTable.id),
     )
-    .where(eq(studyMaterialsTable.url, objectPath))
-    .limit(1);
-  if (!row) return false;
-  const access = await getCourseAccess(userId, row.courseId);
-  if (!access?.hasAccess) return false;
-  return isYearUnlocked(userId, row.courseId, row.year);
+    .where(eq(studyMaterialsTable.url, objectPath));
+  for (const row of rows) {
+    const access = await getCourseAccess(userId, row.courseId);
+    if (!access?.hasAccess) continue;
+    if (await isYearUnlocked(userId, row.courseId, row.year)) return true;
+  }
+  return false;
 }
 
 /** Whether the user has an enrollment record for the given course. */
