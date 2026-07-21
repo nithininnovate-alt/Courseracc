@@ -20,7 +20,11 @@ import {
   resolveCurrentUser,
   isStaff,
 } from "../lib/auth";
-import { getCourseAccess } from "../lib/access";
+import {
+  getCourseAccess,
+  getUnlockedYears,
+  isYearUnlocked,
+} from "../lib/access";
 
 const router: IRouter = Router();
 
@@ -111,7 +115,14 @@ router.get("/courses/:courseId/access", async (req, res) => {
       res.status(404).json({ error: "Course not found" });
       return;
     }
-    res.json({ courseId, hasAccess: true, price: Number(course.price), paid: true });
+    res.json({
+      courseId,
+      hasAccess: true,
+      price: Number(course.price),
+      paid: true,
+      allYearsUnlocked: true,
+      unlockedYears: [],
+    });
     return;
   }
   const access = await getCourseAccess(user.id, courseId);
@@ -119,7 +130,12 @@ router.get("/courses/:courseId/access", async (req, res) => {
     res.status(404).json({ error: "Course not found" });
     return;
   }
-  res.json(access);
+  const yearAccess = await getUnlockedYears(user.id, courseId);
+  res.json({
+    ...access,
+    allYearsUnlocked: yearAccess.allYearsUnlocked,
+    unlockedYears: yearAccess.unlockedYears,
+  });
 });
 
 router.get("/courses/:courseId/subjects", async (req, res) => {
@@ -237,6 +253,13 @@ router.get("/subjects/:subjectId/materials", async (req, res) => {
     const access = await getCourseAccess(user.id, subject.courseId);
     if (!access?.hasAccess) {
       res.status(403).json({ error: "Payment required to access this content" });
+      return;
+    }
+    if (!(await isYearUnlocked(user.id, subject.courseId, subject.year))) {
+      res.status(403).json({
+        error: `Payment required to unlock Year ${subject.year} content`,
+        lockedYear: subject.year,
+      });
       return;
     }
   }

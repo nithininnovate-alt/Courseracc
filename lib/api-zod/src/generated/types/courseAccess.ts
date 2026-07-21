@@ -11,4 +11,6 @@ export interface CourseAccess {
   hasAccess: boolean;
   price: number;
   paid: boolean;
+  allYearsUnlocked?: boolean;
+  unlockedYears?: number[];
 }

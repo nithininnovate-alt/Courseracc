@@ -320,7 +320,49 @@ export default function StudentCourseLearning() {
       ) : (
         <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
           <div className="space-y-6">
-            {grouped.map(({ year, semesters }) => (
+            {grouped.map(({ year, semesters }) => {
+              const yearUnlocked =
+                (access?.allYearsUnlocked ?? false) ||
+                (access?.unlockedYears ?? []).includes(year);
+              if (!yearUnlocked) {
+                return (
+                  <div key={year} className="space-y-3">
+                    <h2 className="font-serif text-lg font-semibold text-muted-foreground">
+                      Year {year}
+                    </h2>
+                    <Card className="rounded-2xl border-dashed">
+                      <CardContent className="py-6 flex flex-col items-center text-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                          <Lock className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">
+                            Year {year} is locked
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Pay your next installment to unlock Year {year}{" "}
+                            classes.
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => handlePay()}
+                          disabled={createOrder.isPending}
+                        >
+                          {createOrder.isPending
+                            ? "Starting checkout…"
+                            : `Pay to unlock${
+                                planStatus?.nextAmountDue != null
+                                  ? ` — $${planStatus.nextAmountDue.toLocaleString()}`
+                                  : ""
+                              }`}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+                );
+              }
+              return (
               <div key={year} className="space-y-3">
                 <h2 className="font-serif text-lg font-semibold">Year {year}</h2>
                 {semesters.map(({ semester, items }) => (
@@ -352,7 +394,8 @@ export default function StudentCourseLearning() {
                   </div>
                 ))}
               </div>
-            ))}
+              );
+            })}
           </div>
 
           <MaterialViewer

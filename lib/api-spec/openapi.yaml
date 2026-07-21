@@ -1812,6 +1812,10 @@ components:
         hasAccess: { type: boolean }
         price: { type: number }
         paid: { type: boolean }
+        allYearsUnlocked: { type: boolean }
+        unlockedYears:
+          type: array
+          items: { type: integer }
     MaterialProgress:
       type: object
       required: [id, userId, materialId, courseId, action, completedAt]

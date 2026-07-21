@@ -129,6 +129,87 @@ export async function getPlanStatus(
   };
 }
 
+export interface YearAccess {
+  courseId: number;
+  /** All years defined by the course curriculum, ascending. */
+  years: number[];
+  /** True when every year is unlocked (free course, full payment, legacy, or complete plan). */
+  allYearsUnlocked: boolean;
+  /** The subset of `years` the student may access, ascending. */
+  unlockedYears: number[];
+}
+
+/**
+ * Compute which curriculum years a student has unlocked for a course, derived
+ * from their completed payments (never from a stored flag).
+ *
+ * Rules:
+ * - Free course (price <= 0): all years unlocked.
+ * - Legacy payment (no planId) or one-time plan: all years unlocked.
+ * - Completed installment plan: all years unlocked.
+ * - In-progress installment plan with N installments over Y years: paying
+ *   installments unlocks years proportionally — unlocked year count =
+ *   max(1, floor(paid * Y / N)). Paying the first installment always unlocks
+ *   at least Year 1.
+ */
+export async function getUnlockedYears(
+  userId: number,
+  courseId: number,
+): Promise<YearAccess> {
+  const yearRows = await db
+    .selectDistinct({ year: subjectsTable.year })
+    .from(subjectsTable)
+    .where(eq(subjectsTable.courseId, courseId));
+  const years = yearRows.map((r) => r.year).sort((a, b) => a - b);
+
+  const all: YearAccess = {
+    courseId,
+    years,
+    allYearsUnlocked: true,
+    unlockedYears: years,
+  };
+
+  const [course] = await db
+    .select({ price: coursesTable.price })
+    .from(coursesTable)
+    .where(eq(coursesTable.id, courseId));
+  if (!course || Number(course.price) <= 0) return all;
+
+  const plan = await getPlanStatus(userId, courseId);
+  if (!plan.hasPlan) {
+    return { courseId, years, allYearsUnlocked: false, unlockedYears: [] };
+  }
+  if (plan.isComplete || plan.planType === "one-time") return all;
+
+  const paid = plan.installmentsPaid;
+  const count = plan.installmentCount ?? 1;
+  if (paid <= 0) {
+    return { courseId, years, allYearsUnlocked: false, unlockedYears: [] };
+  }
+  const yearCount = years.length;
+  const unlockedCount = Math.min(
+    yearCount,
+    Math.max(1, Math.floor((paid * yearCount) / Math.max(1, count))),
+  );
+  const unlockedYears = years.slice(0, unlockedCount);
+  return {
+    courseId,
+    years,
+    allYearsUnlocked: unlockedCount >= yearCount,
+    unlockedYears,
+  };
+}
+
+/** Whether a student may access content belonging to a given curriculum year. */
+export async function isYearUnlocked(
+  userId: number,
+  courseId: number,
+  year: number,
+): Promise<boolean> {
+  const ya = await getUnlockedYears(userId, courseId);
+  return ya.allYearsUnlocked || ya.unlockedYears.includes(year);
+}
+
 /**
  * Determine whether a user can access a course's content.
  * Free courses (price <= 0) are always accessible. Paid courses require a
@@ -249,7 +330,7 @@ export async function userCanAccessMaterialObject(
   objectPath: string,
 ): Promise<boolean> {
   const [row] = await db
-    .select({ courseId: subjectsTable.courseId })
+    .select({ courseId: subjectsTable.courseId, year: subjectsTable.year })
     .from(studyMaterialsTable)
     .innerJoin(
       subjectsTable,
@@ -259,7 +340,8 @@ export async function userCanAccessMaterialObject(
     .limit(1);
   if (!row) return false;
   const access = await getCourseAccess(userId, row.courseId);
-  return Boolean(access?.hasAccess);
+  if (!access?.hasAccess) return false;
+  return isYearUnlocked(userId, row.courseId, row.year);
 }
 
 /** Whether the user has an enrollment record for the given course. */

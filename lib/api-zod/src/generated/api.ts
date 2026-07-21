@@ -628,7 +628,9 @@ export const GetCourseAccessResponse = zod.object({
   "courseId": zod.number(),
   "hasAccess": zod.boolean(),
   "price": zod.number(),
-  "paid": zod.boolean()
+  "paid": zod.boolean(),
+  "allYearsUnlocked": zod.boolean().optional(),
+  "unlockedYears": zod.array(zod.number()).optional()
 })
 
 

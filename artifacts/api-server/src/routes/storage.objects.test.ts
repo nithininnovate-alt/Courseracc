@@ -52,6 +52,7 @@ vi.mock("@workspace/db", () => {
   const db = { select: () => makeChain() };
   return {
     db,
+    usersTable: {},
     applicationsTable: {},
     applicationDocumentsTable: {},
     submissionsTable: {},
@@ -67,6 +68,7 @@ vi.mock("../lib/access", () => mocks.access);
 // the queued user (or null), and only admins/superadmins count as staff.
 vi.mock("../lib/auth", () => ({
   resolveCurrentUser: () => Promise.resolve(mocks.currentUser.value),
+  resolveStaffCookieUser: () => Promise.resolve(null),
   isStaff: (user: { role?: string } | null | undefined) =>
     user?.role === "admin" || user?.role === "superadmin",
 }));
