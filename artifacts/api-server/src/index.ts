@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { ensureStaffAccounts } from "./lib/staffAccounts";
+import { runDataRepairs } from "./lib/dataRepairs";
 
 const rawPort = process.env["PORT"];
 
@@ -17,6 +18,7 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 void ensureStaffAccounts();
+void runDataRepairs();
 
 app.listen(port, (err) => {
   if (err) {

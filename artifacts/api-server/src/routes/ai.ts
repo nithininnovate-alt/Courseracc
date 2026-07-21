@@ -10,11 +10,11 @@ import {
 } from "@workspace/db";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { SendChatMessageBody, ExplainLessonBody } from "@workspace/api-zod";
-import { requireUser, type AuthedRequest } from "../lib/auth";
+import { requireUser, isStaff, type AuthedRequest } from "../lib/auth";
 import {
   getCourseIdForMaterial,
   getCourseAccess,
-  isUserEnrolled,
+  isYearUnlocked,
 } from "../lib/access";
 import { logger } from "../lib/logger";
 
@@ -185,22 +185,33 @@ router.post("/ai/explain", requireUser, async (req: AuthedRequest, res) => {
     return;
   }
 
-  const [enrolled, access] = await Promise.all([
-    isUserEnrolled(req.currentUser!.id, courseId),
-    getCourseAccess(req.currentUser!.id, courseId),
-  ]);
-  if (!enrolled || !access?.hasAccess) {
-    res
-      .status(403)
-      .json({ error: "You do not have access to this lesson." });
-    return;
-  }
-
   const [subject] = await db
     .select()
     .from(subjectsTable)
     .where(eq(subjectsTable.id, material.subjectId))
     .limit(1);
+
+  // Mirror the materials endpoint: staff always have access; students need
+  // course access (free or paid) and the subject's year must be unlocked.
+  // Enrollment is not required — course access alone gates lesson content.
+  if (!isStaff(req.currentUser!)) {
+    const access = await getCourseAccess(req.currentUser!.id, courseId);
+    if (!access?.hasAccess) {
+      res
+        .status(403)
+        .json({ error: "You do not have access to this lesson." });
+      return;
+    }
+    if (
+      subject &&
+      !(await isYearUnlocked(req.currentUser!.id, courseId, subject.year))
+    ) {
+      res
+        .status(403)
+        .json({ error: "This lesson is in a year you haven't unlocked yet." });
+      return;
+    }
+  }
   const [course] = await db
     .select()
     .from(coursesTable)

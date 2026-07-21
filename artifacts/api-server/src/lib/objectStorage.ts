@@ -87,20 +87,56 @@ export class ObjectStorageService {
     return null;
   }
 
-  async downloadObject(file: File, cacheTtlSec: number = 3600): Promise<Response> {
+  async downloadObject(
+    file: File,
+    cacheTtlSec: number = 3600,
+    rangeHeader?: string,
+  ): Promise<Response> {
     const [metadata] = await file.getMetadata();
     const aclPolicy = await getObjectAclPolicy(file);
     const isPublic = aclPolicy?.visibility === "public";
 
-    const nodeStream = file.createReadStream();
-    const webStream = Readable.toWeb(nodeStream) as ReadableStream;
+    const totalSize = metadata.size ? Number(metadata.size) : undefined;
 
     const headers: Record<string, string> = {
       "Content-Type": (metadata.contentType as string) || "application/octet-stream",
       "Cache-Control": `${isPublic ? "public" : "private"}, max-age=${cacheTtlSec}`,
+      "Accept-Ranges": "bytes",
     };
-    if (metadata.size) {
-      headers["Content-Length"] = String(metadata.size);
+
+    // Honor HTTP Range requests (required for video/audio seeking in browsers).
+    if (rangeHeader && totalSize !== undefined) {
+      const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader.trim());
+      if (match && (match[1] !== "" || match[2] !== "")) {
+        let start: number;
+        let end: number;
+        if (match[1] === "") {
+          // Suffix range: last N bytes.
+          const suffix = Number(match[2]);
+          start = Math.max(0, totalSize - suffix);
+          end = totalSize - 1;
+        } else {
+          start = Number(match[1]);
+          end = match[2] === "" ? totalSize - 1 : Math.min(Number(match[2]), totalSize - 1);
+        }
+        if (start >= totalSize || start > end) {
+          return new Response(null, {
+            status: 416,
+            headers: { "Content-Range": `bytes */${totalSize}` },
+          });
+        }
+        const nodeStream = file.createReadStream({ start, end });
+        const webStream = Readable.toWeb(nodeStream) as ReadableStream;
+        headers["Content-Range"] = `bytes ${start}-${end}/${totalSize}`;
+        headers["Content-Length"] = String(end - start + 1);
+        return new Response(webStream, { status: 206, headers });
+      }
+    }
+
+    const nodeStream = file.createReadStream();
+    const webStream = Readable.toWeb(nodeStream) as ReadableStream;
+    if (totalSize !== undefined) {
+      headers["Content-Length"] = String(totalSize);
     }
 
     return new Response(webStream, { headers });

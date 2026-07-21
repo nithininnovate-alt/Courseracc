@@ -14,8 +14,9 @@ import {
   paymentPlansTable,
 } from "@workspace/db";
 
-const SAMPLE_VIDEO =
-  "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+// Served from our own object storage via /api/storage/objects/... — the old
+// Google sample bucket (gtv-videos-bucket) now returns 403 for public access.
+const SAMPLE_VIDEO = "/objects/videos/sample-lecture.mp4";
 const SAMPLE_PDF =
   "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
 

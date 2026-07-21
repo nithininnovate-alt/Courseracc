@@ -21,7 +21,7 @@ const mocks = vi.hoisted(() => ({
   access: {
     getCourseIdForMaterial: vi.fn(),
     getCourseAccess: vi.fn(),
-    isUserEnrolled: vi.fn(),
+    isYearUnlocked: vi.fn(),
   },
   openaiCreate: vi.fn(),
 }));
@@ -71,6 +71,7 @@ vi.mock("../lib/access", () => mocks.access);
 // Stand-in auth middleware that mirrors requireUser: 401 when unauthenticated,
 // otherwise attaches a current user and continues.
 vi.mock("../lib/auth", () => ({
+  isStaff: () => false,
   requireUser: (
     req: { currentUser?: unknown },
     res: { status: (code: number) => { json: (body: unknown) => void } },
@@ -150,9 +151,13 @@ describe("POST /ai/explain authorization matrix", () => {
   });
 
   it("returns 403 when the student lacks access to the course", async () => {
-    mocks.selectQueue.push([material]);
+    // Ordered results for the material and subject lookups.
+    mocks.selectQueue.push(
+      [material],
+      [{ id: 5, courseId: 10, title: "Mathematics", description: null, year: 1 }],
+    );
     mocks.access.getCourseIdForMaterial.mockResolvedValue(10);
-    mocks.access.isUserEnrolled.mockResolvedValue(true);
+    mocks.access.isYearUnlocked.mockResolvedValue(true);
     mocks.access.getCourseAccess.mockResolvedValue({
       courseId: 10,
       price: 50,
@@ -181,11 +186,11 @@ describe("POST /ai/explain authorization matrix", () => {
     // Ordered results for the material, subject and course lookups.
     mocks.selectQueue.push(
       [material],
-      [{ id: 5, courseId: 10, title: "Mathematics", description: null }],
+      [{ id: 5, courseId: 10, title: "Mathematics", description: null, year: 1 }],
       [{ id: 10, title: "Foundation Year", description: null }],
     );
     mocks.access.getCourseIdForMaterial.mockResolvedValue(10);
-    mocks.access.isUserEnrolled.mockResolvedValue(true);
+    mocks.access.isYearUnlocked.mockResolvedValue(true);
     mocks.access.getCourseAccess.mockResolvedValue({
       courseId: 10,
       price: 0,
