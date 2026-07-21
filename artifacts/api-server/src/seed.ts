@@ -17,8 +17,9 @@ import {
 // Served from our own object storage via /api/storage/objects/... — the old
 // Google sample bucket (gtv-videos-bucket) now returns 403 for public access.
 const SAMPLE_VIDEO = "/objects/videos/sample-lecture.mp4";
-const SAMPLE_PDF =
-  "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
+// Self-hosted: the old w3.org sample PDF sends a frame-ancestors CSP that
+// blocks embedding it in our portal's PDF viewer.
+const SAMPLE_PDF = "/objects/docs/sample-lecture-notes.pdf";
 
 interface ModuleSeed {
   title: string;
