@@ -50,6 +50,7 @@ import AdminExams from "@/pages/admin/Exams";
 import AdminAssignments from "@/pages/admin/Assignments";
 import AdminPayments from "@/pages/admin/Payments";
 import AdminCertificates from "@/pages/admin/Certificates";
+import AdminNewsletters from "@/pages/admin/Newsletters";
 import AdminEmails from "@/pages/admin/Emails";
 import AdminCourier from "@/pages/admin/Courier";
 import AdminReports from "@/pages/admin/Reports";
@@ -735,6 +736,7 @@ export default function App() {
                       <Route path="/admin/assignments" component={AdminAssignments} />
                       <Route path="/admin/payments" component={AdminPayments} />
                       <Route path="/admin/certificates" component={AdminCertificates} />
+                      <Route path="/admin/newsletters" component={AdminNewsletters} />
                       <Route path="/admin/emails" component={AdminEmails} />
                       <Route path="/admin/courier" component={AdminCourier} />
                       <Route path="/admin/reports" component={AdminReports} />

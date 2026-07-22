@@ -10,6 +10,7 @@ import progressRouter from "./progress";
 import dashboardRouter from "./dashboard";
 import storageRouter from "./storage";
 import aiRouter from "./ai";
+import newslettersRouter from "./newsletters";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(progressRouter);
 router.use(dashboardRouter);
 router.use(storageRouter);
 router.use(aiRouter);
+router.use(newslettersRouter);
 
 export default router;

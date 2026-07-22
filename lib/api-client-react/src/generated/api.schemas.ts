@@ -505,6 +505,42 @@ export interface BogCompleteInput {
   paymentId: number;
 }
 
+export type NewsletterAudience = typeof NewsletterAudience[keyof typeof NewsletterAudience];
+
+
+export const NewsletterAudience = {
+  all: 'all',
+  course: 'course',
+} as const;
+
+export interface Newsletter {
+  id: number;
+  subject: string;
+  body: string;
+  audience: NewsletterAudience;
+  /** @nullable */
+  courseId?: number | null;
+  recipientCount: number;
+  sentAt: string;
+}
+
+export type NewsletterInputAudience = typeof NewsletterInputAudience[keyof typeof NewsletterInputAudience];
+
+
+export const NewsletterInputAudience = {
+  all: 'all',
+  course: 'course',
+} as const;
+
+export interface NewsletterInput {
+  /** @minLength 1 */
+  subject: string;
+  /** @minLength 1 */
+  body: string;
+  audience: NewsletterInputAudience;
+  courseId?: number;
+}
+
 export interface Assignment {
   id: number;
   subjectId: number;

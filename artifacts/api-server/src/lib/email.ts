@@ -312,7 +312,7 @@ async function deliverEmail(msg: EmailMessage): Promise<boolean> {
 /**
  * Send an email and record it to the email_logs table regardless of outcome.
  */
-export async function sendEmail(msg: EmailMessage): Promise<void> {
+export async function sendEmail(msg: EmailMessage): Promise<boolean> {
   let status = "queued";
   let sentAt: Date | null = null;
   try {
@@ -340,6 +340,8 @@ export async function sendEmail(msg: EmailMessage): Promise<void> {
   } catch (err) {
     console.error("[email] failed to record email log", err);
   }
+
+  return status === "sent";
 }
 
 /**
@@ -423,6 +425,25 @@ export function buildWelcome(opts: { fullName: string }): EmailMessage {
       `We're thrilled to have you join our global community of learners.`,
     ],
     signoff: ["", "Warm regards,", "Office of Admissions", BRAND.name],
+  });
+}
+
+export function buildNewsletter(opts: {
+  fullName: string;
+  subject: string;
+  bodyText: string;
+}): EmailMessage {
+  // Split the composed body into paragraphs on blank lines so the branded
+  // layout renders it as proper paragraphs.
+  const paragraphs = opts.bodyText
+    .split(/\r?\n/)
+    .map((line) => line.trim());
+  return build({
+    subject: opts.subject,
+    template: "newsletter",
+    heading: opts.subject,
+    paragraphs: [`Dear ${opts.fullName},`, ``, ...paragraphs],
+    signoff: ["", "Warm regards,", BRAND.name],
   });
 }
 

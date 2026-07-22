@@ -1,11 +1,19 @@
 import { Router, type IRouter } from "express";
-import { eq, asc, and } from "drizzle-orm";
+import { eq, asc, and, inArray } from "drizzle-orm";
 import {
   db,
   coursesTable,
   subjectsTable,
   studyMaterialsTable,
   enrollmentsTable,
+  assignmentsTable,
+  examsTable,
+  examSubmissionsTable,
+  resultsTable,
+  submissionsTable,
+  materialProgressTable,
+  lessonExplanationsTable,
+  paymentPlansTable,
 } from "@workspace/db";
 import {
   CreateCourseBody,
@@ -95,6 +103,67 @@ router.patch("/courses/:id", requireStaff, async (req, res) => {
 
 router.delete("/courses/:id", requireStaff, async (req, res) => {
   const id = Number(req.params.id);
+  const [course] = await db
+    .select()
+    .from(coursesTable)
+    .where(eq(coursesTable.id, id));
+  if (!course) {
+    res.status(404).json({ error: "Course not found" });
+    return;
+  }
+
+  // Cascade the course's academic data so no orphaned rows are left behind.
+  // Financial and historical records (payments, applications, certificates)
+  // are intentionally retained.
+  const subjectRows = await db
+    .select({ id: subjectsTable.id })
+    .from(subjectsTable)
+    .where(eq(subjectsTable.courseId, id));
+  const subjectIds = subjectRows.map((s) => s.id);
+
+  if (subjectIds.length > 0) {
+    const examRows = await db
+      .select({ id: examsTable.id })
+      .from(examsTable)
+      .where(inArray(examsTable.subjectId, subjectIds));
+    const examIds = examRows.map((e) => e.id);
+    const assignmentRows = await db
+      .select({ id: assignmentsTable.id })
+      .from(assignmentsTable)
+      .where(inArray(assignmentsTable.subjectId, subjectIds));
+    const assignmentIds = assignmentRows.map((a) => a.id);
+
+    if (examIds.length > 0) {
+      await db
+        .delete(examSubmissionsTable)
+        .where(inArray(examSubmissionsTable.examId, examIds));
+      await db.delete(resultsTable).where(inArray(resultsTable.examId, examIds));
+      await db.delete(examsTable).where(inArray(examsTable.id, examIds));
+    }
+    if (assignmentIds.length > 0) {
+      await db
+        .delete(submissionsTable)
+        .where(inArray(submissionsTable.assignmentId, assignmentIds));
+      await db
+        .delete(assignmentsTable)
+        .where(inArray(assignmentsTable.id, assignmentIds));
+    }
+    await db
+      .delete(studyMaterialsTable)
+      .where(inArray(studyMaterialsTable.subjectId, subjectIds));
+    await db.delete(subjectsTable).where(inArray(subjectsTable.id, subjectIds));
+  }
+
+  await db
+    .delete(materialProgressTable)
+    .where(eq(materialProgressTable.courseId, id));
+  await db
+    .delete(lessonExplanationsTable)
+    .where(eq(lessonExplanationsTable.courseId, id));
+  await db.delete(enrollmentsTable).where(eq(enrollmentsTable.courseId, id));
+  await db
+    .delete(paymentPlansTable)
+    .where(eq(paymentPlansTable.courseId, id));
   await db.delete(coursesTable).where(eq(coursesTable.id, id));
   res.json({ success: true });
 });

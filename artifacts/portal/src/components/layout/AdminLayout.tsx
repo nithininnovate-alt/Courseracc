@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useGetCurrentUser, useStaffLogout } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
-import { Globe, Users, BookOpen, CreditCard, GraduationCap, LogOut, Menu, Inbox, Plane, Mail, FileText, ClipboardList, BarChart3 } from "lucide-react";
+import { Globe, Users, BookOpen, CreditCard, GraduationCap, LogOut, Menu, Inbox, Plane, Mail, FileText, ClipboardList, BarChart3, Send } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -49,6 +49,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { label: "Assignments", href: "/admin/assignments", icon: <ClipboardList className="w-4 h-4" /> },
     { label: "Payments", href: "/admin/payments", icon: <CreditCard className="w-4 h-4" /> },
     { label: "Certificates", href: "/admin/certificates", icon: <GraduationCap className="w-4 h-4" /> },
+    { label: "Newsletters", href: "/admin/newsletters", icon: <Send className="w-4 h-4" /> },
     { label: "Email Logs", href: "/admin/emails", icon: <Mail className="w-4 h-4" /> },
     { label: "Courier", href: "/admin/courier", icon: <Plane className="w-4 h-4" /> },
     { label: "Reports", href: "/admin/reports", icon: <BarChart3 className="w-4 h-4" /> },

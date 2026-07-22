@@ -17,3 +17,4 @@ export * from "./payment-plans";
 export * from "./certificates";
 export * from "./email-logs";
 export * from "./courier-tracking";
+export * from "./newsletters";

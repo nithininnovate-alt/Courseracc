@@ -1619,6 +1619,46 @@ export const CompleteBogPaymentResponse = zod.object({
 
 
 /**
+ * @summary List sent newsletters (admin)
+ */
+export const ListNewslettersResponseItem = zod.object({
+  "id": zod.number(),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "audience": zod.enum(['all', 'course']),
+  "courseId": zod.number().nullish(),
+  "recipientCount": zod.number(),
+  "sentAt": zod.coerce.date()
+})
+export const ListNewslettersResponse = zod.array(ListNewslettersResponseItem)
+
+
+/**
+ * @summary Compose and send a newsletter to students (admin)
+ */
+
+
+
+
+export const SendNewsletterBody = zod.object({
+  "subject": zod.string().min(1),
+  "body": zod.string().min(1),
+  "audience": zod.enum(['all', 'course']),
+  "courseId": zod.number().optional()
+})
+
+export const SendNewsletterResponse = zod.object({
+  "id": zod.number(),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "audience": zod.enum(['all', 'course']),
+  "courseId": zod.number().nullish(),
+  "recipientCount": zod.number(),
+  "sentAt": zod.coerce.date()
+})
+
+
+/**
  * @summary List the current student's certificates
  */
 export const ListCertificatesResponseItem = zod.object({

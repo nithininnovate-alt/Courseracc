@@ -1328,6 +1328,38 @@ paths:
               schema:
                 $ref: "#/components/schemas/Payment"
 
+  /newsletters:
+    get:
+      operationId: listNewsletters
+      tags: [newsletters]
+      summary: List sent newsletters (admin)
+      responses:
+        "200":
+          description: Newsletters
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Newsletter"
+    post:
+      operationId: sendNewsletter
+      tags: [newsletters]
+      summary: Compose and send a newsletter to students (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewsletterInput"
+      responses:
+        "201":
+          description: Sent newsletter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Newsletter"
+
   /certificates:
     get:
       operationId: listCertificates
@@ -1946,6 +1978,25 @@ components:
       required: [paymentId]
       properties:
         paymentId: { type: integer }
+    Newsletter:
+      type: object
+      required: [id, subject, body, audience, recipientCount, sentAt]
+      properties:
+        id: { type: integer }
+        subject: { type: string }
+        body: { type: string }
+        audience: { type: string, enum: [all, course] }
+        courseId: { type: ["integer", "null"] }
+        recipientCount: { type: integer }
+        sentAt: { type: string, format: date-time }
+    NewsletterInput:
+      type: object
+      required: [subject, body, audience]
+      properties:
+        subject: { type: string, minLength: 1 }
+        body: { type: string, minLength: 1 }
+        audience: { type: string, enum: [all, course] }
+        courseId: { type: integer }
 
     Assignment:
       type: object
