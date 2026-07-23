@@ -206,6 +206,65 @@ async function isDuplicateOfCompleted(
 }
 
 /**
+ * Generate the invoice PDF for a completed payment. Shared by the download
+ * route and the confirmation-email attachment. Throws on failure — callers
+ * that must not block (email attachment) catch and continue.
+ */
+async function generateInvoicePdfForPayment(
+  payment: PaymentRow,
+  opts?: {
+    student?: typeof usersTable.$inferSelect | undefined;
+    courseTitle?: string | null;
+  },
+): Promise<{ pdf: Uint8Array; invoiceNumber: string }> {
+  let student = opts?.student;
+  if (!student) {
+    [student] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, payment.userId));
+  }
+  let courseTitle = opts?.courseTitle ?? null;
+  if (!courseTitle && payment.courseId) {
+    const [course] = await db
+      .select({ title: coursesTable.title })
+      .from(coursesTable)
+      .where(eq(coursesTable.id, payment.courseId));
+    courseTitle = course?.title ?? null;
+  }
+  let installmentLabel: string | null = null;
+  if (payment.planId != null) {
+    const [plan] = await db
+      .select()
+      .from(paymentPlansTable)
+      .where(eq(paymentPlansTable.id, payment.planId));
+    if (plan) {
+      installmentLabel = `Installment ${payment.installmentIndex ?? 1} of ${plan.installmentCount}`;
+    }
+  }
+  const invoiceNumber =
+    payment.invoiceNumber ?? makeInvoiceNumber(payment.id, payment.createdAt);
+  const studentName =
+    [student?.firstName, student?.lastName].filter(Boolean).join(" ") ||
+    student?.email ||
+    "Student";
+  const pdf = await generateInvoice({
+    invoiceNumber,
+    studentName,
+    studentEmail: student?.email ?? "",
+    courseTitle: courseTitle ?? "Course Enrollment",
+    amount: Number(payment.amount),
+    currency: payment.currency,
+    status: payment.status,
+    provider: payment.provider,
+    reference: payment.reference,
+    date: payment.createdAt,
+    installmentLabel,
+  });
+  return { pdf, invoiceNumber };
+}
+
+/**
  * Mark a pending payment completed and run all side effects: invoice number,
  * enrollment activation, and confirmation emails. Uses a compare-and-set on
  * status so concurrent finalizers (e.g. bank callback racing the browser's
@@ -250,6 +309,26 @@ async function finalizeCompletedPayment(
   }
 
   if (studentEmail) {
+    // Attach the invoice PDF; never block finalization on generation failure.
+    let attachments: { filename: string; content: Buffer; contentType: string }[] | undefined;
+    try {
+      const { pdf } = await generateInvoicePdfForPayment(updated, {
+        student: student ?? undefined,
+        courseTitle: course?.title ?? null,
+      });
+      attachments = [
+        {
+          filename: `${invoiceNumber}.pdf`,
+          content: Buffer.from(pdf),
+          contentType: "application/pdf",
+        },
+      ];
+    } catch (err) {
+      console.error(
+        `[payments] invoice PDF generation failed for payment ${updated.id} — sending confirmation without attachment`,
+        err,
+      );
+    }
     await sendEmail({
       ...buildPaymentConfirmation({
         fullName,
@@ -259,6 +338,7 @@ async function finalizeCompletedPayment(
         invoiceNumber,
       }),
       to: studentEmail,
+      ...(attachments ? { attachments } : {}),
     });
     // Notify of course activation only when access was newly granted.
     if (newlyEnrolled && course) {
@@ -811,41 +891,12 @@ router.get("/payments/:id/invoice", async (req, res) => {
     return;
   }
 
-  const [student] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.id, payment.userId));
-  let courseTitle = "Course Enrollment";
-  if (payment.courseId) {
-    const [course] = await db
-      .select()
-      .from(coursesTable)
-      .where(eq(coursesTable.id, payment.courseId));
-    if (course) courseTitle = course.title;
-  }
-
-  const studentName =
-    [student?.firstName, student?.lastName].filter(Boolean).join(" ") ||
-    student?.email ||
-    "Student";
-
-  const pdf = await generateInvoice({
-    invoiceNumber: payment.invoiceNumber ?? makeInvoiceNumber(payment.id, payment.createdAt),
-    studentName,
-    studentEmail: student?.email ?? "",
-    courseTitle,
-    amount: Number(payment.amount),
-    currency: payment.currency,
-    status: payment.status,
-    provider: payment.provider,
-    reference: payment.reference,
-    date: payment.createdAt,
-  });
+  const { pdf, invoiceNumber } = await generateInvoicePdfForPayment(payment);
 
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader(
     "Content-Disposition",
-    `inline; filename="${payment.invoiceNumber ?? `invoice-${payment.id}`}.pdf"`,
+    `inline; filename="${invoiceNumber}.pdf"`,
   );
   res.send(Buffer.from(pdf));
 });

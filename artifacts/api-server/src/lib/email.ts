@@ -1,6 +1,13 @@
 import { eq } from "drizzle-orm";
 import { db, emailLogsTable } from "@workspace/db";
 
+export interface EmailAttachment {
+  filename: string;
+  /** Raw file bytes (base64-encoded per transport at send time). */
+  content: Buffer;
+  contentType: string;
+}
+
 export interface EmailMessage {
   to: string;
   subject: string;
@@ -10,6 +17,8 @@ export interface EmailMessage {
   body: string;
   /** Rendered HTML body */
   html: string;
+  /** Optional file attachments (e.g. invoice PDFs). */
+  attachments?: EmailAttachment[];
 }
 
 const BRAND = {
@@ -176,6 +185,16 @@ async function sendViaSendGrid(msg: EmailMessage): Promise<boolean | null> {
           { type: "text/plain", value: msg.body },
           { type: "text/html", value: msg.html },
         ],
+        ...(msg.attachments?.length
+          ? {
+              attachments: msg.attachments.map((a) => ({
+                content: a.content.toString("base64"),
+                filename: a.filename,
+                type: a.contentType,
+                disposition: "attachment",
+              })),
+            }
+          : {}),
       }),
     });
     if (resp.status === 202) return true;
@@ -223,6 +242,11 @@ async function sendViaGoogleSmtp(msg: EmailMessage): Promise<boolean | null> {
       subject: msg.subject,
       text: msg.body,
       html: msg.html,
+      attachments: msg.attachments?.map((a) => ({
+        filename: a.filename,
+        content: a.content,
+        contentType: a.contentType,
+      })),
     });
     return true;
   } catch (err) {
@@ -249,6 +273,15 @@ async function sendViaResend(msg: EmailMessage): Promise<boolean | null> {
         subject: msg.subject,
         html: msg.html,
         text: msg.body,
+        ...(msg.attachments?.length
+          ? {
+              attachments: msg.attachments.map((a) => ({
+                filename: a.filename,
+                content: a.content.toString("base64"),
+                content_type: a.contentType,
+              })),
+            }
+          : {}),
       }),
     });
     if (!resp.ok) {
@@ -306,8 +339,11 @@ async function deliverEmail(msg: EmailMessage): Promise<boolean> {
     return false;
   }
 
+  const attachNote = msg.attachments?.length
+    ? ` attachments=[${msg.attachments.map((a) => `${a.filename} (${a.content.length}b)`).join(", ")}]`
+    : "";
   console.log(
-    `\n[email] (no email provider configured — logging only) to=${msg.to} subject="${msg.subject}" template=${msg.template}\n${msg.body}\n`,
+    `\n[email] (no email provider configured — logging only) to=${msg.to} subject="${msg.subject}" template=${msg.template}${attachNote}\n${msg.body}\n`,
   );
   return true;
 }
