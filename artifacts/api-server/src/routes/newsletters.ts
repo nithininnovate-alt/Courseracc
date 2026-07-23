@@ -3,11 +3,12 @@ import { eq, and, desc, inArray } from "drizzle-orm";
 import {
   db,
   newslettersTable,
+  newsletterSubscribersTable,
   usersTable,
   enrollmentsTable,
   type Newsletter,
 } from "@workspace/db";
-import { SendNewsletterBody } from "@workspace/api-zod";
+import { SendNewsletterBody, SubscribeToNewsletterBody } from "@workspace/api-zod";
 import { requireStaff, type AuthedRequest } from "../lib/auth";
 import { sendEmail, buildNewsletter, buildNewsletterHtml } from "../lib/email";
 import {
@@ -33,6 +34,121 @@ function serializeNewsletter(n: Newsletter) {
     sentAt: n.sentAt.toISOString(),
   };
 }
+
+// --- Public newsletter signup (embedded on WordPress / external sites) -----
+
+// Lightweight in-memory rate limit: max 10 signups per client per 10 minutes,
+// plus a global ceiling so header spoofing cannot flood the table, and a
+// bounded map so spoofed identities cannot exhaust memory.
+const SIGNUP_WINDOW_MS = 10 * 60 * 1000;
+const SIGNUP_MAX_PER_CLIENT = 10;
+const SIGNUP_MAX_GLOBAL = 300;
+const SIGNUP_MAX_KEYS = 10_000;
+const signupHits = new Map<string, { count: number; resetAt: number }>();
+let globalWindow = { count: 0, resetAt: 0 };
+
+// The rightmost x-forwarded-for entry is appended by our own trusted proxy
+// and cannot be spoofed by the caller (leftmost entries can be).
+function clientKeyFor(req: import("express").Request): string {
+  const xff = req.headers["x-forwarded-for"];
+  const chain = (Array.isArray(xff) ? xff.join(",") : xff ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return chain[chain.length - 1] || req.socket.remoteAddress || "unknown";
+}
+
+function signupRateLimited(key: string): boolean {
+  const now = Date.now();
+  if (now > globalWindow.resetAt) {
+    globalWindow = { count: 0, resetAt: now + SIGNUP_WINDOW_MS };
+  }
+  globalWindow.count += 1;
+  if (globalWindow.count > SIGNUP_MAX_GLOBAL) return true;
+
+  // Evict expired entries; if the map is still full, fail closed for new keys.
+  if (signupHits.size >= SIGNUP_MAX_KEYS) {
+    for (const [k, v] of signupHits) {
+      if (now > v.resetAt) signupHits.delete(k);
+    }
+    if (signupHits.size >= SIGNUP_MAX_KEYS && !signupHits.has(key)) return true;
+  }
+  const entry = signupHits.get(key);
+  if (!entry || now > entry.resetAt) {
+    signupHits.set(key, { count: 1, resetAt: now + SIGNUP_WINDOW_MS });
+    return false;
+  }
+  entry.count += 1;
+  return entry.count > SIGNUP_MAX_PER_CLIENT;
+}
+
+// The form is embedded on third-party origins, so this route must answer
+// cross-origin requests. It is intentionally unauthenticated and write-only.
+function setSubscribeCors(res: import("express").Response) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+}
+
+router.options("/newsletter/subscribe", (_req, res) => {
+  setSubscribeCors(res);
+  res.status(204).end();
+});
+
+router.post("/newsletter/subscribe", async (req, res) => {
+  setSubscribeCors(res);
+  if (signupRateLimited(clientKeyFor(req))) {
+    res.status(429).json({ ok: false, message: "Too many requests. Please try again later." });
+    return;
+  }
+  const parsed = SubscribeToNewsletterBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ ok: false, message: "Please enter a valid email address." });
+    return;
+  }
+  const { email, name, source, website } = parsed.data;
+  // Honeypot: real users never fill this hidden field. Pretend success.
+  if (website && website.trim() !== "") {
+    res.json({ ok: true, message: "Thank you for subscribing!" });
+    return;
+  }
+  const normalizedEmail = email.trim().toLowerCase();
+  await db
+    .insert(newsletterSubscribersTable)
+    .values({
+      email: normalizedEmail,
+      name: name?.trim().slice(0, 200) || null,
+      source: source?.trim().slice(0, 200) || null,
+      status: "subscribed",
+    })
+    .onConflictDoUpdate({
+      target: newsletterSubscribersTable.email,
+      // Re-subscribing refreshes attribution to the latest signup.
+      set: {
+        status: "subscribed",
+        ...(name?.trim() ? { name: name.trim().slice(0, 200) } : {}),
+        ...(source?.trim() ? { source: source.trim().slice(0, 200) } : {}),
+      },
+    });
+  res.json({ ok: true, message: "Thank you for subscribing!" });
+});
+
+router.get("/newsletter-subscribers", requireStaff, async (_req, res) => {
+  const rows = await db
+    .select()
+    .from(newsletterSubscribersTable)
+    .orderBy(desc(newsletterSubscribersTable.createdAt));
+  res.json(
+    rows.map((s) => ({
+      id: s.id,
+      email: s.email,
+      name: s.name,
+      source: s.source,
+      status: s.status,
+      createdAt: s.createdAt.toISOString(),
+    })),
+  );
+});
 
 router.get("/newsletters", requireStaff, async (_req, res) => {
   const rows = await db

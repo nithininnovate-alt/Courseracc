@@ -626,6 +626,31 @@ export interface Newsletter {
   sentAt: string;
 }
 
+export interface NewsletterSubscribeInput {
+  email: string;
+  /** @maxLength 200 */
+  name?: string;
+  /** @maxLength 200 */
+  source?: string;
+  website?: string;
+}
+
+export interface NewsletterSubscribeResult {
+  ok: boolean;
+  message?: string;
+}
+
+export interface NewsletterSubscriber {
+  id: number;
+  email: string;
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  source?: string | null;
+  status: string;
+  createdAt: string;
+}
+
 export type NewsletterInputAudience = typeof NewsletterInputAudience[keyof typeof NewsletterInputAudience];
 
 

@@ -1859,6 +1859,42 @@ export const SendNewsletterResponse = zod.object({
 
 
 /**
+ * @summary Public newsletter signup (embeddable on external sites)
+ */
+export const subscribeToNewsletterBodyNameMax = 200;
+
+export const subscribeToNewsletterBodySourceMax = 200;
+
+
+
+export const SubscribeToNewsletterBody = zod.object({
+  "email": zod.string().email(),
+  "name": zod.string().max(subscribeToNewsletterBodyNameMax).optional(),
+  "source": zod.string().max(subscribeToNewsletterBodySourceMax).optional(),
+  "website": zod.string().optional()
+})
+
+export const SubscribeToNewsletterResponse = zod.object({
+  "ok": zod.boolean(),
+  "message": zod.string().optional()
+})
+
+
+/**
+ * @summary List external newsletter subscribers (admin)
+ */
+export const ListNewsletterSubscribersResponseItem = zod.object({
+  "id": zod.number(),
+  "email": zod.string(),
+  "name": zod.string().nullish(),
+  "source": zod.string().nullish(),
+  "status": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+export const ListNewsletterSubscribersResponse = zod.array(ListNewsletterSubscribersResponseItem)
+
+
+/**
  * @summary List the current student's certificates
  */
 export const ListCertificatesResponseItem = zod.object({
