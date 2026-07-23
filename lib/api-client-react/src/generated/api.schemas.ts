@@ -418,6 +418,7 @@ export interface PaypalOrderInput {
   planId?: number;
   returnUrl: string;
   cancelUrl: string;
+  discountCode?: string;
 }
 
 export type PaymentPlanType = typeof PaymentPlanType[keyof typeof PaymentPlanType];
@@ -493,6 +494,7 @@ export interface BogOrderInput {
   courseId: number;
   planId?: number;
   returnUrl: string;
+  discountCode?: string;
 }
 
 export interface BogOrderResponse {
@@ -503,6 +505,104 @@ export interface BogOrderResponse {
 
 export interface BogCompleteInput {
   paymentId: number;
+}
+
+export type PartnerCenterDiscountType = typeof PartnerCenterDiscountType[keyof typeof PartnerCenterDiscountType];
+
+
+export const PartnerCenterDiscountType = {
+  percent: 'percent',
+  fixed: 'fixed',
+} as const;
+
+export interface PartnerCenter {
+  id: number;
+  name: string;
+  discountType: PartnerCenterDiscountType;
+  discountValue: number;
+  active: boolean;
+  createdAt: string;
+}
+
+export type PartnerCenterInputDiscountType = typeof PartnerCenterInputDiscountType[keyof typeof PartnerCenterInputDiscountType];
+
+
+export const PartnerCenterInputDiscountType = {
+  percent: 'percent',
+  fixed: 'fixed',
+} as const;
+
+export interface PartnerCenterInput {
+  /** @minLength 1 */
+  name: string;
+  discountType: PartnerCenterInputDiscountType;
+  /** @minimum 0 */
+  discountValue: number;
+}
+
+export type PartnerCenterUpdateDiscountType = typeof PartnerCenterUpdateDiscountType[keyof typeof PartnerCenterUpdateDiscountType];
+
+
+export const PartnerCenterUpdateDiscountType = {
+  percent: 'percent',
+  fixed: 'fixed',
+} as const;
+
+export interface PartnerCenterUpdate {
+  /** @minLength 1 */
+  name?: string;
+  discountType?: PartnerCenterUpdateDiscountType;
+  /** @minimum 0 */
+  discountValue?: number;
+  active?: boolean;
+}
+
+export interface DiscountCode {
+  id: number;
+  centerId: number;
+  /** @nullable */
+  centerName?: string | null;
+  code: string;
+  active: boolean;
+  usageCount: number;
+  createdAt: string;
+}
+
+export interface DiscountCodeInput {
+  centerId: number;
+  /** @minLength 4 */
+  code?: string;
+}
+
+export interface DiscountCodeUpdate {
+  active?: boolean;
+}
+
+export interface ValidateDiscountCodeInput {
+  /** @minLength 1 */
+  code: string;
+  courseId: number;
+  planId?: number;
+}
+
+export interface DiscountValidation {
+  valid: boolean;
+  /** @nullable */
+  error?: string | null;
+  /** @nullable */
+  code?: string | null;
+  /** @nullable */
+  centerName?: string | null;
+  /** @nullable */
+  discountType?: string | null;
+  /** @nullable */
+  discountValue?: number | null;
+  /** @nullable */
+  amountDue?: number | null;
+  /** @nullable */
+  discountAmount?: number | null;
+  /** @nullable */
+  total?: number | null;
 }
 
 export type NewsletterAudience = typeof NewsletterAudience[keyof typeof NewsletterAudience];
@@ -767,6 +867,10 @@ export interface Payment {
   reference?: string | null;
   /** @nullable */
   invoiceNumber?: string | null;
+  /** @nullable */
+  discountCodeId?: number | null;
+  /** @nullable */
+  discountAmount?: number | null;
   createdAt: string;
 }
 

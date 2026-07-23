@@ -18,3 +18,4 @@ export * from "./certificates";
 export * from "./email-logs";
 export * from "./courier-tracking";
 export * from "./newsletters";
+export * from "./partner-centers";

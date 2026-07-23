@@ -14,6 +14,9 @@ export const paymentsTable = pgTable("payments", {
   invoiceNumber: text("invoice_number"),
   planId: integer("plan_id"),
   installmentIndex: integer("installment_index"),
+  /** Applied partner discount (null when no code was used). */
+  discountCodeId: integer("discount_code_id"),
+  discountAmount: numeric("discount_amount", { precision: 10, scale: 2 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

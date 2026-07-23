@@ -58,12 +58,20 @@ import {
 } from "../lib/email";
 import { ensureEnrollment, getPlanStatus } from "../lib/access";
 import { ensureStudentId } from "../lib/studentId";
+import { resolveDiscount } from "../lib/discounts";
+import { discountCodesTable } from "@workspace/db";
+import { sql } from "drizzle-orm";
+import { ValidateDiscountCodeBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
 type PaymentRow = typeof paymentsTable.$inferSelect;
 function serializePayment(p: PaymentRow) {
-  return { ...p, amount: Number(p.amount) };
+  return {
+    ...p,
+    amount: Number(p.amount),
+    discountAmount: p.discountAmount != null ? Number(p.discountAmount) : null,
+  };
 }
 
 type PlanRow = typeof paymentPlansTable.$inferSelect;
@@ -248,12 +256,16 @@ async function generateInvoicePdfForPayment(
     [student?.firstName, student?.lastName].filter(Boolean).join(" ") ||
     student?.email ||
     "Student";
+  // payment.amount is the charged (post-discount) amount; the invoice shows
+  // subtotal = amount + discount, the discount line, and total = amount.
+  const discount = Number(payment.discountAmount ?? 0);
   const pdf = await generateInvoice({
     invoiceNumber,
     studentName,
     studentEmail: student?.email ?? "",
     courseTitle: courseTitle ?? "Course Enrollment",
-    amount: Number(payment.amount),
+    amount: Number(payment.amount) + discount,
+    discount,
     currency: payment.currency,
     status: payment.status,
     provider: payment.provider,
@@ -287,6 +299,15 @@ async function finalizeCompletedPayment(
     )
     .returning();
   if (!updated) return null;
+
+  // Count discount code usage exactly once per completed payment (the CAS
+  // above guarantees a single winner).
+  if (updated.discountCodeId != null) {
+    await db
+      .update(discountCodesTable)
+      .set({ usageCount: sql`${discountCodesTable.usageCount} + 1` })
+      .where(eq(discountCodesTable.id, updated.discountCodeId));
+  }
 
   const [student] = await db
     .select()
@@ -387,6 +408,73 @@ router.post("/payments", requireUser, async (req: AuthedRequest, res) => {
   res.status(201).json(serializePayment(created));
 });
 
+/**
+ * Resolve an optional discount code against the server-derived amount due.
+ * Returns the amount to charge plus the fields to persist on the payment row.
+ * A bad code is a hard error — full price is only charged when no code is sent.
+ */
+async function applyOptionalDiscount(
+  amountDue: number,
+  discountCode: string | undefined,
+): Promise<
+  | {
+      ok: true;
+      chargeAmount: number;
+      discountCodeId: number | null;
+      discountAmount: number;
+    }
+  | { ok: false; error: string }
+> {
+  if (!discountCode || !discountCode.trim()) {
+    return { ok: true, chargeAmount: amountDue, discountCodeId: null, discountAmount: 0 };
+  }
+  const resolved = await resolveDiscount(discountCode, amountDue);
+  if (!resolved.ok) {
+    return { ok: false, error: resolved.error };
+  }
+  return {
+    ok: true,
+    chargeAmount: resolved.total,
+    discountCodeId: resolved.codeRow.id,
+    discountAmount: resolved.discountAmount,
+  };
+}
+
+// Validate a discount code against the amount due for a course/plan and
+// return the discounted total for display. Server computes everything.
+router.post(
+  "/discount-codes/validate",
+  requireUser,
+  async (req: AuthedRequest, res) => {
+    const parsed = ValidateDiscountCodeBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid input" });
+      return;
+    }
+    const { code, courseId, planId } = parsed.data;
+    const due = await derivePaymentDue(req.currentUser!.id, courseId, planId);
+    if (!due.ok) {
+      res.status(due.status).json({ error: due.error });
+      return;
+    }
+    const resolved = await resolveDiscount(code, due.amount);
+    if (!resolved.ok) {
+      res.json({ valid: false, error: resolved.error });
+      return;
+    }
+    res.json({
+      valid: true,
+      code: resolved.codeRow.code,
+      centerName: resolved.center.name,
+      discountType: resolved.center.discountType,
+      discountValue: Number(resolved.center.discountValue),
+      amountDue: due.amount,
+      discountAmount: resolved.discountAmount,
+      total: resolved.total,
+    });
+  },
+);
+
 // --- PayPal checkout -------------------------------------------------------
 
 router.post(
@@ -402,7 +490,7 @@ router.post(
       res.status(503).json({ error: "PayPal is not configured" });
       return;
     }
-    const { courseId, planId, returnUrl, cancelUrl } = parsed.data;
+    const { courseId, planId, returnUrl, cancelUrl, discountCode } = parsed.data;
     const userId = req.currentUser!.id;
     const due = await derivePaymentDue(userId, courseId, planId);
     if (!due.ok) {
@@ -410,6 +498,11 @@ router.post(
       return;
     }
     const { amount, installmentIndex, installmentCount, course } = due;
+    const discounted = await applyOptionalDiscount(amount, discountCode);
+    if (!discounted.ok) {
+      res.status(400).json({ error: discounted.error });
+      return;
+    }
 
     const description =
       installmentCount > 1
@@ -418,7 +511,7 @@ router.post(
 
     try {
       const order = await createOrder({
-        amount,
+        amount: discounted.chargeAmount,
         currency: "USD",
         description: description.slice(0, 127),
         returnUrl,
@@ -429,13 +522,16 @@ router.post(
         .values({
           userId,
           courseId,
-          amount: String(amount),
+          amount: String(discounted.chargeAmount),
           currency: "USD",
           status: "pending",
           provider: "paypal",
           reference: order.orderId,
           planId: due.planId,
           installmentIndex,
+          discountCodeId: discounted.discountCodeId,
+          discountAmount:
+            discounted.discountAmount > 0 ? String(discounted.discountAmount) : null,
         })
         .returning();
       res.status(201).json({
@@ -536,7 +632,7 @@ router.post(
       res.status(503).json({ error: "Bank of Georgia is not configured" });
       return;
     }
-    const { courseId, planId, returnUrl } = parsed.data;
+    const { courseId, planId, returnUrl, discountCode } = parsed.data;
     const userId = req.currentUser!.id;
     const due = await derivePaymentDue(userId, courseId, planId);
     if (!due.ok) {
@@ -544,6 +640,11 @@ router.post(
       return;
     }
     const { amount, installmentIndex } = due;
+    const discounted = await applyOptionalDiscount(amount, discountCode);
+    if (!discounted.ok) {
+      res.status(400).json({ error: discounted.error });
+      return;
+    }
 
     // One pending BoG payment row per installment slot: reuse an existing
     // pending row (double-click, abandoned checkout) instead of stacking
@@ -573,12 +674,15 @@ router.post(
           .values({
             userId,
             courseId,
-            amount: String(amount),
+            amount: String(discounted.chargeAmount),
             currency: "USD",
             status: "pending",
             provider: "bog",
             planId: due.planId,
             installmentIndex,
+            discountCodeId: discounted.discountCodeId,
+            discountAmount:
+              discounted.discountAmount > 0 ? String(discounted.discountAmount) : null,
           })
           .returning()
       )[0];
@@ -593,7 +697,7 @@ router.post(
 
     try {
       const order = await createBogOrder({
-        amount,
+        amount: discounted.chargeAmount,
         currency: "USD",
         externalOrderId: String(payment.id),
         productId: `course-${courseId}`,
@@ -603,7 +707,15 @@ router.post(
       });
       const [updated] = await db
         .update(paymentsTable)
-        .set({ reference: order.orderId, amount: String(amount) })
+        .set({
+          reference: order.orderId,
+          // Refresh amount + discount on reused pending rows so a changed or
+          // removed code is reflected in what the bank charges.
+          amount: String(discounted.chargeAmount),
+          discountCodeId: discounted.discountCodeId,
+          discountAmount:
+            discounted.discountAmount > 0 ? String(discounted.discountAmount) : null,
+        })
         .where(eq(paymentsTable.id, payment.id))
         .returning();
       res.status(201).json({
@@ -757,6 +869,32 @@ router.post("/payments/bog/callback", async (req, res) => {
         { paymentId: payment.id },
         "BoG callback duplicate of an already-satisfied installment",
       );
+    } else if (payment.reference && payment.reference !== orderId) {
+      // Stale order: the row was re-priced for a newer order (e.g. a discount
+      // code was added/removed) after this bank order was created. Confirm
+      // with the bank that what was actually charged matches the row before
+      // finalizing — otherwise flag for manual review instead of recording a
+      // wrong amount/discount.
+      try {
+        const details = await getBogPaymentDetails(orderId);
+        const charged = details.transferAmount;
+        if (
+          charged != null &&
+          Math.abs(charged - Number(payment.amount)) < 0.005
+        ) {
+          await finalizeCompletedPayment(payment, orderId);
+        } else {
+          req.log?.error?.(
+            { paymentId: payment.id, orderId, charged, expected: payment.amount },
+            "BoG stale-order callback amount mismatch — NOT finalizing; needs manual review",
+          );
+        }
+      } catch (err) {
+        req.log?.error?.(
+          { paymentId: payment.id, orderId, err },
+          "BoG stale-order callback verification failed — NOT finalizing",
+        );
+      }
     } else {
       await finalizeCompletedPayment(payment, orderId);
     }

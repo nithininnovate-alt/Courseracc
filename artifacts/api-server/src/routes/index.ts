@@ -11,6 +11,7 @@ import dashboardRouter from "./dashboard";
 import storageRouter from "./storage";
 import aiRouter from "./ai";
 import newslettersRouter from "./newsletters";
+import partnersRouter from "./partners";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(dashboardRouter);
 router.use(storageRouter);
 router.use(aiRouter);
 router.use(newslettersRouter);
+router.use(partnersRouter);
 
 export default router;

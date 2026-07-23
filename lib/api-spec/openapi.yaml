@@ -30,6 +30,8 @@ tags:
     description: Examinations and results
   - name: payments
     description: Payments
+  - name: partners
+    description: Partner centers and discount codes
   - name: certificates
     description: Certificates
   - name: emails
@@ -1357,6 +1359,139 @@ paths:
               schema:
                 $ref: "#/components/schemas/Payment"
 
+  /partner-centers:
+    get:
+      operationId: listPartnerCenters
+      tags: [partners]
+      summary: List partner centers (admin)
+      responses:
+        "200":
+          description: Partner centers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PartnerCenter"
+    post:
+      operationId: createPartnerCenter
+      tags: [partners]
+      summary: Create a partner center (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartnerCenterInput"
+      responses:
+        "201":
+          description: Created partner center
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerCenter"
+
+  /partner-centers/{id}:
+    patch:
+      operationId: updatePartnerCenter
+      tags: [partners]
+      summary: Update a partner center (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartnerCenterUpdate"
+      responses:
+        "200":
+          description: Updated partner center
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerCenter"
+
+  /discount-codes:
+    get:
+      operationId: listDiscountCodes
+      tags: [partners]
+      summary: List discount codes with usage counts (admin)
+      responses:
+        "200":
+          description: Discount codes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DiscountCode"
+    post:
+      operationId: createDiscountCode
+      tags: [partners]
+      summary: Create a discount code for a partner center (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiscountCodeInput"
+      responses:
+        "201":
+          description: Created discount code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountCode"
+
+  /discount-codes/{id}:
+    patch:
+      operationId: updateDiscountCode
+      tags: [partners]
+      summary: Activate or deactivate a discount code (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiscountCodeUpdate"
+      responses:
+        "200":
+          description: Updated discount code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountCode"
+
+  /discount-codes/validate:
+    post:
+      operationId: validateDiscountCode
+      tags: [partners]
+      summary: Validate a discount code against the amount due for a course
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidateDiscountCodeInput"
+      responses:
+        "200":
+          description: Validation result with discounted total
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountValidation"
+
   /newsletters:
     get:
       operationId: listNewsletters
@@ -1939,6 +2074,7 @@ components:
         planId: { type: integer }
         returnUrl: { type: string }
         cancelUrl: { type: string }
+        discountCode: { type: string }
     PaymentPlan:
       type: object
       required: [id, courseId, type, installmentCount, installmentAmount, totalAmount, orderIndex]
@@ -1995,6 +2131,7 @@ components:
         courseId: { type: integer }
         planId: { type: integer }
         returnUrl: { type: string }
+        discountCode: { type: string }
     BogOrderResponse:
       type: object
       required: [paymentId, orderId, redirectUrl]
@@ -2007,6 +2144,71 @@ components:
       required: [paymentId]
       properties:
         paymentId: { type: integer }
+    PartnerCenter:
+      type: object
+      required: [id, name, discountType, discountValue, active, createdAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        discountType: { type: string, enum: [percent, fixed] }
+        discountValue: { type: number }
+        active: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    PartnerCenterInput:
+      type: object
+      required: [name, discountType, discountValue]
+      properties:
+        name: { type: string, minLength: 1 }
+        discountType: { type: string, enum: [percent, fixed] }
+        discountValue: { type: number, minimum: 0 }
+    PartnerCenterUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        discountType: { type: string, enum: [percent, fixed] }
+        discountValue: { type: number, minimum: 0 }
+        active: { type: boolean }
+    DiscountCode:
+      type: object
+      required: [id, centerId, code, active, usageCount, createdAt]
+      properties:
+        id: { type: integer }
+        centerId: { type: integer }
+        centerName: { type: ["string", "null"] }
+        code: { type: string }
+        active: { type: boolean }
+        usageCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+    DiscountCodeInput:
+      type: object
+      required: [centerId]
+      properties:
+        centerId: { type: integer }
+        code: { type: string, minLength: 4 }
+    DiscountCodeUpdate:
+      type: object
+      properties:
+        active: { type: boolean }
+    ValidateDiscountCodeInput:
+      type: object
+      required: [code, courseId]
+      properties:
+        code: { type: string, minLength: 1 }
+        courseId: { type: integer }
+        planId: { type: integer }
+    DiscountValidation:
+      type: object
+      required: [valid]
+      properties:
+        valid: { type: boolean }
+        error: { type: ["string", "null"] }
+        code: { type: ["string", "null"] }
+        centerName: { type: ["string", "null"] }
+        discountType: { type: ["string", "null"] }
+        discountValue: { type: ["number", "null"] }
+        amountDue: { type: ["number", "null"] }
+        discountAmount: { type: ["number", "null"] }
+        total: { type: ["number", "null"] }
     Newsletter:
       type: object
       required: [id, subject, body, audience, recipientCount, sentAt]
@@ -2204,6 +2406,8 @@ components:
         provider: { type: string }
         reference: { type: ["string", "null"] }
         invoiceNumber: { type: ["string", "null"] }
+        discountCodeId: { type: ["integer", "null"] }
+        discountAmount: { type: ["number", "null"] }
         createdAt: { type: string, format: date-time }
     PaymentInput:
       type: object

@@ -1431,6 +1431,8 @@ export const ListPaymentsResponseItem = zod.object({
   "provider": zod.string(),
   "reference": zod.string().nullish(),
   "invoiceNumber": zod.string().nullish(),
+  "discountCodeId": zod.number().nullish(),
+  "discountAmount": zod.number().nullish(),
   "createdAt": zod.coerce.date()
 })
 export const ListPaymentsResponse = zod.array(ListPaymentsResponseItem)
@@ -1454,6 +1456,8 @@ export const CreatePaymentResponse = zod.object({
   "provider": zod.string(),
   "reference": zod.string().nullish(),
   "invoiceNumber": zod.string().nullish(),
+  "discountCodeId": zod.number().nullish(),
+  "discountAmount": zod.number().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -1584,7 +1588,8 @@ export const CreatePaypalOrderBody = zod.object({
   "courseId": zod.number(),
   "planId": zod.number().optional(),
   "returnUrl": zod.string(),
-  "cancelUrl": zod.string()
+  "cancelUrl": zod.string(),
+  "discountCode": zod.string().optional()
 })
 
 export const CreatePaypalOrderResponse = zod.object({
@@ -1611,6 +1616,8 @@ export const CapturePaypalOrderResponse = zod.object({
   "provider": zod.string(),
   "reference": zod.string().nullish(),
   "invoiceNumber": zod.string().nullish(),
+  "discountCodeId": zod.number().nullish(),
+  "discountAmount": zod.number().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -1621,7 +1628,8 @@ export const CapturePaypalOrderResponse = zod.object({
 export const CreateBogOrderBody = zod.object({
   "courseId": zod.number(),
   "planId": zod.number().optional(),
-  "returnUrl": zod.string()
+  "returnUrl": zod.string(),
+  "discountCode": zod.string().optional()
 })
 
 export const CreateBogOrderResponse = zod.object({
@@ -1648,7 +1656,161 @@ export const CompleteBogPaymentResponse = zod.object({
   "provider": zod.string(),
   "reference": zod.string().nullish(),
   "invoiceNumber": zod.string().nullish(),
+  "discountCodeId": zod.number().nullish(),
+  "discountAmount": zod.number().nullish(),
   "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary List partner centers (admin)
+ */
+export const ListPartnerCentersResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "discountType": zod.enum(['percent', 'fixed']),
+  "discountValue": zod.number(),
+  "active": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+export const ListPartnerCentersResponse = zod.array(ListPartnerCentersResponseItem)
+
+
+/**
+ * @summary Create a partner center (admin)
+ */
+
+export const createPartnerCenterBodyDiscountValueMin = 0;
+
+
+
+export const CreatePartnerCenterBody = zod.object({
+  "name": zod.string().min(1),
+  "discountType": zod.enum(['percent', 'fixed']),
+  "discountValue": zod.number().min(createPartnerCenterBodyDiscountValueMin)
+})
+
+export const CreatePartnerCenterResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "discountType": zod.enum(['percent', 'fixed']),
+  "discountValue": zod.number(),
+  "active": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update a partner center (admin)
+ */
+export const UpdatePartnerCenterParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+export const updatePartnerCenterBodyDiscountValueMin = 0;
+
+
+
+export const UpdatePartnerCenterBody = zod.object({
+  "name": zod.string().min(1).optional(),
+  "discountType": zod.enum(['percent', 'fixed']).optional(),
+  "discountValue": zod.number().min(updatePartnerCenterBodyDiscountValueMin).optional(),
+  "active": zod.boolean().optional()
+})
+
+export const UpdatePartnerCenterResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "discountType": zod.enum(['percent', 'fixed']),
+  "discountValue": zod.number(),
+  "active": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary List discount codes with usage counts (admin)
+ */
+export const ListDiscountCodesResponseItem = zod.object({
+  "id": zod.number(),
+  "centerId": zod.number(),
+  "centerName": zod.string().nullish(),
+  "code": zod.string(),
+  "active": zod.boolean(),
+  "usageCount": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+export const ListDiscountCodesResponse = zod.array(ListDiscountCodesResponseItem)
+
+
+/**
+ * @summary Create a discount code for a partner center (admin)
+ */
+export const createDiscountCodeBodyCodeMin = 4;
+
+
+
+export const CreateDiscountCodeBody = zod.object({
+  "centerId": zod.number(),
+  "code": zod.string().min(createDiscountCodeBodyCodeMin).optional()
+})
+
+export const CreateDiscountCodeResponse = zod.object({
+  "id": zod.number(),
+  "centerId": zod.number(),
+  "centerName": zod.string().nullish(),
+  "code": zod.string(),
+  "active": zod.boolean(),
+  "usageCount": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Activate or deactivate a discount code (admin)
+ */
+export const UpdateDiscountCodeParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateDiscountCodeBody = zod.object({
+  "active": zod.boolean().optional()
+})
+
+export const UpdateDiscountCodeResponse = zod.object({
+  "id": zod.number(),
+  "centerId": zod.number(),
+  "centerName": zod.string().nullish(),
+  "code": zod.string(),
+  "active": zod.boolean(),
+  "usageCount": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Validate a discount code against the amount due for a course
+ */
+
+
+
+export const ValidateDiscountCodeBody = zod.object({
+  "code": zod.string().min(1),
+  "courseId": zod.number(),
+  "planId": zod.number().optional()
+})
+
+export const ValidateDiscountCodeResponse = zod.object({
+  "valid": zod.boolean(),
+  "error": zod.string().nullish(),
+  "code": zod.string().nullish(),
+  "centerName": zod.string().nullish(),
+  "discountType": zod.string().nullish(),
+  "discountValue": zod.number().nullish(),
+  "amountDue": zod.number().nullish(),
+  "discountAmount": zod.number().nullish(),
+  "total": zod.number().nullish()
 })
 
 

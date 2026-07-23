@@ -20,5 +20,9 @@ export interface Payment {
   reference?: string | null;
   /** @nullable */
   invoiceNumber?: string | null;
+  /** @nullable */
+  discountCodeId?: number | null;
+  /** @nullable */
+  discountAmount?: number | null;
   createdAt: Date;
 }

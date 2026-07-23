@@ -13,3 +13,6 @@ description: Conventions and safety rules for the BoG card payment gateway along
 - BoG `external_order_id` carries our payment row id — callbacks fall back to it when the stored order reference is stale.
 - BoG supports USD; orders use USD to match course pricing.
 - Routes return 503 until BOG_CLIENT_ID/BOG_CLIENT_SECRET secrets are set.
+
+## Stale-order callbacks after re-pricing
+Pending BoG rows are reused across checkout retries and re-priced (e.g. discount codes). A callback whose order_id doesn't match the row's current reference is a *stale order* — finalize only if the bank-reported transfer_amount matches the stored amount; otherwise log and leave for manual review. Discounts are always resolved server-side from the code at order creation; never trust client amounts.

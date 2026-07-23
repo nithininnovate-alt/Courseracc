@@ -10,4 +10,5 @@ export interface BogOrderInput {
   courseId: number;
   planId?: number;
   returnUrl: string;
+  discountCode?: string;
 }

@@ -40,6 +40,10 @@ import type {
   Course,
   CourseAccess,
   CourseInput,
+  DiscountCode,
+  DiscountCodeInput,
+  DiscountCodeUpdate,
+  DiscountValidation,
   EligibleRecipient,
   EmailLog,
   Enrollment,
@@ -61,6 +65,9 @@ import type {
   MaterialUpdate,
   Newsletter,
   NewsletterInput,
+  PartnerCenter,
+  PartnerCenterInput,
+  PartnerCenterUpdate,
   Payment,
   PaymentInput,
   PaymentPlan,
@@ -86,7 +93,8 @@ import type {
   UploadUrlRequest,
   UploadUrlResponse,
   User,
-  UserRoleUpdate
+  UserRoleUpdate,
+  ValidateDiscountCodeInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -5097,6 +5105,512 @@ export const useCompleteBogPayment = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCompleteBogPaymentMutationOptions(options));
+    }
+
+export const getListPartnerCentersUrl = () => {
+
+
+
+
+  return `/api/partner-centers`
+}
+
+/**
+ * @summary List partner centers (admin)
+ */
+export const listPartnerCenters = async ( options?: RequestInit): Promise<PartnerCenter[]> => {
+
+  return customFetch<PartnerCenter[]>(getListPartnerCentersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPartnerCentersQueryKey = () => {
+    return [
+    `/api/partner-centers`
+    ] as const;
+    }
+
+
+export const getListPartnerCentersQueryOptions = <TData = Awaited<ReturnType<typeof listPartnerCenters>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPartnerCenters>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPartnerCentersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPartnerCenters>>> = ({ signal }) => listPartnerCenters({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPartnerCenters>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPartnerCentersQueryResult = NonNullable<Awaited<ReturnType<typeof listPartnerCenters>>>
+export type ListPartnerCentersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List partner centers (admin)
+ */
+
+export function useListPartnerCenters<TData = Awaited<ReturnType<typeof listPartnerCenters>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPartnerCenters>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPartnerCentersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreatePartnerCenterUrl = () => {
+
+
+
+
+  return `/api/partner-centers`
+}
+
+/**
+ * @summary Create a partner center (admin)
+ */
+export const createPartnerCenter = async (partnerCenterInput: PartnerCenterInput, options?: RequestInit): Promise<PartnerCenter> => {
+
+  return customFetch<PartnerCenter>(getCreatePartnerCenterUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(partnerCenterInput)
+  }
+);}
+
+
+
+
+export const getCreatePartnerCenterMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPartnerCenter>>, TError,{data: BodyType<PartnerCenterInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPartnerCenter>>, TError,{data: BodyType<PartnerCenterInput>}, TContext> => {
+
+const mutationKey = ['createPartnerCenter'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPartnerCenter>>, {data: BodyType<PartnerCenterInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPartnerCenter(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePartnerCenterMutationResult = NonNullable<Awaited<ReturnType<typeof createPartnerCenter>>>
+    export type CreatePartnerCenterMutationBody = BodyType<PartnerCenterInput>
+    export type CreatePartnerCenterMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a partner center (admin)
+ */
+export const useCreatePartnerCenter = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPartnerCenter>>, TError,{data: BodyType<PartnerCenterInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPartnerCenter>>,
+        TError,
+        {data: BodyType<PartnerCenterInput>},
+        TContext
+      > => {
+      return useMutation(getCreatePartnerCenterMutationOptions(options));
+    }
+
+export const getUpdatePartnerCenterUrl = (id: number,) => {
+
+
+
+
+  return `/api/partner-centers/${id}`
+}
+
+/**
+ * @summary Update a partner center (admin)
+ */
+export const updatePartnerCenter = async (id: number,
+    partnerCenterUpdate: PartnerCenterUpdate, options?: RequestInit): Promise<PartnerCenter> => {
+
+  return customFetch<PartnerCenter>(getUpdatePartnerCenterUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(partnerCenterUpdate)
+  }
+);}
+
+
+
+
+export const getUpdatePartnerCenterMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePartnerCenter>>, TError,{id: number;data: BodyType<PartnerCenterUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePartnerCenter>>, TError,{id: number;data: BodyType<PartnerCenterUpdate>}, TContext> => {
+
+const mutationKey = ['updatePartnerCenter'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePartnerCenter>>, {id: number;data: BodyType<PartnerCenterUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updatePartnerCenter(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePartnerCenterMutationResult = NonNullable<Awaited<ReturnType<typeof updatePartnerCenter>>>
+    export type UpdatePartnerCenterMutationBody = BodyType<PartnerCenterUpdate>
+    export type UpdatePartnerCenterMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update a partner center (admin)
+ */
+export const useUpdatePartnerCenter = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePartnerCenter>>, TError,{id: number;data: BodyType<PartnerCenterUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePartnerCenter>>,
+        TError,
+        {id: number;data: BodyType<PartnerCenterUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdatePartnerCenterMutationOptions(options));
+    }
+
+export const getListDiscountCodesUrl = () => {
+
+
+
+
+  return `/api/discount-codes`
+}
+
+/**
+ * @summary List discount codes with usage counts (admin)
+ */
+export const listDiscountCodes = async ( options?: RequestInit): Promise<DiscountCode[]> => {
+
+  return customFetch<DiscountCode[]>(getListDiscountCodesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListDiscountCodesQueryKey = () => {
+    return [
+    `/api/discount-codes`
+    ] as const;
+    }
+
+
+export const getListDiscountCodesQueryOptions = <TData = Awaited<ReturnType<typeof listDiscountCodes>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDiscountCodes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDiscountCodesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDiscountCodes>>> = ({ signal }) => listDiscountCodes({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDiscountCodes>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListDiscountCodesQueryResult = NonNullable<Awaited<ReturnType<typeof listDiscountCodes>>>
+export type ListDiscountCodesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List discount codes with usage counts (admin)
+ */
+
+export function useListDiscountCodes<TData = Awaited<ReturnType<typeof listDiscountCodes>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDiscountCodes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListDiscountCodesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateDiscountCodeUrl = () => {
+
+
+
+
+  return `/api/discount-codes`
+}
+
+/**
+ * @summary Create a discount code for a partner center (admin)
+ */
+export const createDiscountCode = async (discountCodeInput: DiscountCodeInput, options?: RequestInit): Promise<DiscountCode> => {
+
+  return customFetch<DiscountCode>(getCreateDiscountCodeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(discountCodeInput)
+  }
+);}
+
+
+
+
+export const getCreateDiscountCodeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDiscountCode>>, TError,{data: BodyType<DiscountCodeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createDiscountCode>>, TError,{data: BodyType<DiscountCodeInput>}, TContext> => {
+
+const mutationKey = ['createDiscountCode'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createDiscountCode>>, {data: BodyType<DiscountCodeInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createDiscountCode(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateDiscountCodeMutationResult = NonNullable<Awaited<ReturnType<typeof createDiscountCode>>>
+    export type CreateDiscountCodeMutationBody = BodyType<DiscountCodeInput>
+    export type CreateDiscountCodeMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a discount code for a partner center (admin)
+ */
+export const useCreateDiscountCode = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDiscountCode>>, TError,{data: BodyType<DiscountCodeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createDiscountCode>>,
+        TError,
+        {data: BodyType<DiscountCodeInput>},
+        TContext
+      > => {
+      return useMutation(getCreateDiscountCodeMutationOptions(options));
+    }
+
+export const getUpdateDiscountCodeUrl = (id: number,) => {
+
+
+
+
+  return `/api/discount-codes/${id}`
+}
+
+/**
+ * @summary Activate or deactivate a discount code (admin)
+ */
+export const updateDiscountCode = async (id: number,
+    discountCodeUpdate: DiscountCodeUpdate, options?: RequestInit): Promise<DiscountCode> => {
+
+  return customFetch<DiscountCode>(getUpdateDiscountCodeUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(discountCodeUpdate)
+  }
+);}
+
+
+
+
+export const getUpdateDiscountCodeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDiscountCode>>, TError,{id: number;data: BodyType<DiscountCodeUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateDiscountCode>>, TError,{id: number;data: BodyType<DiscountCodeUpdate>}, TContext> => {
+
+const mutationKey = ['updateDiscountCode'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDiscountCode>>, {id: number;data: BodyType<DiscountCodeUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateDiscountCode(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateDiscountCodeMutationResult = NonNullable<Awaited<ReturnType<typeof updateDiscountCode>>>
+    export type UpdateDiscountCodeMutationBody = BodyType<DiscountCodeUpdate>
+    export type UpdateDiscountCodeMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Activate or deactivate a discount code (admin)
+ */
+export const useUpdateDiscountCode = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDiscountCode>>, TError,{id: number;data: BodyType<DiscountCodeUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateDiscountCode>>,
+        TError,
+        {id: number;data: BodyType<DiscountCodeUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateDiscountCodeMutationOptions(options));
+    }
+
+export const getValidateDiscountCodeUrl = () => {
+
+
+
+
+  return `/api/discount-codes/validate`
+}
+
+/**
+ * @summary Validate a discount code against the amount due for a course
+ */
+export const validateDiscountCode = async (validateDiscountCodeInput: ValidateDiscountCodeInput, options?: RequestInit): Promise<DiscountValidation> => {
+
+  return customFetch<DiscountValidation>(getValidateDiscountCodeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(validateDiscountCodeInput)
+  }
+);}
+
+
+
+
+export const getValidateDiscountCodeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof validateDiscountCode>>, TError,{data: BodyType<ValidateDiscountCodeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof validateDiscountCode>>, TError,{data: BodyType<ValidateDiscountCodeInput>}, TContext> => {
+
+const mutationKey = ['validateDiscountCode'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof validateDiscountCode>>, {data: BodyType<ValidateDiscountCodeInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  validateDiscountCode(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ValidateDiscountCodeMutationResult = NonNullable<Awaited<ReturnType<typeof validateDiscountCode>>>
+    export type ValidateDiscountCodeMutationBody = BodyType<ValidateDiscountCodeInput>
+    export type ValidateDiscountCodeMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Validate a discount code against the amount due for a course
+ */
+export const useValidateDiscountCode = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof validateDiscountCode>>, TError,{data: BodyType<ValidateDiscountCodeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof validateDiscountCode>>,
+        TError,
+        {data: BodyType<ValidateDiscountCodeInput>},
+        TContext
+      > => {
+      return useMutation(getValidateDiscountCodeMutationOptions(options));
     }
 
 export const getListNewslettersUrl = () => {

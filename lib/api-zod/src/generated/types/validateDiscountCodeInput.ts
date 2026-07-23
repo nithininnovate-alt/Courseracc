@@ -6,10 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface PaypalOrderInput {
+export interface ValidateDiscountCodeInput {
+  /** @minLength 1 */
+  code: string;
   courseId: number;
   planId?: number;
-  returnUrl: string;
-  cancelUrl: string;
-  discountCode?: string;
 }

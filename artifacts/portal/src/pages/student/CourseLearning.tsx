@@ -19,7 +19,9 @@ import {
   type Subject,
   type StudyMaterial,
   type PaymentPlan,
+  type DiscountValidation,
 } from "@workspace/api-client-react";
+import { DiscountCodeField } from "@/components/common/DiscountCodeField";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -97,6 +99,13 @@ export default function StudentCourseLearning() {
   const [selected, setSelected] = useState<StudyMaterial | null>(null);
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   const effectivePlanId = selectedPlanId ?? configuredPlans[0]?.id ?? null;
+  const [appliedDiscount, setAppliedDiscount] =
+    useState<DiscountValidation | null>(null);
+  // A validated discount is tied to the amount due for the chosen plan —
+  // changing plans invalidates it.
+  useEffect(() => {
+    setAppliedDiscount(null);
+  }, [effectivePlanId]);
 
   // Confirm a Bank of Georgia payment when returning from the payment page
   // (?bogPaymentId=ID on success, ?bogPaymentFailed=1 on failure).
@@ -173,12 +182,18 @@ export default function StudentCourseLearning() {
     });
   };
 
+  const appliedCode =
+    appliedDiscount?.valid && appliedDiscount.code
+      ? appliedDiscount.code
+      : undefined;
+
   const handlePay = (planId?: number) => {
     createOrder.mutate(
       {
         data: {
           courseId,
           ...(planId != null ? { planId } : {}),
+          ...(appliedCode ? { discountCode: appliedCode } : {}),
           returnUrl: appUrl(courseId),
           cancelUrl: appUrl(courseId),
         },
@@ -198,6 +213,7 @@ export default function StudentCourseLearning() {
         data: {
           courseId,
           ...(planId != null ? { planId } : {}),
+          ...(appliedCode ? { discountCode: appliedCode } : {}),
           returnUrl: appUrl(courseId),
         },
       },
@@ -286,6 +302,11 @@ export default function StudentCourseLearning() {
                   </Button>
                 </div>
               </div>
+              <DiscountCodeField
+                courseId={courseId}
+                applied={appliedDiscount}
+                onApplied={setAppliedDiscount}
+              />
               <Progress
                 value={
                   planStatus.installmentCount
@@ -351,6 +372,12 @@ export default function StudentCourseLearning() {
                     );
                   })}
                 </div>
+                <DiscountCodeField
+                  courseId={courseId}
+                  planId={effectivePlanId}
+                  applied={appliedDiscount}
+                  onApplied={setAppliedDiscount}
+                />
                 <div className="flex flex-wrap justify-center gap-3">
                   <Button
                     size="lg"
@@ -380,8 +407,22 @@ export default function StudentCourseLearning() {
             ) : (
               <>
                 <div className="text-3xl font-bold text-primary">
-                  ${access?.price.toLocaleString()}
+                  {appliedDiscount?.valid && appliedDiscount.total != null ? (
+                    <>
+                      <span className="text-lg text-muted-foreground line-through mr-2">
+                        ${access?.price.toLocaleString()}
+                      </span>
+                      ${appliedDiscount.total.toLocaleString()}
+                    </>
+                  ) : (
+                    <>${access?.price.toLocaleString()}</>
+                  )}
                 </div>
+                <DiscountCodeField
+                  courseId={courseId}
+                  applied={appliedDiscount}
+                  onApplied={setAppliedDiscount}
+                />
                 <div className="flex flex-wrap justify-center gap-3">
                   <Button
                     size="lg"
