@@ -150,6 +150,44 @@ router.post("/storage/uploads/request-url", async (req: Request, res: Response) 
 });
 
 /**
+ * POST /storage/uploads/request-public-url
+ *
+ * Staff-only presigned URL for uploads that must be publicly reachable
+ * (e.g. newsletter images embedded in emails). Returns an objectPath under
+ * /public-objects served without authentication.
+ */
+router.post(
+  "/storage/uploads/request-public-url",
+  async (req: Request, res: Response) => {
+    const user = await resolveCurrentUser(req);
+    if (!user || !isStaff(user)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const parsed = RequestUploadUrlBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Missing or invalid required fields" });
+      return;
+    }
+    try {
+      const { name, size, contentType } = parsed.data;
+      const { uploadURL, publicPath } =
+        await objectStorageService.getPublicUploadURL();
+      res.json(
+        RequestUploadUrlResponse.parse({
+          uploadURL,
+          objectPath: publicPath,
+          metadata: { name, size, contentType },
+        }),
+      );
+    } catch (error) {
+      req.log.error({ err: error }, "Error generating public upload URL");
+      res.status(500).json({ error: "Failed to generate upload URL" });
+    }
+  },
+);
+
+/**
  * GET /storage/public-objects/*
  *
  * Serve public assets from PUBLIC_OBJECT_SEARCH_PATHS.

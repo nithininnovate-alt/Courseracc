@@ -27,8 +27,10 @@ function renderEmailHtml(opts: {
   heading: string;
   paragraphs: string[];
   cta?: { label: string; url: string };
+  /** Pre-sanitized HTML inserted after the escaped paragraphs (newsletters). */
+  rawHtml?: string;
 }): string {
-  const { heading, paragraphs, cta } = opts;
+  const { heading, paragraphs, cta, rawHtml } = opts;
   const body = paragraphs
     .map((p) =>
       p.trim() === ""
@@ -63,6 +65,7 @@ function renderEmailHtml(opts: {
             heading,
           )}</h1>
           ${body}
+          ${rawHtml ?? ""}
           ${ctaHtml}
         </td></tr>
         <tr><td style="padding:24px 40px 32px;border-top:1px solid #eceaf2;">
@@ -426,6 +429,43 @@ export function buildWelcome(opts: { fullName: string }): EmailMessage {
     ],
     signoff: ["", "Warm regards,", "Office of Admissions", BRAND.name],
   });
+}
+
+/**
+ * Newsletter with a rich (already-sanitized) HTML body. The HTML is placed
+ * inside the branded layout as-is; callers MUST sanitize it first
+ * (see sanitizeNewsletterHtml) and absolutize any relative asset URLs.
+ */
+export function buildNewsletterHtml(opts: {
+  fullName: string;
+  subject: string;
+  sanitizedHtml: string;
+  plainText: string;
+}): EmailMessage {
+  const greeting = `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#2a2438;">Dear ${escapeHtml(
+    opts.fullName,
+  )},</p>`;
+  const signoffHtml = `<p style="margin:24px 0 16px;font-size:15px;line-height:1.6;color:#2a2438;">Warm regards,<br>${BRAND.name}</p>`;
+  const inner = `${greeting}\n<div style="font-size:15px;line-height:1.6;color:#2a2438;">${opts.sanitizedHtml}</div>\n${signoffHtml}`;
+  const body = [
+    `Dear ${opts.fullName},`,
+    ``,
+    opts.plainText,
+    ``,
+    `Warm regards,`,
+    BRAND.name,
+  ].join("\n");
+  return {
+    to: "",
+    subject: opts.subject,
+    template: "newsletter",
+    body,
+    html: renderEmailHtml({
+      heading: opts.subject,
+      paragraphs: [],
+      rawHtml: inner,
+    }),
+  };
 }
 
 export function buildNewsletter(opts: {

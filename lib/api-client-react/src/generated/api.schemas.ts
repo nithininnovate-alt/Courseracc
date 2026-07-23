@@ -517,6 +517,8 @@ export interface Newsletter {
   id: number;
   subject: string;
   body: string;
+  /** @nullable */
+  bodyHtml?: string | null;
   audience: NewsletterAudience;
   /** @nullable */
   courseId?: number | null;
@@ -537,6 +539,8 @@ export interface NewsletterInput {
   subject: string;
   /** @minLength 1 */
   body: string;
+  /** @minLength 1 */
+  bodyHtml?: string;
   audience: NewsletterInputAudience;
   courseId?: number;
 }

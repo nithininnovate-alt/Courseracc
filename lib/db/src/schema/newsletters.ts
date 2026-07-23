@@ -12,6 +12,7 @@ export const newslettersTable = pgTable("newsletters", {
   id: serial("id").primaryKey(),
   subject: text("subject").notNull(),
   body: text("body").notNull(),
+  bodyHtml: text("body_html"),
   audience: text("audience").notNull().default("all"),
   courseId: integer("course_id"),
   recipientCount: integer("recipient_count").notNull().default(0),

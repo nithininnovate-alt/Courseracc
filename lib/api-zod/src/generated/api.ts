@@ -439,6 +439,40 @@ export const RequestUploadUrlResponse = zod.object({
 
 
 /**
+ * Staff-only. Returns a presigned URL for direct upload into the public
+ * object directory. The returned objectPath is publicly reachable via
+ * /storage/public-objects — use for assets embedded in emails
+ * (e.g. newsletter images).
+ * @summary Request a presigned URL for a publicly served upload (staff)
+ */
+
+
+
+
+
+export const RequestPublicUploadUrlBody = zod.object({
+  "name": zod.string().min(1),
+  "size": zod.number().min(1),
+  "contentType": zod.string().min(1)
+})
+
+
+
+
+
+
+export const RequestPublicUploadUrlResponse = zod.object({
+  "uploadURL": zod.string().url(),
+  "objectPath": zod.string(),
+  "metadata": zod.object({
+  "name": zod.string().min(1),
+  "size": zod.number().min(1),
+  "contentType": zod.string().min(1)
+}).optional()
+})
+
+
+/**
  * @summary Serve a public asset from PUBLIC_OBJECT_SEARCH_PATHS
  */
 export const GetPublicObjectParams = zod.object({
@@ -1625,6 +1659,7 @@ export const ListNewslettersResponseItem = zod.object({
   "id": zod.number(),
   "subject": zod.string(),
   "body": zod.string(),
+  "bodyHtml": zod.string().nullish(),
   "audience": zod.enum(['all', 'course']),
   "courseId": zod.number().nullish(),
   "recipientCount": zod.number(),
@@ -1640,9 +1675,11 @@ export const ListNewslettersResponse = zod.array(ListNewslettersResponseItem)
 
 
 
+
 export const SendNewsletterBody = zod.object({
   "subject": zod.string().min(1),
   "body": zod.string().min(1),
+  "bodyHtml": zod.string().min(1).optional(),
   "audience": zod.enum(['all', 'course']),
   "courseId": zod.number().optional()
 })
@@ -1651,6 +1688,7 @@ export const SendNewsletterResponse = zod.object({
   "id": zod.number(),
   "subject": zod.string(),
   "body": zod.string(),
+  "bodyHtml": zod.string().nullish(),
   "audience": zod.enum(['all', 'course']),
   "courseId": zod.number().nullish(),
   "recipientCount": zod.number(),

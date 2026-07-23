@@ -11,6 +11,8 @@ export interface Newsletter {
   id: number;
   subject: string;
   body: string;
+  /** @nullable */
+  bodyHtml?: string | null;
   audience: NewsletterAudience;
   /** @nullable */
   courseId?: number | null;

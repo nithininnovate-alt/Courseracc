@@ -9,7 +9,14 @@ import {
 } from "@workspace/db";
 import { SendNewsletterBody } from "@workspace/api-zod";
 import { requireStaff, type AuthedRequest } from "../lib/auth";
-import { sendEmail, buildNewsletter } from "../lib/email";
+import { sendEmail, buildNewsletter, buildNewsletterHtml } from "../lib/email";
+import {
+  sanitizeNewsletterHtml,
+  absolutizeUrls,
+  publicBaseUrl,
+  htmlToPlainText,
+  hasRelativeUrls,
+} from "../lib/newsletterHtml";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
@@ -19,6 +26,7 @@ function serializeNewsletter(n: Newsletter) {
     id: n.id,
     subject: n.subject,
     body: n.body,
+    bodyHtml: n.bodyHtml,
     audience: n.audience,
     courseId: n.courseId,
     recipientCount: n.recipientCount,
@@ -44,6 +52,24 @@ router.post(
       return;
     }
     const { subject, body, audience, courseId } = parsed.data;
+    // Sanitize admin-composed HTML server-side (allowlist) and store the
+    // sanitized version so previews can render it safely.
+    const sanitizedHtml = parsed.data.bodyHtml
+      ? sanitizeNewsletterHtml(parsed.data.bodyHtml)
+      : null;
+    // Email clients need absolute URLs for embedded images.
+    const baseUrl = publicBaseUrl();
+    const emailHtml = sanitizedHtml
+      ? absolutizeUrls(sanitizedHtml, baseUrl)
+      : null;
+    if (emailHtml && !baseUrl && hasRelativeUrls(emailHtml)) {
+      res.status(500).json({
+        error:
+          "Cannot send: newsletter contains images/links with relative URLs but no public domain is configured.",
+      });
+      return;
+    }
+    const plainText = sanitizedHtml ? htmlToPlainText(sanitizedHtml) : body;
     if (audience === "course" && courseId == null) {
       res.status(400).json({ error: "Select a course for this audience" });
       return;
@@ -94,10 +120,15 @@ router.post(
       const fullName =
         [r.firstName, r.lastName].filter(Boolean).join(" ") || "Student";
       try {
-        const delivered = await sendEmail({
-          ...buildNewsletter({ fullName, subject, bodyText: body }),
-          to: r.email,
-        });
+        const message = emailHtml
+          ? buildNewsletterHtml({
+              fullName,
+              subject,
+              sanitizedHtml: emailHtml,
+              plainText,
+            })
+          : buildNewsletter({ fullName, subject, bodyText: body });
+        const delivered = await sendEmail({ ...message, to: r.email });
         if (delivered) sent += 1;
       } catch (err) {
         logger.error({ err, to: r.email }, "Newsletter send failed");
@@ -108,7 +139,8 @@ router.post(
       .insert(newslettersTable)
       .values({
         subject,
-        body,
+        body: plainText,
+        bodyHtml: sanitizedHtml,
         audience,
         courseId: audience === "course" ? courseId : null,
         recipientCount: sent,

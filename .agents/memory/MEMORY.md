@@ -4,4 +4,5 @@
 - [CGU PDF theme & email transports](cgu-pdf-email-conventions.md) — all PDFs must use shared registrar letterhead theme; email uses SendGrid→Gmail→Resend chain with per-provider verified senders.
 - [PDF fonts & ligatures](pdf-fonts-ligatures.md) — embed TTFs only via embedAssetFont (liga off) or "fi" renders as a gap; purple border for registrar docs, bronze frame for degree cert.
 - [Bank of Georgia payments](bog-payments.md) — dedupe orders at creation (bank charges before our checks), CAS finalization, callback URL from request not client.
+- [Newsletter HTML email rules](newsletter-html-emails.md) — sanitize server-side, images in public storage only, absolutize relative URLs at send time.
 - [Shared material object URLs](shared-material-urls.md) — object-path auth must check ALL materials sharing a URL (no limit 1); Playwright Chromium can't decode H.264, so MP4 "no supported source" is a false e2e failure.

@@ -12,6 +12,8 @@ export interface NewsletterInput {
   subject: string;
   /** @minLength 1 */
   body: string;
+  /** @minLength 1 */
+  bodyHtml?: string;
   audience: NewsletterInputAudience;
   courseId?: number;
 }

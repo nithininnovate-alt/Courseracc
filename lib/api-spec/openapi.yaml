@@ -266,6 +266,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /storage/uploads/request-public-url:
+    post:
+      tags: [storage]
+      operationId: requestPublicUploadUrl
+      summary: Request a presigned URL for a publicly served upload (staff)
+      description: |
+        Staff-only. Returns a presigned URL for direct upload into the public
+        object directory. The returned objectPath is publicly reachable via
+        /storage/public-objects — use for assets embedded in emails
+        (e.g. newsletter images).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadUrlRequest"
+      responses:
+        "200":
+          description: Presigned upload URL generated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrlResponse"
+        "400":
+          description: Missing or invalid required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /storage/public-objects/{filePath}:
     get:
       tags: [storage]
@@ -1985,6 +2014,7 @@ components:
         id: { type: integer }
         subject: { type: string }
         body: { type: string }
+        bodyHtml: { type: ["string", "null"] }
         audience: { type: string, enum: [all, course] }
         courseId: { type: ["integer", "null"] }
         recipientCount: { type: integer }
@@ -1995,6 +2025,7 @@ components:
       properties:
         subject: { type: string, minLength: 1 }
         body: { type: string, minLength: 1 }
+        bodyHtml: { type: string, minLength: 1 }
         audience: { type: string, enum: [all, course] }
         courseId: { type: integer }
 

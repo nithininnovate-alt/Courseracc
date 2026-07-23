@@ -164,6 +164,29 @@ export class ObjectStorageService {
     });
   }
 
+  /**
+   * Presigned PUT URL for a publicly served asset (e.g. newsletter images that
+   * must be reachable from email clients without authentication). Returns the
+   * upload URL plus the public path served by /storage/public-objects.
+   */
+  async getPublicUploadURL(prefix = "newsletter-images"): Promise<{
+    uploadURL: string;
+    publicPath: string;
+  }> {
+    const searchPath = this.getPublicObjectSearchPaths()[0];
+    const objectId = randomUUID();
+    const relativePath = `${prefix}/${objectId}`;
+    const fullPath = `${searchPath}/${relativePath}`;
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+    const uploadURL = await signObjectURL({
+      bucketName,
+      objectName,
+      method: "PUT",
+      ttlSec: 900,
+    });
+    return { uploadURL, publicPath: `/public-objects/${relativePath}` };
+  }
+
   async getObjectEntityFile(objectPath: string): Promise<File> {
     if (!objectPath.startsWith("/objects/")) {
       throw new ObjectNotFoundError();

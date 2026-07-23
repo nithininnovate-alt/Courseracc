@@ -10,7 +10,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import RichTextEditor from "@/components/common/RichTextEditor";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -49,7 +49,9 @@ export default function AdminNewsletters() {
   const qc = useQueryClient();
 
   const [subject, setSubject] = useState("");
-  const [body, setBody] = useState("");
+  const [bodyHtml, setBodyHtml] = useState("");
+  const [bodyText, setBodyText] = useState("");
+  const [editorReset, setEditorReset] = useState(0);
   const [audience, setAudience] = useState<"all" | "course">("all");
   const [courseId, setCourseId] = useState<string>("");
   const [preview, setPreview] = useState<Newsletter | null>(null);
@@ -59,7 +61,9 @@ export default function AdminNewsletters() {
       onSuccess: (n) => {
         qc.invalidateQueries({ queryKey: getListNewslettersQueryKey() });
         setSubject("");
-        setBody("");
+        setBodyHtml("");
+        setBodyText("");
+        setEditorReset((k) => k + 1);
         setAudience("all");
         setCourseId("");
         toast({
@@ -80,9 +84,13 @@ export default function AdminNewsletters() {
     },
   });
 
+  // An image-only newsletter has empty text but non-empty HTML.
+  const hasContent =
+    bodyText.trim().length > 0 ||
+    (bodyHtml.length > 0 && bodyHtml.includes("<img"));
   const canSend =
     subject.trim().length > 0 &&
-    body.trim().length > 0 &&
+    hasContent &&
     (audience === "all" || courseId !== "") &&
     !send.isPending;
 
@@ -91,7 +99,8 @@ export default function AdminNewsletters() {
     send.mutate({
       data: {
         subject: subject.trim(),
-        body: body.trim(),
+        body: bodyText.trim() || subject.trim(),
+        bodyHtml,
         audience,
         ...(audience === "course" ? { courseId: Number(courseId) } : {}),
       },
@@ -157,14 +166,18 @@ export default function AdminNewsletters() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="nl-body">Message</Label>
-            <Textarea
-              id="nl-body"
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              rows={8}
-              placeholder="Write your announcement. Blank lines start a new paragraph."
+            <Label>Message</Label>
+            <RichTextEditor
+              resetKey={editorReset}
+              onChange={(html, text) => {
+                setBodyHtml(html);
+                setBodyText(text);
+              }}
             />
+            <p className="text-xs text-muted-foreground">
+              Use the toolbar for headings, formatting, links and images.
+              Images are uploaded and embedded automatically.
+            </p>
           </div>
           <div className="flex justify-end">
             <Button onClick={handleSend} disabled={!canSend}>
@@ -237,9 +250,17 @@ export default function AdminNewsletters() {
               · {preview ? new Date(preview.sentAt).toLocaleString() : ""}
             </DialogDescription>
           </DialogHeader>
-          <div className="whitespace-pre-wrap text-sm text-muted-foreground max-h-80 overflow-y-auto">
-            {preview?.body}
-          </div>
+          {preview?.bodyHtml ? (
+            // Server-sanitized HTML (allowlist enforced on save).
+            <div
+              className="prose prose-sm max-w-none max-h-80 overflow-y-auto [&_img]:max-w-full [&_img]:rounded-lg"
+              dangerouslySetInnerHTML={{ __html: preview.bodyHtml }}
+            />
+          ) : (
+            <div className="whitespace-pre-wrap text-sm text-muted-foreground max-h-80 overflow-y-auto">
+              {preview?.body}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
