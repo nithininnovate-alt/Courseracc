@@ -733,11 +733,21 @@ export const SubmissionStatus = {
   late: 'late',
 } as const;
 
+export type SubmissionApprovalStatus = typeof SubmissionApprovalStatus[keyof typeof SubmissionApprovalStatus];
+
+
+export const SubmissionApprovalStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  needs_revision: 'needs_revision',
+} as const;
+
 export interface Submission {
   id: number;
   assignmentId: number;
   userId: number;
   status: SubmissionStatus;
+  approvalStatus: SubmissionApprovalStatus;
   /** @nullable */
   score?: number | null;
   /** @nullable */
@@ -772,10 +782,20 @@ export interface SubmissionDraftInput {
   note?: string;
 }
 
+export type SubmissionGradeApprovalStatus = typeof SubmissionGradeApprovalStatus[keyof typeof SubmissionGradeApprovalStatus];
+
+
+export const SubmissionGradeApprovalStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  needs_revision: 'needs_revision',
+} as const;
+
 export interface SubmissionGrade {
   /** @minimum 0 */
-  score: number;
+  score?: number;
   feedback?: string;
+  approvalStatus?: SubmissionGradeApprovalStatus;
 }
 
 export interface Exam {
@@ -975,6 +995,10 @@ export interface EligibleRecipient {
   courseTitle: string;
   hasDegree?: boolean;
   hasTranscript?: boolean;
+  assignmentsTotal?: number;
+  assignmentsApproved?: number;
+  eligible?: boolean;
+  pendingItems?: string[];
 }
 
 export type EmailLogStatus = typeof EmailLogStatus[keyof typeof EmailLogStatus];

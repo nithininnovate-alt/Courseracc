@@ -5,9 +5,11 @@
  * Central Global University LMS/SMS API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { SubmissionGradeApprovalStatus } from './submissionGradeApprovalStatus';
 
 export interface SubmissionGrade {
   /** @minimum 0 */
-  score: number;
+  score?: number;
   feedback?: string;
+  approvalStatus?: SubmissionGradeApprovalStatus;
 }

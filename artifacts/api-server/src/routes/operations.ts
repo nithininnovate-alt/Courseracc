@@ -11,6 +11,8 @@ import {
   courierTrackingTable,
   enrollmentsTable,
   subjectsTable,
+  assignmentsTable,
+  submissionsTable,
   examsTable,
   resultsTable,
 } from "@workspace/db";
@@ -1062,10 +1064,62 @@ router.get("/certificates", async (req, res) => {
 
 const TYPE_PREFIX: Record<string, string> = { degree: "DEG", transcript: "TRN" };
 
-// Note: the exam feature is disabled, so eligibility no longer requires a
-// published exam result — a completed enrollment is sufficient. Assignment
-// approval gating is planned as a separate workflow.
-async function isCertificateEligible(userId: number, courseId: number): Promise<boolean> {
+// Certificate eligibility (exams are disabled, so exam results play no part):
+// 1. a completed enrollment for the course, and
+// 2. every assignment across the course's subjects has a non-draft submission
+//    from the student that staff explicitly approved.
+// Courses with zero assignments are trivially eligible on requirement 2.
+type ApprovalProgress = {
+  assignmentsTotal: number;
+  assignmentsApproved: number;
+  pendingItems: string[];
+};
+
+async function assignmentApprovalProgress(
+  userId: number,
+  courseId: number,
+): Promise<ApprovalProgress> {
+  const rows = await db
+    .select({
+      assignmentTitle: assignmentsTable.title,
+      year: subjectsTable.year,
+      submissionStatus: submissionsTable.status,
+      approvalStatus: submissionsTable.approvalStatus,
+    })
+    .from(assignmentsTable)
+    .innerJoin(subjectsTable, eq(subjectsTable.id, assignmentsTable.subjectId))
+    .leftJoin(
+      submissionsTable,
+      and(
+        eq(submissionsTable.assignmentId, assignmentsTable.id),
+        eq(submissionsTable.userId, userId),
+      ),
+    )
+    .where(eq(subjectsTable.courseId, courseId));
+
+  const pendingItems: string[] = [];
+  let approved = 0;
+  for (const r of rows) {
+    const submitted = r.submissionStatus != null && r.submissionStatus !== "draft";
+    if (submitted && r.approvalStatus === "approved") {
+      approved += 1;
+    } else {
+      const why = !submitted
+        ? "not submitted"
+        : r.approvalStatus === "needs_revision"
+          ? "needs revision"
+          : "awaiting approval";
+      pendingItems.push(`Year ${r.year}: ${r.assignmentTitle} (${why})`);
+    }
+  }
+  return {
+    assignmentsTotal: rows.length,
+    assignmentsApproved: approved,
+    pendingItems,
+  };
+}
+
+async function hasCompletedEnrollment(userId: number, courseId: number): Promise<boolean> {
   const [enrollment] = await db
     .select({ id: enrollmentsTable.id })
     .from(enrollmentsTable)
@@ -1104,16 +1158,25 @@ router.get("/certificates/eligible", requireStaff, async (_req, res) => {
   );
 
   res.json(
-    completed.map((row) => ({
-      userId: row.userId,
-      fullName:
-        [row.firstName, row.lastName].filter(Boolean).join(" ") || row.email,
-      email: row.email,
-      courseId: row.courseId,
-      courseTitle: row.courseTitle,
-      hasDegree: issuedKeys.has(`${row.userId}:${row.courseId}:degree`),
-      hasTranscript: issuedKeys.has(`${row.userId}:${row.courseId}:transcript`),
-    })),
+    await Promise.all(
+      completed.map(async (row) => {
+        const progress = await assignmentApprovalProgress(row.userId, row.courseId);
+        return {
+          userId: row.userId,
+          fullName:
+            [row.firstName, row.lastName].filter(Boolean).join(" ") || row.email,
+          email: row.email,
+          courseId: row.courseId,
+          courseTitle: row.courseTitle,
+          hasDegree: issuedKeys.has(`${row.userId}:${row.courseId}:degree`),
+          hasTranscript: issuedKeys.has(`${row.userId}:${row.courseId}:transcript`),
+          assignmentsTotal: progress.assignmentsTotal,
+          assignmentsApproved: progress.assignmentsApproved,
+          eligible: progress.pendingItems.length === 0,
+          pendingItems: progress.pendingItems,
+        };
+      }),
+    ),
   );
 });
 
@@ -1139,10 +1202,22 @@ router.post("/certificates", requireStaff, async (req, res) => {
     return;
   }
 
-  if (!(await isCertificateEligible(userId, courseId))) {
+  if (!(await hasCompletedEnrollment(userId, courseId))) {
     res.status(422).json({
       error:
         "Student is not eligible: requires a completed enrollment for this course",
+    });
+    return;
+  }
+  const progress = await assignmentApprovalProgress(userId, courseId);
+  if (progress.pendingItems.length > 0) {
+    const preview = progress.pendingItems.slice(0, 3).join("; ");
+    const more =
+      progress.pendingItems.length > 3
+        ? `; and ${progress.pendingItems.length - 3} more`
+        : "";
+    res.status(422).json({
+      error: `Student is not eligible: ${progress.assignmentsApproved}/${progress.assignmentsTotal} assignments approved. Outstanding — ${preview}${more}`,
     });
     return;
   }

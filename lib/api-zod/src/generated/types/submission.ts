@@ -5,6 +5,7 @@
  * Central Global University LMS/SMS API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { SubmissionApprovalStatus } from './submissionApprovalStatus';
 import type { SubmissionStatus } from './submissionStatus';
 
 export interface Submission {
@@ -12,6 +13,7 @@ export interface Submission {
   assignmentId: number;
   userId: number;
   status: SubmissionStatus;
+  approvalStatus: SubmissionApprovalStatus;
   /** @nullable */
   score?: number | null;
   /** @nullable */

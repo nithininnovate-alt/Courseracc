@@ -516,6 +516,8 @@ router.post("/submissions", requireUser, async (req: AuthedRequest, res) => {
         score: null,
         feedback: null,
         gradedAt: null,
+        // A resubmission replaces the reviewed work, so staff must re-approve.
+        approvalStatus: "pending",
         submittedAt: new Date(),
       },
     })
@@ -617,22 +619,40 @@ router.patch("/submissions/:id", requireStaff, async (req, res) => {
     res.status(400).json({ error: "Invalid input" });
     return;
   }
+  const { score, feedback, approvalStatus } = parsed.data;
+  if (score === undefined && approvalStatus === undefined) {
+    res.status(400).json({ error: "Provide a score and/or an approval status" });
+    return;
+  }
+  const set: Partial<typeof submissionsTable.$inferInsert> = {};
+  if (score !== undefined) {
+    set.score = score;
+    set.feedback = feedback ?? null;
+    set.status = "graded";
+    set.gradedAt = new Date();
+  } else if (feedback !== undefined) {
+    set.feedback = feedback;
+  }
+  if (approvalStatus !== undefined) set.approvalStatus = approvalStatus;
+  // Drafts are private student work — they can't be graded or approved.
   const [updated] = await db
     .update(submissionsTable)
-    .set({
-      score: parsed.data.score,
-      feedback: parsed.data.feedback ?? null,
-      status: "graded",
-      gradedAt: new Date(),
-    })
-    .where(eq(submissionsTable.id, id))
+    .set(set)
+    .where(and(eq(submissionsTable.id, id), ne(submissionsTable.status, "draft")))
     .returning();
   if (!updated) {
-    res.status(404).json({ error: "Submission not found" });
+    const [existing] = await db
+      .select({ id: submissionsTable.id })
+      .from(submissionsTable)
+      .where(eq(submissionsTable.id, id));
+    res
+      .status(existing ? 409 : 404)
+      .json({ error: existing ? "This submission is still a draft" : "Submission not found" });
     return;
   }
 
-  // Notify the student that their work has been graded.
+  // Notify the student that their work has been graded (only when a score was
+  // set in this request — approval-only updates don't email).
   const [assignment] = await db
     .select()
     .from(assignmentsTable)
@@ -641,7 +661,7 @@ router.patch("/submissions/:id", requireStaff, async (req, res) => {
     .select()
     .from(usersTable)
     .where(eq(usersTable.id, updated.userId));
-  if (assignment && student?.email) {
+  if (score !== undefined && assignment && student?.email) {
     const msg = buildSubmissionGraded({
       fullName: studentName(student),
       assignmentTitle: assignment.title,

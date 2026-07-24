@@ -1053,6 +1053,7 @@ export const ListAssignmentSubmissionsResponseItem = zod.object({
   "assignmentId": zod.number(),
   "userId": zod.number(),
   "status": zod.enum(['draft', 'submitted', 'graded', 'late']),
+  "approvalStatus": zod.enum(['pending', 'approved', 'needs_revision']),
   "score": zod.number().nullish(),
   "fileUrl": zod.string().nullish(),
   "textContent": zod.string().nullish(),
@@ -1075,6 +1076,7 @@ export const ListSubmissionsResponseItem = zod.object({
   "assignmentId": zod.number(),
   "userId": zod.number(),
   "status": zod.enum(['draft', 'submitted', 'graded', 'late']),
+  "approvalStatus": zod.enum(['pending', 'approved', 'needs_revision']),
   "score": zod.number().nullish(),
   "fileUrl": zod.string().nullish(),
   "textContent": zod.string().nullish(),
@@ -1104,6 +1106,7 @@ export const CreateSubmissionResponse = zod.object({
   "assignmentId": zod.number(),
   "userId": zod.number(),
   "status": zod.enum(['draft', 'submitted', 'graded', 'late']),
+  "approvalStatus": zod.enum(['pending', 'approved', 'needs_revision']),
   "score": zod.number().nullish(),
   "fileUrl": zod.string().nullish(),
   "textContent": zod.string().nullish(),
@@ -1131,6 +1134,7 @@ export const SaveSubmissionDraftResponse = zod.object({
   "assignmentId": zod.number(),
   "userId": zod.number(),
   "status": zod.enum(['draft', 'submitted', 'graded', 'late']),
+  "approvalStatus": zod.enum(['pending', 'approved', 'needs_revision']),
   "score": zod.number().nullish(),
   "fileUrl": zod.string().nullish(),
   "textContent": zod.string().nullish(),
@@ -1156,8 +1160,9 @@ export const gradeSubmissionBodyScoreMin = 0;
 
 
 export const GradeSubmissionBody = zod.object({
-  "score": zod.number().min(gradeSubmissionBodyScoreMin),
-  "feedback": zod.string().optional()
+  "score": zod.number().min(gradeSubmissionBodyScoreMin).optional(),
+  "feedback": zod.string().optional(),
+  "approvalStatus": zod.enum(['pending', 'approved', 'needs_revision']).optional()
 })
 
 export const GradeSubmissionResponse = zod.object({
@@ -1165,6 +1170,7 @@ export const GradeSubmissionResponse = zod.object({
   "assignmentId": zod.number(),
   "userId": zod.number(),
   "status": zod.enum(['draft', 'submitted', 'graded', 'late']),
+  "approvalStatus": zod.enum(['pending', 'approved', 'needs_revision']),
   "score": zod.number().nullish(),
   "fileUrl": zod.string().nullish(),
   "textContent": zod.string().nullish(),
@@ -1971,7 +1977,11 @@ export const ListEligibleRecipientsResponseItem = zod.object({
   "courseId": zod.number(),
   "courseTitle": zod.string(),
   "hasDegree": zod.boolean().optional(),
-  "hasTranscript": zod.boolean().optional()
+  "hasTranscript": zod.boolean().optional(),
+  "assignmentsTotal": zod.number().optional(),
+  "assignmentsApproved": zod.number().optional(),
+  "eligible": zod.boolean().optional(),
+  "pendingItems": zod.array(zod.string()).optional()
 })
 export const ListEligibleRecipientsResponse = zod.array(ListEligibleRecipientsResponseItem)
 

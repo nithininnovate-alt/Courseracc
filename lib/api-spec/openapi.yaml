@@ -2344,12 +2344,13 @@ components:
 
     Submission:
       type: object
-      required: [id, assignmentId, userId, status, submittedAt]
+      required: [id, assignmentId, userId, status, approvalStatus, submittedAt]
       properties:
         id: { type: integer }
         assignmentId: { type: integer }
         userId: { type: integer }
         status: { type: string, enum: [draft, submitted, graded, late] }
+        approvalStatus: { type: string, enum: [pending, approved, needs_revision] }
         score: { type: ["number", "null"] }
         fileUrl: { type: ["string", "null"] }
         textContent: { type: ["string", "null"] }
@@ -2377,10 +2378,10 @@ components:
         note: { type: string }
     SubmissionGrade:
       type: object
-      required: [score]
       properties:
         score: { type: number, minimum: 0 }
         feedback: { type: string }
+        approvalStatus: { type: string, enum: [pending, approved, needs_revision] }
 
     Exam:
       type: object
@@ -2529,6 +2530,12 @@ components:
         courseTitle: { type: string }
         hasDegree: { type: boolean }
         hasTranscript: { type: boolean }
+        assignmentsTotal: { type: integer }
+        assignmentsApproved: { type: integer }
+        eligible: { type: boolean }
+        pendingItems:
+          type: array
+          items: { type: string }
 
     EmailLog:
       type: object

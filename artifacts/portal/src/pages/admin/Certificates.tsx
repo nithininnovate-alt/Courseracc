@@ -86,6 +86,7 @@ export default function AdminCertificates() {
                   <TableRow>
                     <TableHead>Student</TableHead>
                     <TableHead>Course</TableHead>
+                    <TableHead>Assignment approval</TableHead>
                     <TableHead className="text-right">Issue</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -97,12 +98,37 @@ export default function AdminCertificates() {
                         <div className="text-xs text-muted-foreground">{r.email}</div>
                       </TableCell>
                       <TableCell>{r.courseTitle}</TableCell>
+                      <TableCell>
+                        {r.eligible ? (
+                          <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
+                            {(r.assignmentsTotal ?? 0) === 0
+                              ? "No assignments required"
+                              : `All ${r.assignmentsTotal} approved`}
+                          </Badge>
+                        ) : (
+                          <div>
+                            <Badge variant="secondary">
+                              {r.assignmentsApproved ?? 0}/{r.assignmentsTotal ?? 0} approved
+                            </Badge>
+                            {r.pendingItems && r.pendingItems.length > 0 && (
+                              <ul className="mt-1 text-xs text-muted-foreground list-disc list-inside max-w-xs">
+                                {r.pendingItems.slice(0, 3).map((p) => (
+                                  <li key={p}>{p}</li>
+                                ))}
+                                {r.pendingItems.length > 3 && (
+                                  <li>and {r.pendingItems.length - 3} more…</li>
+                                )}
+                              </ul>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Button
                             size="sm"
                             variant={r.hasDegree ? "ghost" : "default"}
-                            disabled={r.hasDegree || issue.isPending}
+                            disabled={r.hasDegree || !r.eligible || issue.isPending}
                             onClick={() => handleIssue(r, "degree")}
                           >
                             <Award className="w-4 h-4 mr-2" />
@@ -111,7 +137,7 @@ export default function AdminCertificates() {
                           <Button
                             size="sm"
                             variant={r.hasTranscript ? "ghost" : "outline"}
-                            disabled={r.hasTranscript || issue.isPending}
+                            disabled={r.hasTranscript || !r.eligible || issue.isPending}
                             onClick={() => handleIssue(r, "transcript")}
                           >
                             <ScrollText className="w-4 h-4 mr-2" />

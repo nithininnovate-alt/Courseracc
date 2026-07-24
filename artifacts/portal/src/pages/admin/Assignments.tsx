@@ -22,6 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/common/StatusBadge";
+import { ApprovalBadge } from "@/components/common/ApprovalBadge";
 import { PageHeader, LoadingCard, EmptyCard } from "@/components/common/PageState";
 import { useToast } from "@/hooks/use-toast";
 import { Pencil, Trash2, ClipboardList, Download, FileText } from "lucide-react";
@@ -342,6 +343,21 @@ function SubmissionsDialog({ assignment, onClose }: { assignment: Assignment; on
     );
   };
 
+  const setApproval = (s: Submission, approvalStatus: "approved" | "needs_revision" | "pending") => {
+    gradeSubmission.mutate(
+      { id: s.id, data: { approvalStatus } },
+      {
+        onSuccess: () => {
+          toast({
+            title: approvalStatus === "approved" ? "Approved" : approvalStatus === "needs_revision" ? "Sent back for revision" : "Reset to pending",
+          });
+          qc.invalidateQueries();
+        },
+        onError: () => toast({ title: "Error", description: "Could not update approval.", variant: "destructive" }),
+      },
+    );
+  };
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-3xl">
@@ -367,6 +383,7 @@ function SubmissionsDialog({ assignment, onClose }: { assignment: Assignment; on
                 <TableRow>
                   <TableHead>Student</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Approval</TableHead>
                   <TableHead>Score</TableHead>
                   <TableHead>Work</TableHead>
                   <TableHead className="text-right">Action</TableHead>
@@ -384,6 +401,7 @@ function SubmissionsDialog({ assignment, onClose }: { assignment: Assignment; on
                       </div>
                     </TableCell>
                     <TableCell><StatusBadge status={s.status} /></TableCell>
+                    <TableCell><ApprovalBadge status={s.approvalStatus} /></TableCell>
                     <TableCell>{s.score != null ? `${s.score}/${assignment.maxScore}` : "—"}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -401,7 +419,19 @@ function SubmissionsDialog({ assignment, onClose }: { assignment: Assignment; on
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button size="sm" variant="outline" onClick={() => openGrade(s)}>Grade</Button>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button size="sm" variant="outline" onClick={() => openGrade(s)}>Grade</Button>
+                        {s.approvalStatus !== "approved" && (
+                          <Button size="sm" onClick={() => setApproval(s, "approved")} disabled={gradeSubmission.isPending}>
+                            Approve
+                          </Button>
+                        )}
+                        {s.approvalStatus !== "needs_revision" && (
+                          <Button size="sm" variant="outline" className="text-destructive" onClick={() => setApproval(s, "needs_revision")} disabled={gradeSubmission.isPending}>
+                            Needs revision
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

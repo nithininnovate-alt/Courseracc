@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/common/StatusBadge";
+import { ApprovalBadge } from "@/components/common/ApprovalBadge";
 import { PageHeader, LoadingCard, EmptyCard } from "@/components/common/PageState";
 import { useToast } from "@/hooks/use-toast";
 import { FileText, Download, PenLine, CheckCircle2, CloudUpload } from "lucide-react";
@@ -140,7 +141,10 @@ export default function StudentAssignments() {
                           isDraft ? (
                             <span className="text-amber-600 text-sm font-medium">Draft saved</span>
                           ) : (
-                            <StatusBadge status={sub.status} />
+                            <div className="flex items-center gap-2">
+                              <StatusBadge status={sub.status} />
+                              <ApprovalBadge status={sub.approvalStatus} />
+                            </div>
                           )
                         ) : (
                           <span className="text-muted-foreground text-sm">Not started</span>

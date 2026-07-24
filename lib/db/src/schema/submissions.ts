@@ -15,6 +15,9 @@ export const submissionsTable = pgTable("submissions", {
   assignmentId: integer("assignment_id").notNull(),
   userId: integer("user_id").notNull(),
   status: text("status").notNull().default("submitted"),
+  // Staff review outcome: pending | approved | needs_revision.
+  // Resets to pending when the student resubmits.
+  approvalStatus: text("approval_status").notNull().default("pending"),
   score: real("score"),
   fileUrl: text("file_url"),
   textContent: text("text_content"),

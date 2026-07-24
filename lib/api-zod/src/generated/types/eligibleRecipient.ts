@@ -14,4 +14,8 @@ export interface EligibleRecipient {
   courseTitle: string;
   hasDegree?: boolean;
   hasTranscript?: boolean;
+  assignmentsTotal?: number;
+  assignmentsApproved?: number;
+  eligible?: boolean;
+  pendingItems?: string[];
 }
