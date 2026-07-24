@@ -1075,11 +1075,16 @@ type ApprovalProgress = {
   pendingItems: string[];
 };
 
+// Accepts an optional executor so callers can run the check inside a
+// transaction (e.g. certificate issuance re-checks under row locks).
+type DbExecutor = Pick<typeof db, "select">;
+
 async function assignmentApprovalProgress(
   userId: number,
   courseId: number,
+  dbc: DbExecutor = db,
 ): Promise<ApprovalProgress> {
-  const rows = await db
+  const rows = await dbc
     .select({
       assignmentTitle: assignmentsTable.title,
       year: subjectsTable.year,
@@ -1209,48 +1214,87 @@ router.post("/certificates", requireStaff, async (req, res) => {
     });
     return;
   }
-  const progress = await assignmentApprovalProgress(userId, courseId);
-  if (progress.pendingItems.length > 0) {
-    const preview = progress.pendingItems.slice(0, 3).join("; ");
-    const more =
-      progress.pendingItems.length > 3
-        ? `; and ${progress.pendingItems.length - 3} more`
-        : "";
-    res.status(422).json({
-      error: `Student is not eligible: ${progress.assignmentsApproved}/${progress.assignmentsTotal} assignments approved. Outstanding — ${preview}${more}`,
-    });
+  // Eligibility check + insert must be atomic: a student resubmitting (which
+  // resets approval to pending) at the moment staff issue a certificate must
+  // not slip a certificate through on a just-outdated check. We lock the
+  // student's submission rows for this course FOR UPDATE, so any concurrent
+  // resubmission (an UPDATE on those rows) either commits before our re-check
+  // (we see pending and refuse) or blocks until we commit.
+  type IssueOutcome =
+    | { status: 422 | 409; error: string }
+    | { certificate: typeof certificatesTable.$inferSelect; number: string };
+  const outcome = await db.transaction(async (tx): Promise<IssueOutcome> => {
+    const assignmentRows = await tx
+      .select({ id: assignmentsTable.id })
+      .from(assignmentsTable)
+      .innerJoin(subjectsTable, eq(subjectsTable.id, assignmentsTable.subjectId))
+      .where(eq(subjectsTable.courseId, courseId));
+    const assignmentIds = assignmentRows.map((r) => r.id);
+    if (assignmentIds.length > 0) {
+      await tx
+        .select({ id: submissionsTable.id })
+        .from(submissionsTable)
+        .where(
+          and(
+            eq(submissionsTable.userId, userId),
+            inArray(submissionsTable.assignmentId, assignmentIds),
+          ),
+        )
+        .for("update");
+    }
+
+    const progress = await assignmentApprovalProgress(userId, courseId, tx);
+    if (progress.pendingItems.length > 0) {
+      const preview = progress.pendingItems.slice(0, 3).join("; ");
+      const more =
+        progress.pendingItems.length > 3
+          ? `; and ${progress.pendingItems.length - 3} more`
+          : "";
+      return {
+        status: 422 as const,
+        error: `Student is not eligible: ${progress.assignmentsApproved}/${progress.assignmentsTotal} assignments approved. Outstanding — ${preview}${more}`,
+      };
+    }
+
+    const [existing] = await tx
+      .select()
+      .from(certificatesTable)
+      .where(
+        and(
+          eq(certificatesTable.userId, userId),
+          eq(certificatesTable.courseId, courseId),
+          eq(certificatesTable.type, type),
+          eq(certificatesTable.status, "issued"),
+        ),
+      );
+    if (existing) {
+      return {
+        status: 409 as const,
+        error: "Certificate already issued for this student and course",
+      };
+    }
+
+    const provisional = `pending-${crypto.randomUUID()}`;
+    const [created] = await tx
+      .insert(certificatesTable)
+      .values({ userId, courseId, type, certificateNumber: provisional })
+      .returning();
+
+    const prefix = TYPE_PREFIX[type] ?? "CGU";
+    const number = `CGU-${prefix}-${created.issuedAt.getFullYear()}-${String(created.id).padStart(5, "0")}`;
+    const [certificate] = await tx
+      .update(certificatesTable)
+      .set({ certificateNumber: number })
+      .where(eq(certificatesTable.id, created.id))
+      .returning();
+    return { certificate, number };
+  });
+
+  if ("error" in outcome) {
+    res.status(outcome.status).json({ error: outcome.error });
     return;
   }
-
-  const [existing] = await db
-    .select()
-    .from(certificatesTable)
-    .where(
-      and(
-        eq(certificatesTable.userId, userId),
-        eq(certificatesTable.courseId, courseId),
-        eq(certificatesTable.type, type),
-        eq(certificatesTable.status, "issued"),
-      ),
-    );
-  if (existing) {
-    res.status(409).json({ error: "Certificate already issued for this student and course" });
-    return;
-  }
-
-  const provisional = `pending-${crypto.randomUUID()}`;
-  const [created] = await db
-    .insert(certificatesTable)
-    .values({ userId, courseId, type, certificateNumber: provisional })
-    .returning();
-
-  const prefix = TYPE_PREFIX[type] ?? "CGU";
-  const number = `CGU-${prefix}-${created.issuedAt.getFullYear()}-${String(created.id).padStart(5, "0")}`;
-  const [certificate] = await db
-    .update(certificatesTable)
-    .set({ certificateNumber: number })
-    .where(eq(certificatesTable.id, created.id))
-    .returning();
+  const { certificate, number } = outcome;
 
   const fullName =
     [student.firstName, student.lastName].filter(Boolean).join(" ") || student.email;
