@@ -9,19 +9,6 @@ import { Clock, ArrowRight, Lock, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader, EmptyCard } from "@/components/common/PageState";
 
-/**
- * IEAC letters are issued only for BBA/MBA/DBA programmes; every other
- * programme gets the EAHEA letter. Mirrors the server-side rule.
- */
-function letterValidatorFor(title: string): "ieac" | "eahea" {
-  const t = title.toLowerCase();
-  const isDegree =
-    t.includes("dba") || t.includes("doctor") ||
-    t.includes("mba") || t.includes("master") ||
-    t.includes("bba") || t.includes("bachelor");
-  return isDegree ? "ieac" : "eahea";
-}
-
 export default function StudentCourses() {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -97,11 +84,11 @@ export default function StudentCourses() {
                       </Button>
                       <Button variant="outline" size="sm" className="w-full" asChild data-testid={`button-letter-${c.id}`}>
                         <a
-                          href={`/api/enrollments/${enrollmentByCourse.get(c.id)?.id}/letter?validator=${letterValidatorFor(c.title)}`}
+                          href={`/api/enrollments/${enrollmentByCourse.get(c.id)?.id}/letter?validator=${c.letterType}`}
                           target="_blank"
                           rel="noreferrer"
                         >
-                          <FileText className="w-3.5 h-3.5 mr-1" /> {letterValidatorFor(c.title).toUpperCase()} Letter
+                          <FileText className="w-3.5 h-3.5 mr-1" /> {c.letterType.toUpperCase()} Letter
                         </a>
                       </Button>
                     </div>

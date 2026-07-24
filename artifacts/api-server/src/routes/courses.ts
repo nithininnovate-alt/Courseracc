@@ -33,12 +33,13 @@ import {
   getUnlockedYears,
   isYearUnlocked,
 } from "../lib/access";
+import { letterValidatorFor } from "../lib/programInfo";
 
 const router: IRouter = Router();
 
 type CourseRow = typeof coursesTable.$inferSelect;
 function serializeCourse(c: CourseRow) {
-  return { ...c, price: Number(c.price) };
+  return { ...c, price: Number(c.price), letterType: letterValidatorFor(c.title) };
 }
 
 function slugify(title: string): string {

@@ -40,6 +40,7 @@ export * from './course';
 export * from './courseAccess';
 export * from './courseInput';
 export * from './courseInputLevel';
+export * from './courseLetterType';
 export * from './courseLevel';
 export * from './discountCode';
 export * from './discountCodeInput';

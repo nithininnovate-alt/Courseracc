@@ -5,6 +5,7 @@
  * Central Global University LMS/SMS API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CourseLetterType } from './courseLetterType';
 import type { CourseLevel } from './courseLevel';
 
 export interface Course {
@@ -16,6 +17,8 @@ export interface Course {
   level: CourseLevel;
   durationWeeks: number;
   price: number;
+  /** Which accreditation body validates the enrollment letter for this course. */
+  letterType: CourseLetterType;
   /** @nullable */
   thumbnailUrl?: string | null;
   createdAt: Date;

@@ -1994,7 +1994,7 @@ components:
 
     Course:
       type: object
-      required: [id, title, slug, level, durationWeeks, price, createdAt]
+      required: [id, title, slug, level, durationWeeks, price, letterType, createdAt]
       properties:
         id: { type: integer }
         title: { type: string }
@@ -2003,6 +2003,10 @@ components:
         level: { type: string, enum: [undergraduate, postgraduate, diploma, certificate, doctorate] }
         durationWeeks: { type: integer }
         price: { type: number }
+        letterType:
+          type: string
+          enum: [ieac, eahea]
+          description: Which accreditation body validates the enrollment letter for this course.
         thumbnailUrl: { type: ["string", "null"] }
         createdAt: { type: string, format: date-time }
     CourseInput:

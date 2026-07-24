@@ -245,6 +245,17 @@ export const CourseLevel = {
   doctorate: 'doctorate',
 } as const;
 
+/**
+ * Which accreditation body validates the enrollment letter for this course.
+ */
+export type CourseLetterType = typeof CourseLetterType[keyof typeof CourseLetterType];
+
+
+export const CourseLetterType = {
+  ieac: 'ieac',
+  eahea: 'eahea',
+} as const;
+
 export interface Course {
   id: number;
   title: string;
@@ -254,6 +265,8 @@ export interface Course {
   level: CourseLevel;
   durationWeeks: number;
   price: number;
+  /** Which accreditation body validates the enrollment letter for this course. */
+  letterType: CourseLetterType;
   /** @nullable */
   thumbnailUrl?: string | null;
   createdAt: string;

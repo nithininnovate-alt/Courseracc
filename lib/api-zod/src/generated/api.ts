@@ -531,6 +531,7 @@ export const ListCoursesResponseItem = zod.object({
   "level": zod.enum(['undergraduate', 'postgraduate', 'diploma', 'certificate', 'doctorate']),
   "durationWeeks": zod.number(),
   "price": zod.number(),
+  "letterType": zod.enum(['ieac', 'eahea']).describe('Which accreditation body validates the enrollment letter for this course.'),
   "thumbnailUrl": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
@@ -560,6 +561,7 @@ export const CreateCourseResponse = zod.object({
   "level": zod.enum(['undergraduate', 'postgraduate', 'diploma', 'certificate', 'doctorate']),
   "durationWeeks": zod.number(),
   "price": zod.number(),
+  "letterType": zod.enum(['ieac', 'eahea']).describe('Which accreditation body validates the enrollment letter for this course.'),
   "thumbnailUrl": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
@@ -580,6 +582,7 @@ export const GetCourseResponse = zod.object({
   "level": zod.enum(['undergraduate', 'postgraduate', 'diploma', 'certificate', 'doctorate']),
   "durationWeeks": zod.number(),
   "price": zod.number(),
+  "letterType": zod.enum(['ieac', 'eahea']).describe('Which accreditation body validates the enrollment letter for this course.'),
   "thumbnailUrl": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
@@ -612,6 +615,7 @@ export const UpdateCourseResponse = zod.object({
   "level": zod.enum(['undergraduate', 'postgraduate', 'diploma', 'certificate', 'doctorate']),
   "durationWeeks": zod.number(),
   "price": zod.number(),
+  "letterType": zod.enum(['ieac', 'eahea']).describe('Which accreditation body validates the enrollment letter for this course.'),
   "thumbnailUrl": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
