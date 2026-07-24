@@ -15,16 +15,26 @@ export interface ApplicationInput {
   fullName: string;
   /** @minLength 1 */
   email: string;
-  phone?: string;
-  dateOfBirth?: string;
-  gender?: string;
-  fatherName?: string;
-  motherName?: string;
-  nationality?: string;
-  address?: string;
-  city?: string;
-  country?: string;
-  previousQualification?: string;
+  /** @minLength 1 */
+  phone: string;
+  /** @minLength 1 */
+  dateOfBirth: string;
+  /** @minLength 1 */
+  gender: string;
+  /** @minLength 1 */
+  fatherName: string;
+  /** @minLength 1 */
+  motherName: string;
+  /** @minLength 1 */
+  nationality: string;
+  /** @minLength 1 */
+  address: string;
+  /** @minLength 1 */
+  city: string;
+  /** @minLength 1 */
+  country: string;
+  /** @minLength 1 */
+  previousQualification: string;
   previousInstitution?: string;
   graduationYear?: string;
   gradePercentage?: string;

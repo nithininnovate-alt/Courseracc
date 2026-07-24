@@ -42,6 +42,7 @@ import {
 } from "../lib/email";
 import { generateResultReport } from "../lib/resultReport";
 import { generateEnrollmentLetter } from "../lib/enrollmentLetter";
+import { letterValidatorFor } from "../lib/programInfo";
 import { ensureStudentId } from "../lib/studentId";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 
@@ -180,6 +181,15 @@ router.get("/enrollments/:id/letter", async (req, res) => {
     .where(eq(coursesTable.id, enrollment.courseId));
   if (!student || !course) {
     res.status(404).json({ error: "Enrollment record incomplete" });
+    return;
+  }
+  // Only the accreditation body matching the programme may validate the letter:
+  // IEAC for BBA/MBA/DBA programmes, EAHEA for everything else.
+  const allowedValidator = letterValidatorFor(course.title);
+  if (validatorParam !== allowedValidator) {
+    res.status(403).json({
+      error: `This programme's enrollment letter is issued under ${allowedValidator.toUpperCase()} accreditation`,
+    });
     return;
   }
 

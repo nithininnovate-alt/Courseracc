@@ -11,6 +11,9 @@ export interface UpdateProfileInput {
   lastName?: string;
   phone?: string;
   dateOfBirth?: string;
+  gender?: string;
+  nationality?: string;
+  city?: string;
   address?: string;
   country?: string;
   avatarUrl?: string;

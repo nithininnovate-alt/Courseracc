@@ -46,6 +46,15 @@ export function resolveProgramInfo(programName: string): ProgramInfo {
   return { code, ...info };
 }
 
+/**
+ * Which accreditation body validates the enrollment letter for a programme.
+ * IEAC letters are issued only for BBA/MBA/DBA programmes; every other
+ * programme (certificates, diplomas, etc.) gets the EAHEA letter.
+ */
+export function letterValidatorFor(programName: string): "ieac" | "eahea" {
+  return resolveProgramInfo(programName).code === "PRG" ? "eahea" : "ieac";
+}
+
 export const ACCREDITATIONS: Array<{ title: string; body: string }> = [
   {
     title: "International Education Accreditation Council (IEAC) Accreditation:",

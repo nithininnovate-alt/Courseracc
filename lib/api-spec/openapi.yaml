@@ -1844,6 +1844,9 @@ components:
         avatarUrl: { type: ["string", "null"] }
         phone: { type: ["string", "null"] }
         dateOfBirth: { type: ["string", "null"] }
+        gender: { type: ["string", "null"] }
+        nationality: { type: ["string", "null"] }
+        city: { type: ["string", "null"] }
         address: { type: ["string", "null"] }
         country: { type: ["string", "null"] }
         studentId: { type: ["string", "null"] }
@@ -1862,6 +1865,9 @@ components:
         lastName: { type: string }
         phone: { type: string }
         dateOfBirth: { type: string }
+        gender: { type: string }
+        nationality: { type: string }
+        city: { type: string }
         address: { type: string }
         country: { type: string }
         avatarUrl: { type: string }
@@ -1941,22 +1947,37 @@ components:
             $ref: "#/components/schemas/ApplicationDocument"
     ApplicationInput:
       type: object
-      required: [programName, fullName, email]
+      required:
+        [
+          programName,
+          fullName,
+          email,
+          phone,
+          dateOfBirth,
+          gender,
+          fatherName,
+          motherName,
+          nationality,
+          address,
+          city,
+          country,
+          previousQualification,
+        ]
       properties:
         programName: { type: string, minLength: 1 }
         courseId: { type: integer }
         fullName: { type: string, minLength: 1 }
         email: { type: string, minLength: 1 }
-        phone: { type: string }
-        dateOfBirth: { type: string }
-        gender: { type: string }
-        fatherName: { type: string }
-        motherName: { type: string }
-        nationality: { type: string }
-        address: { type: string }
-        city: { type: string }
-        country: { type: string }
-        previousQualification: { type: string }
+        phone: { type: string, minLength: 1 }
+        dateOfBirth: { type: string, minLength: 1 }
+        gender: { type: string, minLength: 1 }
+        fatherName: { type: string, minLength: 1 }
+        motherName: { type: string, minLength: 1 }
+        nationality: { type: string, minLength: 1 }
+        address: { type: string, minLength: 1 }
+        city: { type: string, minLength: 1 }
+        country: { type: string, minLength: 1 }
+        previousQualification: { type: string, minLength: 1 }
         previousInstitution: { type: string }
         graduationYear: { type: string }
         gradePercentage: { type: string }

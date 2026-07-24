@@ -4,6 +4,7 @@ import {
   db,
   applicationsTable,
   applicationDocumentsTable,
+  usersTable,
   type Application,
   type ApplicationDocument,
 } from "@workspace/db";
@@ -190,6 +191,54 @@ router.patch("/applications/:id", requireStaff, async (req, res) => {
     .set(updateValues)
     .where(eq(applicationsTable.id, id))
     .returning();
+
+  // On approval, copy the applicant's details into their student profile so
+  // they don't have to re-enter them. Only fills fields that are still empty,
+  // so anything the student has since edited in their profile is preserved.
+  if (status === "approved" && existing.userId) {
+    try {
+      const [profile] = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, existing.userId));
+      if (profile) {
+        const fill: Partial<typeof usersTable.$inferInsert> = {};
+        const empty = (v: string | null | undefined) => !v || !v.trim();
+        if (empty(profile.firstName) && empty(profile.lastName)) {
+          const parts = existing.fullName.trim().split(/\s+/);
+          fill.firstName = parts[0];
+          if (parts.length > 1) fill.lastName = parts.slice(1).join(" ");
+        }
+        const map: Array<[
+          "phone" | "dateOfBirth" | "gender" | "fatherName" | "motherName" | "nationality" | "city" | "country" | "address",
+          string | null,
+        ]> = [
+          ["phone", existing.phone],
+          ["dateOfBirth", existing.dateOfBirth],
+          ["gender", existing.gender],
+          ["fatherName", existing.fatherName],
+          ["motherName", existing.motherName],
+          ["nationality", existing.nationality],
+          ["city", existing.city],
+          ["country", existing.country],
+          ["address", existing.address],
+        ];
+        for (const [key, value] of map) {
+          if (value?.trim() && empty(profile[key as keyof typeof profile] as string | null)) {
+            fill[key] = value.trim();
+          }
+        }
+        if (Object.keys(fill).length > 0) {
+          await db
+            .update(usersTable)
+            .set(fill)
+            .where(eq(usersTable.id, existing.userId));
+        }
+      }
+    } catch (err) {
+      req.log.error({ err }, "Failed to sync application details to profile");
+    }
+  }
 
   // Fire decision emails.
   if (status === "approved") {

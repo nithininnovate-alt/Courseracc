@@ -82,8 +82,26 @@ export default function ApplyPage() {
     set(key, e.target.value);
 
   const canProceed = (): boolean => {
-    if (step === 0) return form.fullName.trim() !== "" && form.email.trim() !== "";
-    if (step === 2) return form.programName.trim() !== "";
+    if (step === 0)
+      return (
+        form.fullName.trim() !== "" &&
+        form.email.trim() !== "" &&
+        form.phone.trim() !== "" &&
+        form.dateOfBirth.trim() !== "" &&
+        form.gender.trim() !== "" &&
+        form.fatherName.trim() !== "" &&
+        form.motherName.trim() !== "" &&
+        form.nationality.trim() !== "" &&
+        form.city.trim() !== "" &&
+        form.country.trim() !== "" &&
+        form.address.trim() !== ""
+      );
+    if (step === 1) return form.previousQualification.trim() !== "";
+    if (step === 2)
+      return (
+        form.programName.trim() !== "" &&
+        (!courses || courses.length === 0 || form.courseId !== undefined)
+      );
     return true;
   };
 
@@ -98,16 +116,16 @@ export default function ApplyPage() {
           courseId: form.courseId,
           fullName: form.fullName,
           email: form.email,
-          phone: form.phone || undefined,
-          dateOfBirth: form.dateOfBirth || undefined,
-          gender: form.gender || undefined,
-          fatherName: form.fatherName || undefined,
-          motherName: form.motherName || undefined,
-          nationality: form.nationality || undefined,
-          address: form.address || undefined,
-          city: form.city || undefined,
-          country: form.country || undefined,
-          previousQualification: form.previousQualification || undefined,
+          phone: form.phone,
+          dateOfBirth: form.dateOfBirth,
+          gender: form.gender,
+          fatherName: form.fatherName,
+          motherName: form.motherName,
+          nationality: form.nationality,
+          address: form.address,
+          city: form.city,
+          country: form.country,
+          previousQualification: form.previousQualification,
           previousInstitution: form.previousInstitution || undefined,
           graduationYear: form.graduationYear || undefined,
           gradePercentage: form.gradePercentage || undefined,
@@ -215,17 +233,17 @@ export default function ApplyPage() {
                     <Input id="email" type="email" required value={form.email} onChange={text("email")} className="h-12" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input id="phone" value={form.phone} onChange={text("phone")} className="h-12" />
+                    <Label htmlFor="phone">Phone *</Label>
+                    <Input id="phone" required value={form.phone} onChange={text("phone")} className="h-12" />
                   </div>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                    <Input id="dateOfBirth" type="date" value={form.dateOfBirth} onChange={text("dateOfBirth")} className="h-12" />
+                    <Label htmlFor="dateOfBirth">Date of Birth *</Label>
+                    <Input id="dateOfBirth" type="date" required value={form.dateOfBirth} onChange={text("dateOfBirth")} className="h-12" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="gender">Gender</Label>
+                    <Label htmlFor="gender">Gender *</Label>
                     <Select value={form.gender} onValueChange={(v) => set("gender", v)}>
                       <SelectTrigger className="h-12"><SelectValue placeholder="Select" /></SelectTrigger>
                       <SelectContent>
@@ -239,32 +257,32 @@ export default function ApplyPage() {
                 </div>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="fatherName">Father/Husband Name</Label>
-                    <Input id="fatherName" value={form.fatherName} onChange={text("fatherName")} className="h-12" />
+                    <Label htmlFor="fatherName">Father/Husband Name *</Label>
+                    <Input id="fatherName" required value={form.fatherName} onChange={text("fatherName")} className="h-12" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="motherName">Mother Name</Label>
-                    <Input id="motherName" value={form.motherName} onChange={text("motherName")} className="h-12" />
-                  </div>
-                </div>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="nationality">Nationality</Label>
-                    <Input id="nationality" value={form.nationality} onChange={text("nationality")} className="h-12" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="city">City</Label>
-                    <Input id="city" value={form.city} onChange={text("city")} className="h-12" />
+                    <Label htmlFor="motherName">Mother Name *</Label>
+                    <Input id="motherName" required value={form.motherName} onChange={text("motherName")} className="h-12" />
                   </div>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="country">Country</Label>
-                    <Input id="country" value={form.country} onChange={text("country")} className="h-12" />
+                    <Label htmlFor="nationality">Nationality *</Label>
+                    <Input id="nationality" required value={form.nationality} onChange={text("nationality")} className="h-12" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="address">Address</Label>
-                    <Input id="address" value={form.address} onChange={text("address")} className="h-12" />
+                    <Label htmlFor="city">City *</Label>
+                    <Input id="city" required value={form.city} onChange={text("city")} className="h-12" />
+                  </div>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="country">Country *</Label>
+                    <Input id="country" required value={form.country} onChange={text("country")} className="h-12" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Address *</Label>
+                    <Input id="address" required value={form.address} onChange={text("address")} className="h-12" />
                   </div>
                 </div>
               </div>
@@ -273,8 +291,8 @@ export default function ApplyPage() {
             {step === 1 && (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="previousQualification">Highest Qualification</Label>
-                  <Input id="previousQualification" value={form.previousQualification} onChange={text("previousQualification")} placeholder="e.g. High School Diploma, BSc" className="h-12" />
+                  <Label htmlFor="previousQualification">Highest Qualification *</Label>
+                  <Input id="previousQualification" required value={form.previousQualification} onChange={text("previousQualification")} placeholder="e.g. High School Diploma, BSc" className="h-12" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="previousInstitution">Institution</Label>
@@ -297,7 +315,7 @@ export default function ApplyPage() {
               <div className="space-y-4">
                 {courses && courses.length > 0 && (
                   <div className="space-y-2">
-                    <Label>Select a Programme</Label>
+                    <Label>Select a Programme *</Label>
                     <Select
                       value={form.courseId ? String(form.courseId) : ""}
                       onValueChange={(v) => {
@@ -320,7 +338,11 @@ export default function ApplyPage() {
                 <div className="space-y-2">
                   <Label htmlFor="programName">Programme Name *</Label>
                   <Input id="programName" required value={form.programName} onChange={text("programName")} placeholder="e.g. BSc Computer Science" className="h-12" />
-                  <p className="text-xs text-muted-foreground">Pick from the catalog above or type the programme you are interested in.</p>
+                  <p className="text-xs text-muted-foreground">
+                    {courses && courses.length > 0
+                      ? "Select your programme from the catalog above. You can adjust the programme name if needed."
+                      : "Type the programme you are interested in."}
+                  </p>
                 </div>
               </div>
             )}

@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { PageHeader, LoadingCard } from "@/components/common/PageState";
@@ -33,6 +34,9 @@ export default function StudentProfile() {
     lastName: "",
     phone: "",
     dateOfBirth: "",
+    gender: "",
+    nationality: "",
+    city: "",
     address: "",
     country: "",
     fatherName: "",
@@ -46,6 +50,9 @@ export default function StudentProfile() {
         lastName: user.lastName ?? "",
         phone: user.phone ?? "",
         dateOfBirth: user.dateOfBirth ?? "",
+        gender: user.gender ?? "",
+        nationality: user.nationality ?? "",
+        city: user.city ?? "",
         address: user.address ?? "",
         country: user.country ?? "",
         fatherName: user.fatherName ?? "",
@@ -102,6 +109,9 @@ export default function StudentProfile() {
           lastName: form.lastName || undefined,
           phone: form.phone || undefined,
           dateOfBirth: form.dateOfBirth || undefined,
+          gender: form.gender || undefined,
+          nationality: form.nationality || undefined,
+          city: form.city || undefined,
           address: form.address || undefined,
           country: form.country || undefined,
           fatherName: form.fatherName || undefined,
@@ -206,6 +216,28 @@ export default function StudentProfile() {
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="gender">Gender</Label>
+                  <Select value={form.gender} onValueChange={(v) => setForm((f) => ({ ...f, gender: v }))}>
+                    <SelectTrigger className="h-11" id="gender"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="undisclosed">Prefer not to say</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="nationality">Nationality</Label>
+                  <Input id="nationality" value={form.nationality} onChange={text("nationality")} className="h-11" />
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input id="city" value={form.city} onChange={text("city")} className="h-11" />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="country">Country</Label>
                   <Input id="country" value={form.country} onChange={text("country")} className="h-11" />

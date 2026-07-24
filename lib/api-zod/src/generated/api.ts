@@ -40,6 +40,9 @@ export const StaffLoginResponse = zod.object({
   "avatarUrl": zod.string().nullish(),
   "phone": zod.string().nullish(),
   "dateOfBirth": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "nationality": zod.string().nullish(),
+  "city": zod.string().nullish(),
   "address": zod.string().nullish(),
   "country": zod.string().nullish(),
   "studentId": zod.string().nullish(),
@@ -76,6 +79,9 @@ export const GetCurrentUserResponse = zod.object({
   "avatarUrl": zod.string().nullish(),
   "phone": zod.string().nullish(),
   "dateOfBirth": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "nationality": zod.string().nullish(),
+  "city": zod.string().nullish(),
   "address": zod.string().nullish(),
   "country": zod.string().nullish(),
   "studentId": zod.string().nullish(),
@@ -98,6 +104,9 @@ export const UpdateCurrentUserBody = zod.object({
   "lastName": zod.string().optional(),
   "phone": zod.string().optional(),
   "dateOfBirth": zod.string().optional(),
+  "gender": zod.string().optional(),
+  "nationality": zod.string().optional(),
+  "city": zod.string().optional(),
   "address": zod.string().optional(),
   "country": zod.string().optional(),
   "avatarUrl": zod.string().optional(),
@@ -121,6 +130,9 @@ export const UpdateCurrentUserResponse = zod.object({
   "avatarUrl": zod.string().nullish(),
   "phone": zod.string().nullish(),
   "dateOfBirth": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "nationality": zod.string().nullish(),
+  "city": zod.string().nullish(),
   "address": zod.string().nullish(),
   "country": zod.string().nullish(),
   "studentId": zod.string().nullish(),
@@ -149,6 +161,9 @@ export const ListUsersResponseItem = zod.object({
   "avatarUrl": zod.string().nullish(),
   "phone": zod.string().nullish(),
   "dateOfBirth": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "nationality": zod.string().nullish(),
+  "city": zod.string().nullish(),
   "address": zod.string().nullish(),
   "country": zod.string().nullish(),
   "studentId": zod.string().nullish(),
@@ -186,6 +201,9 @@ export const UpdateUserRoleResponse = zod.object({
   "avatarUrl": zod.string().nullish(),
   "phone": zod.string().nullish(),
   "dateOfBirth": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "nationality": zod.string().nullish(),
+  "city": zod.string().nullish(),
   "address": zod.string().nullish(),
   "country": zod.string().nullish(),
   "studentId": zod.string().nullish(),
@@ -251,21 +269,31 @@ export const ListApplicationsResponse = zod.array(ListApplicationsResponseItem)
 
 
 
+
+
+
+
+
+
+
+
+
+
 export const CreateApplicationBody = zod.object({
   "programName": zod.string().min(1),
   "courseId": zod.number().optional(),
   "fullName": zod.string().min(1),
   "email": zod.string().min(1),
-  "phone": zod.string().optional(),
-  "dateOfBirth": zod.string().optional(),
-  "gender": zod.string().optional(),
-  "fatherName": zod.string().optional(),
-  "motherName": zod.string().optional(),
-  "nationality": zod.string().optional(),
-  "address": zod.string().optional(),
-  "city": zod.string().optional(),
-  "country": zod.string().optional(),
-  "previousQualification": zod.string().optional(),
+  "phone": zod.string().min(1),
+  "dateOfBirth": zod.string().min(1),
+  "gender": zod.string().min(1),
+  "fatherName": zod.string().min(1),
+  "motherName": zod.string().min(1),
+  "nationality": zod.string().min(1),
+  "address": zod.string().min(1),
+  "city": zod.string().min(1),
+  "country": zod.string().min(1),
+  "previousQualification": zod.string().min(1),
   "previousInstitution": zod.string().optional(),
   "graduationYear": zod.string().optional(),
   "gradePercentage": zod.string().optional(),

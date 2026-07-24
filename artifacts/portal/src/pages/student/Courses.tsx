@@ -9,6 +9,19 @@ import { Clock, ArrowRight, Lock, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader, EmptyCard } from "@/components/common/PageState";
 
+/**
+ * IEAC letters are issued only for BBA/MBA/DBA programmes; every other
+ * programme gets the EAHEA letter. Mirrors the server-side rule.
+ */
+function letterValidatorFor(title: string): "ieac" | "eahea" {
+  const t = title.toLowerCase();
+  const isDegree =
+    t.includes("dba") || t.includes("doctor") ||
+    t.includes("mba") || t.includes("master") ||
+    t.includes("bba") || t.includes("bachelor");
+  return isDegree ? "ieac" : "eahea";
+}
+
 export default function StudentCourses() {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -82,26 +95,15 @@ export default function StudentCourses() {
                           Continue Learning <ArrowRight className="w-4 h-4 ml-2" />
                         </Link>
                       </Button>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button variant="outline" size="sm" asChild>
-                          <a
-                            href={`/api/enrollments/${enrollmentByCourse.get(c.id)?.id}/letter?validator=ieac`}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            <FileText className="w-3.5 h-3.5 mr-1" /> IEAC Letter
-                          </a>
-                        </Button>
-                        <Button variant="outline" size="sm" asChild>
-                          <a
-                            href={`/api/enrollments/${enrollmentByCourse.get(c.id)?.id}/letter?validator=eahea`}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            <FileText className="w-3.5 h-3.5 mr-1" /> EAHEA Letter
-                          </a>
-                        </Button>
-                      </div>
+                      <Button variant="outline" size="sm" className="w-full" asChild data-testid={`button-letter-${c.id}`}>
+                        <a
+                          href={`/api/enrollments/${enrollmentByCourse.get(c.id)?.id}/letter?validator=${letterValidatorFor(c.title)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <FileText className="w-3.5 h-3.5 mr-1" /> {letterValidatorFor(c.title).toUpperCase()} Letter
+                        </a>
+                      </Button>
                     </div>
                   ) : free ? (
                     <Button className="w-full" onClick={() => handleEnroll(c.id)} disabled={enroll.isPending}>

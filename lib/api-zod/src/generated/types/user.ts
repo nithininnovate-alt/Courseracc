@@ -26,6 +26,12 @@ export interface User {
   /** @nullable */
   dateOfBirth?: string | null;
   /** @nullable */
+  gender?: string | null;
+  /** @nullable */
+  nationality?: string | null;
+  /** @nullable */
+  city?: string | null;
+  /** @nullable */
   address?: string | null;
   /** @nullable */
   country?: string | null;

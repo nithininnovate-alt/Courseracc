@@ -37,6 +37,12 @@ export interface User {
   /** @nullable */
   dateOfBirth?: string | null;
   /** @nullable */
+  gender?: string | null;
+  /** @nullable */
+  nationality?: string | null;
+  /** @nullable */
+  city?: string | null;
+  /** @nullable */
   address?: string | null;
   /** @nullable */
   country?: string | null;
@@ -64,6 +70,9 @@ export interface UpdateProfileInput {
   lastName?: string;
   phone?: string;
   dateOfBirth?: string;
+  gender?: string;
+  nationality?: string;
+  city?: string;
   address?: string;
   country?: string;
   avatarUrl?: string;
@@ -184,16 +193,26 @@ export interface ApplicationInput {
   fullName: string;
   /** @minLength 1 */
   email: string;
-  phone?: string;
-  dateOfBirth?: string;
-  gender?: string;
-  fatherName?: string;
-  motherName?: string;
-  nationality?: string;
-  address?: string;
-  city?: string;
-  country?: string;
-  previousQualification?: string;
+  /** @minLength 1 */
+  phone: string;
+  /** @minLength 1 */
+  dateOfBirth: string;
+  /** @minLength 1 */
+  gender: string;
+  /** @minLength 1 */
+  fatherName: string;
+  /** @minLength 1 */
+  motherName: string;
+  /** @minLength 1 */
+  nationality: string;
+  /** @minLength 1 */
+  address: string;
+  /** @minLength 1 */
+  city: string;
+  /** @minLength 1 */
+  country: string;
+  /** @minLength 1 */
+  previousQualification: string;
   previousInstitution?: string;
   graduationYear?: string;
   gradePercentage?: string;
