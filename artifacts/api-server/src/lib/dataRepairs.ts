@@ -1,6 +1,7 @@
-import { like, and, eq } from "drizzle-orm";
-import { db, studyMaterialsTable } from "@workspace/db";
+import { like, and, eq, isNotNull } from "drizzle-orm";
+import { db, studyMaterialsTable, applicationsTable } from "@workspace/db";
 import { logger } from "./logger";
+import { syncApplicationToProfile } from "./profileSync";
 
 /**
  * One-time data repairs applied at startup (development and production).
@@ -47,5 +48,39 @@ export async function runDataRepairs(): Promise<void> {
     }
   } catch (err) {
     logger.error({ err }, "Data repair failed");
+  }
+
+  // Backfill: applications approved before approval-time profile sync existed
+  // left student profiles empty. Copy the submitted details into each linked
+  // profile, filling only fields that are still empty so nothing the student
+  // has edited is overwritten. Idempotent — once fields are filled, later
+  // runs are no-ops.
+  try {
+    const approved = await db
+      .select()
+      .from(applicationsTable)
+      .where(
+        and(
+          eq(applicationsTable.status, "approved"),
+          isNotNull(applicationsTable.userId),
+        ),
+      );
+    let usersUpdated = 0;
+    let fieldsFilled = 0;
+    for (const app of approved) {
+      const filled = await syncApplicationToProfile(app.userId!, app);
+      if (filled > 0) {
+        usersUpdated += 1;
+        fieldsFilled += filled;
+      }
+    }
+    if (usersUpdated > 0) {
+      logger.info(
+        { usersUpdated, fieldsFilled },
+        "Backfilled student profiles from approved applications",
+      );
+    }
+  } catch (err) {
+    logger.error({ err }, "Profile backfill from approved applications failed");
   }
 }
