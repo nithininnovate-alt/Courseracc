@@ -139,26 +139,6 @@ export default function AdminDashboard() {
             </ResponsiveContainer>
           </ChartCard>
 
-          <ChartCard title="Exam pass rates">
-            {analytics.examPassRates.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                No published results yet.
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={analytics.examPassRates} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} interval={0} angle={-15} textAnchor="end" height={60} />
-                  <YAxis fontSize={12} tickLine={false} axisLine={false} width={32} allowDecimals={false} />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="passed" stackId="a" fill={PALETTE[2]} name="Passed" radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="failed" stackId="a" fill={PALETTE[3]} name="Failed" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </ChartCard>
-
           <ChartCard title="Assignment completion">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={assignment} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>

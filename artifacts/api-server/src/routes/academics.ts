@@ -657,6 +657,27 @@ router.patch("/submissions/:id", requireStaff, async (req, res) => {
 
 /* -------------------------------- exams -------------------------------- */
 
+/**
+ * The exam feature is disabled ("for now") — no UI links to it and all
+ * interactive/mutating exam endpoints below return 403 with this message.
+ * Historical read endpoints (GET /exams, GET /exam-submissions, GET /results,
+ * GET /results/:id/report) remain available so previously published results
+ * and reports still render. Flip this to true to restore the feature.
+ */
+const EXAMS_ENABLED = false;
+
+function requireExamsEnabled(
+  _req: unknown,
+  res: import("express").Response,
+  next: import("express").NextFunction,
+) {
+  if (!EXAMS_ENABLED) {
+    res.status(403).json({ error: "The exam feature is disabled" });
+    return;
+  }
+  next();
+}
+
 router.get("/exams", async (req, res) => {
   const user = await resolveCurrentUser(req);
   if (isStaff(user)) {
@@ -681,7 +702,7 @@ router.get("/exams", async (req, res) => {
   res.json([]);
 });
 
-router.post("/exams", requireStaff, async (req, res) => {
+router.post("/exams", requireExamsEnabled, requireStaff, async (req, res) => {
   const parsed = CreateExamBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid input" });
@@ -706,7 +727,7 @@ router.get("/exams/:id", requireUser, async (req: AuthedRequest, res) => {
   res.json(row);
 });
 
-router.patch("/exams/:id", requireStaff, async (req, res) => {
+router.patch("/exams/:id", requireExamsEnabled, requireStaff, async (req, res) => {
   const id = Number(req.params.id);
   const parsed = UpdateExamBody.safeParse(req.body);
   if (!parsed.success) {
@@ -725,7 +746,7 @@ router.patch("/exams/:id", requireStaff, async (req, res) => {
   res.json(updated);
 });
 
-router.delete("/exams/:id", requireStaff, async (req, res) => {
+router.delete("/exams/:id", requireExamsEnabled, requireStaff, async (req, res) => {
   const id = Number(req.params.id);
   await db
     .delete(examSubmissionsTable)
@@ -806,7 +827,7 @@ router.get("/exams/:id/submissions", requireStaff, async (req, res) => {
   res.json([...submissionRows, ...rosterRows]);
 });
 
-router.post("/exams/:id/publish-results", requireStaff, async (req, res) => {
+router.post("/exams/:id/publish-results", requireExamsEnabled, requireStaff, async (req, res) => {
   const id = Number(req.params.id);
   const [exam] = await db.select().from(examsTable).where(eq(examsTable.id, id));
   if (!exam) {
@@ -864,6 +885,7 @@ router.get("/exam-submissions", async (req, res) => {
 
 router.post(
   "/exam-submissions",
+  requireExamsEnabled,
   requireUser,
   async (req: AuthedRequest, res) => {
     const parsed = CreateExamSubmissionBody.safeParse(req.body);
@@ -963,7 +985,7 @@ router.get("/results", async (req, res) => {
   res.json([]);
 });
 
-router.post("/results", requireStaff, async (req, res) => {
+router.post("/results", requireExamsEnabled, requireStaff, async (req, res) => {
   const parsed = CreateResultBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid input" });
@@ -1014,7 +1036,7 @@ router.post("/results", requireStaff, async (req, res) => {
   res.status(201).json(created);
 });
 
-router.patch("/results/:id", requireStaff, async (req, res) => {
+router.patch("/results/:id", requireExamsEnabled, requireStaff, async (req, res) => {
   const id = Number(req.params.id);
   const parsed = UpdateResultBody.safeParse(req.body);
   if (!parsed.success) {

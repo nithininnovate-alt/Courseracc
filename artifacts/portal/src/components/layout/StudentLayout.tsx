@@ -16,7 +16,6 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
     { label: "Course Catalog", href: "/portal/courses", icon: <Globe className="w-5 h-5" /> },
     { label: "My Learning", href: "/portal/learning", icon: <BookOpen className="w-5 h-5" /> },
     { label: "Assignments", href: "/portal/assignments", icon: <CheckSquare className="w-5 h-5" /> },
-    { label: "Exams", href: "/portal/exams", icon: <FileText className="w-5 h-5" /> },
     { label: "Payments", href: "/portal/payments", icon: <CreditCard className="w-5 h-5" /> },
     { label: "Certificates", href: "/portal/certificates", icon: <GraduationCap className="w-5 h-5" /> },
     { label: "My Applications", href: "/portal/applications", icon: <ArrowRight className="w-5 h-5" /> },

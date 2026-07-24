@@ -45,7 +45,6 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { label: "Applications", href: "/admin/applications", icon: <Inbox className="w-4 h-4" /> },
     { label: "Courses", href: "/admin/courses", icon: <BookOpen className="w-4 h-4" /> },
     { label: "Students", href: "/admin/students", icon: <Users className="w-4 h-4" /> },
-    { label: "Exams", href: "/admin/exams", icon: <FileText className="w-4 h-4" /> },
     { label: "Assignments", href: "/admin/assignments", icon: <ClipboardList className="w-4 h-4" /> },
     { label: "Payments", href: "/admin/payments", icon: <CreditCard className="w-4 h-4" /> },
     { label: "Certificates", href: "/admin/certificates", icon: <GraduationCap className="w-4 h-4" /> },

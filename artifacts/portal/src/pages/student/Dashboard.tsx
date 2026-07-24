@@ -34,7 +34,6 @@ export default function StudentDashboard() {
     { label: "Enrolled Courses", value: data?.enrolledCourses, icon: BookOpen, href: "/portal/learning" },
     { label: "Completed Courses", value: data?.completedCourses, icon: CheckCircle2, href: "/portal/learning" },
     { label: "Pending Assignments", value: data?.pendingAssignments, icon: FileText, href: "/portal/assignments" },
-    { label: "Upcoming Exams", value: data?.upcomingExams, icon: Clock, href: "/portal/exams" },
     { label: "Certificates", value: data?.certificates, icon: GraduationCap, href: "/portal/certificates" },
   ];
 

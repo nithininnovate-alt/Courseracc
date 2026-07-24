@@ -37,7 +37,6 @@ import StudentCourses from "@/pages/student/Courses";
 import StudentLearning from "@/pages/student/Learning";
 import StudentCourseLearning from "@/pages/student/CourseLearning";
 import StudentAssignments from "@/pages/student/Assignments";
-import StudentExams from "@/pages/student/Exams";
 import StudentPayments from "@/pages/student/Payments";
 import StudentCertificates from "@/pages/student/Certificates";
 import StudentApplications from "@/pages/student/Applications";
@@ -46,7 +45,6 @@ import AdminApplications from "@/pages/admin/Applications";
 import AdminCourses from "@/pages/admin/Courses";
 import AdminCourseBuilder from "@/pages/admin/CourseBuilder";
 import AdminStudents from "@/pages/admin/Students";
-import AdminExams from "@/pages/admin/Exams";
 import AdminAssignments from "@/pages/admin/Assignments";
 import AdminPayments from "@/pages/admin/Payments";
 import AdminCertificates from "@/pages/admin/Certificates";
@@ -733,7 +731,6 @@ export default function App() {
                       <Route path="/admin/courses" component={AdminCourses} />
                       <Route path="/admin/courses/:id" component={AdminCourseBuilder} />
                       <Route path="/admin/students" component={AdminStudents} />
-                      <Route path="/admin/exams" component={AdminExams} />
                       <Route path="/admin/assignments" component={AdminAssignments} />
                       <Route path="/admin/payments" component={AdminPayments} />
                       <Route path="/admin/certificates" component={AdminCertificates} />
@@ -757,7 +754,6 @@ export default function App() {
                         <Route path="/portal/learning" component={StudentLearning} />
                         <Route path="/portal/learning/:id" component={StudentCourseLearning} />
                         <Route path="/portal/assignments" component={StudentAssignments} />
-                        <Route path="/portal/exams" component={StudentExams} />
                         <Route path="/portal/payments" component={StudentPayments} />
                         <Route path="/portal/certificates" component={StudentCertificates} />
                         <Route path="/portal/applications" component={StudentApplications} />

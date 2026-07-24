@@ -1062,16 +1062,9 @@ router.get("/certificates", async (req, res) => {
 
 const TYPE_PREFIX: Record<string, string> = { degree: "DEG", transcript: "TRN" };
 
-async function publishedResultCourseKeys(): Promise<Set<string>> {
-  const rows = await db
-    .select({ userId: resultsTable.userId, courseId: subjectsTable.courseId })
-    .from(resultsTable)
-    .innerJoin(examsTable, eq(examsTable.id, resultsTable.examId))
-    .innerJoin(subjectsTable, eq(subjectsTable.id, examsTable.subjectId))
-    .where(eq(resultsTable.published, true));
-  return new Set(rows.map((r) => `${r.userId}:${r.courseId}`));
-}
-
+// Note: the exam feature is disabled, so eligibility no longer requires a
+// published exam result — a completed enrollment is sufficient. Assignment
+// approval gating is planned as a separate workflow.
 async function isCertificateEligible(userId: number, courseId: number): Promise<boolean> {
   const [enrollment] = await db
     .select({ id: enrollmentsTable.id })
@@ -1084,22 +1077,7 @@ async function isCertificateEligible(userId: number, courseId: number): Promise<
       ),
     )
     .limit(1);
-  if (!enrollment) return false;
-
-  const [result] = await db
-    .select({ id: resultsTable.id })
-    .from(resultsTable)
-    .innerJoin(examsTable, eq(examsTable.id, resultsTable.examId))
-    .innerJoin(subjectsTable, eq(subjectsTable.id, examsTable.subjectId))
-    .where(
-      and(
-        eq(resultsTable.userId, userId),
-        eq(resultsTable.published, true),
-        eq(subjectsTable.courseId, courseId),
-      ),
-    )
-    .limit(1);
-  return !!result;
+  return !!enrollment;
 }
 
 router.get("/certificates/eligible", requireStaff, async (_req, res) => {
@@ -1117,8 +1095,6 @@ router.get("/certificates/eligible", requireStaff, async (_req, res) => {
     .innerJoin(coursesTable, eq(coursesTable.id, enrollmentsTable.courseId))
     .where(eq(enrollmentsTable.status, "completed"));
 
-  const publishedKeys = await publishedResultCourseKeys();
-
   const issued = await db
     .select()
     .from(certificatesTable)
@@ -1128,9 +1104,7 @@ router.get("/certificates/eligible", requireStaff, async (_req, res) => {
   );
 
   res.json(
-    completed
-      .filter((row) => publishedKeys.has(`${row.userId}:${row.courseId}`))
-      .map((row) => ({
+    completed.map((row) => ({
       userId: row.userId,
       fullName:
         [row.firstName, row.lastName].filter(Boolean).join(" ") || row.email,
@@ -1168,7 +1142,7 @@ router.post("/certificates", requireStaff, async (req, res) => {
   if (!(await isCertificateEligible(userId, courseId))) {
     res.status(422).json({
       error:
-        "Student is not eligible: requires a completed enrollment and published results for this course",
+        "Student is not eligible: requires a completed enrollment for this course",
     });
     return;
   }
