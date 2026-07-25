@@ -122,11 +122,10 @@ export async function generateDegreeCertificate(
   const font = await embedAssetFont(doc, "font-plexsans.ttf");
   const fontBold = await embedAssetFont(doc, "font-poppins-semibold.ttf");
   const serif = await doc.embedFont(StandardFonts.TimesRoman);
-  // Official template typefaces: blackletter headings + Baskerville italics.
-  const blackletter = await embedAssetFont(doc, "font-blackletter.ttf");
-  const fontItalic = await embedAssetFont(doc, "font-garamond-italic.ttf");
-  const nameItalic = await embedAssetFont(doc, "font-baskerville-italic.ttf");
-  const script = await embedAssetFont(doc, "font-script.ttf");
+  // Official template typefaces (July 2026 revision): Manufacturing Consent
+  // for the blackletter headings, Libre Baskerville Italic for the body.
+  const blackletter = await embedAssetFont(doc, "font-manufacturing-consent.ttf");
+  const fontItalic = await embedAssetFont(doc, "font-libre-baskerville-italic.ttf");
   const cinzel = await embedAssetFont(doc, "font-cinzel-bold.ttf");
 
   drawPaper(page, { withBorder: false });
@@ -150,13 +149,20 @@ export async function generateDegreeCertificate(
   );
 
   y -= 22;
-  centerText(page, "Be it known that", y, 24, script, BLACK);
+  centerText(page, "Be it known that", y, 19, blackletter, BLACK);
   y -= 30;
-  centerText(page, data.studentName, y, 22, nameItalic, BLACK);
+  {
+    // Auto-fit long names: shrink until the single line fits inside the frame.
+    let nameSize = 19;
+    while (nameSize > 10 && blackletter.widthOfTextAtSize(data.studentName, nameSize) > 470) {
+      nameSize -= 0.5;
+    }
+    centerText(page, data.studentName, y, nameSize, blackletter, BLACK);
+  }
   y -= 26;
   centerText(page, "has been formally awarded the academic degree of", y, 11, fontItalic, BLACK);
   y -= 34;
-  y = centerWrapped(page, data.courseTitle, y, 17, cinzel, BLACK, 470, 24);
+  y = centerWrapped(page, data.courseTitle, y, 17, blackletter, BLACK, 470, 24);
   y -= 8;
   y = centerWrapped(
     page,
@@ -181,8 +187,6 @@ export async function generateDegreeCertificate(
   const d = data.issuedAt;
   const dateLine = `${ordinalDay(d.getDate())} of ${d.toLocaleDateString("en-US", { month: "long" })}, ${d.getFullYear()}`;
   centerText(page, dateLine, y, 12.5, fontItalic, BLACK);
-  y -= 16;
-  centerText(page, "at Georgia", y, 10.5, fontItalic, BLACK);
 
   // Signature block (centered): Doromal signature over name
   const sigW = 64;
@@ -205,27 +209,27 @@ export async function generateDegreeCertificate(
   let infoY = 96;
   if (data.studentId) {
     page.drawText(`SID: ${data.studentId}`, {
-      x: 168,
+      x: 148,
       y: infoY,
       size: 9.5,
-      font: fontBold,
+      font: fontItalic,
       color: BLACK,
     });
     infoY -= 14;
   }
   page.drawText("Verification available at:", {
-    x: 168,
+    x: 148,
     y: infoY,
     size: 8.5,
-    font,
+    font: fontItalic,
     color: BLACK,
   });
   infoY -= 12;
   page.drawText("verification.cgu.edu.ge", {
-    x: 168,
+    x: 148,
     y: infoY,
     size: 8.5,
-    font,
+    font: fontItalic,
     color: PRIMARY,
   });
 
