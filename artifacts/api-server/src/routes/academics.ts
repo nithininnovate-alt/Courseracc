@@ -36,6 +36,7 @@ import {
 import {
   sendEmail,
   buildSubmissionGraded,
+  buildSubmissionApproval,
   buildResultPublished,
   buildSubmissionReceived,
   buildCourseActivation,
@@ -634,6 +635,11 @@ router.patch("/submissions/:id", requireStaff, async (req, res) => {
     set.feedback = feedback;
   }
   if (approvalStatus !== undefined) set.approvalStatus = approvalStatus;
+  // Read the prior approval status so we only email on an actual change.
+  const [prior] = await db
+    .select({ approvalStatus: submissionsTable.approvalStatus })
+    .from(submissionsTable)
+    .where(eq(submissionsTable.id, id));
   // Drafts are private student work — they can't be graded or approved.
   const [updated] = await db
     .update(submissionsTable)
@@ -651,8 +657,10 @@ router.patch("/submissions/:id", requireStaff, async (req, res) => {
     return;
   }
 
-  // Notify the student that their work has been graded (only when a score was
-  // set in this request — approval-only updates don't email).
+  // Notify the student. A graded update sends the grading email (which covers
+  // any approval change made in the same request — never two emails at once);
+  // an approval-only change sends the approval/revision email, but only when
+  // the status actually changed.
   const [assignment] = await db
     .select()
     .from(assignmentsTable)
@@ -661,15 +669,27 @@ router.patch("/submissions/:id", requireStaff, async (req, res) => {
     .select()
     .from(usersTable)
     .where(eq(usersTable.id, updated.userId));
-  if (score !== undefined && assignment && student?.email) {
-    const msg = buildSubmissionGraded({
-      fullName: studentName(student),
-      assignmentTitle: assignment.title,
-      score: updated.score ?? 0,
-      maxScore: assignment.maxScore,
-      feedback: updated.feedback,
-    });
-    await sendEmail({ ...msg, to: student.email });
+  if (assignment && student?.email) {
+    if (score !== undefined) {
+      const msg = buildSubmissionGraded({
+        fullName: studentName(student),
+        assignmentTitle: assignment.title,
+        score: updated.score ?? 0,
+        maxScore: assignment.maxScore,
+        feedback: updated.feedback,
+      });
+      await sendEmail({ ...msg, to: student.email });
+    } else if (
+      (approvalStatus === "approved" || approvalStatus === "needs_revision") &&
+      prior?.approvalStatus !== approvalStatus
+    ) {
+      const msg = buildSubmissionApproval({
+        fullName: studentName(student),
+        assignmentTitle: assignment.title,
+        approvalStatus,
+      });
+      await sendEmail({ ...msg, to: student.email });
+    }
   }
 
   res.json(updated);

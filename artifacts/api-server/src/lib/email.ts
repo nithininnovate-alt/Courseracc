@@ -692,6 +692,40 @@ export function buildSubmissionGraded(opts: {
   });
 }
 
+export function buildSubmissionApproval(opts: {
+  fullName: string;
+  assignmentTitle: string;
+  approvalStatus: "approved" | "needs_revision";
+}): EmailMessage {
+  const { fullName, assignmentTitle, approvalStatus } = opts;
+  if (approvalStatus === "approved") {
+    return build({
+      subject: `Your submission was approved — ${assignmentTitle}`,
+      template: "assignment_approved",
+      heading: "Your submission was approved",
+      paragraphs: [
+        `Dear ${fullName},`,
+        ``,
+        `Good news — your submission for "${assignmentTitle}" has been reviewed and approved.`,
+        ``,
+        `No further action is needed. You can view the details from your student dashboard.`,
+      ],
+    });
+  }
+  return build({
+    subject: `Revision requested — ${assignmentTitle}`,
+    template: "assignment_needs_revision",
+    heading: "Your submission needs revision",
+    paragraphs: [
+      `Dear ${fullName},`,
+      ``,
+      `Your submission for "${assignmentTitle}" has been reviewed, and your instructor has asked for a revision.`,
+      ``,
+      `Please update your work and resubmit it from your student dashboard.`,
+    ],
+  });
+}
+
 export function buildResultPublished(opts: {
   fullName: string;
   examTitle: string;
