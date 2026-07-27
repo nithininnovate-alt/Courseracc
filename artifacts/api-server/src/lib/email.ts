@@ -563,8 +563,10 @@ export function buildAdmissionApproval(opts: {
   fullName: string;
   programName: string;
   applicationId: number;
+  /** Whether the admission letter PDF is attached to this email. */
+  hasAttachment?: boolean;
 }): EmailMessage {
-  const { fullName, programName, applicationId } = opts;
+  const { fullName, programName, applicationId, hasAttachment } = opts;
   return build({
     subject: `Congratulations! Your admission to ${programName} is approved`,
     template: "admission_approved",
@@ -574,7 +576,9 @@ export function buildAdmissionApproval(opts: {
       ``,
       `We are delighted to inform you that your application (reference #${applicationId}) for the ${programName} programme at ${BRAND.name} has been APPROVED.`,
       ``,
-      `Your official admission letter is available for download from your student dashboard. Please review it for your enrollment details and next steps.`,
+      hasAttachment
+        ? `Your official admission letter is attached to this email and is also available for download from your student dashboard. Please review it for your enrollment details and next steps.`
+        : `Your official admission letter is available for download from your student dashboard. Please review it for your enrollment details and next steps.`,
       ``,
       `Welcome to ${BRAND.name}!`,
     ],

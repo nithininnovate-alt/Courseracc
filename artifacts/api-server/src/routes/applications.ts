@@ -154,6 +154,7 @@ router.patch("/applications/:id", requireStaff, async (req, res) => {
   };
 
   // Generate the admission letter PDF on approval and store it.
+  let admissionLetterPdf: Buffer | null = null;
   if (status === "approved") {
     try {
       const studentId = existing.userId
@@ -166,10 +167,11 @@ router.patch("/applications/:id", requireStaff, async (req, res) => {
         applicationId: existing.id,
         reviewNote: parsed.data.reviewNote ?? existing.reviewNote,
       });
+      admissionLetterPdf = Buffer.from(pdfBytes);
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
       const putRes = await fetch(uploadURL, {
         method: "PUT",
-        body: Buffer.from(pdfBytes),
+        body: admissionLetterPdf,
         headers: { "Content-Type": "application/pdf" },
       });
       if (!putRes.ok) {
@@ -209,8 +211,23 @@ router.patch("/applications/:id", requireStaff, async (req, res) => {
       fullName: updated.fullName,
       programName: updated.programName,
       applicationId: updated.id,
+      hasAttachment: !!admissionLetterPdf,
     });
-    await sendEmail({ ...msg, to: updated.email });
+    await sendEmail({
+      ...msg,
+      to: updated.email,
+      ...(admissionLetterPdf
+        ? {
+            attachments: [
+              {
+                filename: `CGU-Admission-Letter-${updated.id}.pdf`,
+                content: admissionLetterPdf,
+                contentType: "application/pdf",
+              },
+            ],
+          }
+        : {}),
+    });
   } else if (status === "rejected") {
     const msg = buildAdmissionRejection({
       fullName: updated.fullName,

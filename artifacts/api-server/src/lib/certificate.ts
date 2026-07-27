@@ -140,7 +140,7 @@ export async function generateDegreeCertificate(
 
   let y = centerWrapped(
     page,
-    "By the authority of the Academic Board of Central Global University, and in alignment with the academic standards of the International Education Accreditation Council (UK), this degree is awarded upon completion of all required coursework, assessments, and quality assurance measures, with demonstrated academic excellence and ethical integrity.",
+    "By the authority of the Academic Board of Central Global University, and in alignment with the academic standards of the International Education Accreditation Council (United Kingdom), this degree is awarded upon completion of all required coursework, assessments, and quality assurance measures, with demonstrated academic excellence and ethical integrity.",
     height - 234,
     10.5,
     fontItalic,
