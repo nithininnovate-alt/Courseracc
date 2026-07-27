@@ -19,6 +19,7 @@ import {
   hasRelativeUrls,
 } from "../lib/newsletterHtml";
 import { logger } from "../lib/logger";
+import { cleanupOrphanedNewsletterImages } from "../lib/newsletterImageCleanup";
 
 const router: IRouter = Router();
 
@@ -265,6 +266,12 @@ router.post(
       .returning();
 
     res.status(201).json(serializeNewsletter(saved));
+
+    // Best-effort cleanup pass: remove week-old newsletter images that no
+    // stored newsletter references (uploads from abandoned drafts).
+    cleanupOrphanedNewsletterImages().catch((err) =>
+      logger.warn({ err }, "Newsletter image cleanup failed"),
+    );
   },
 );
 
