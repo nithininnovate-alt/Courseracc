@@ -183,10 +183,11 @@ export async function generateDegreeCertificate(
     BLACK,
     440,
   );
-  y -= 8;
   const d = data.issuedAt;
   const dateLine = `${ordinalDay(d.getDate())} of ${d.toLocaleDateString("en-US", { month: "long" })}, ${d.getFullYear()}`;
-  centerText(page, dateLine, y, 12.5, fontItalic, BLACK);
+  // Per the official template the date is simply the closing line of the
+  // "In witness whereof" paragraph — same face and size, no emphasis.
+  centerText(page, dateLine, y, 10.5, fontItalic, BLACK);
 
   // Signature block (centered): Doromal signature over name
   const sigW = 64;
