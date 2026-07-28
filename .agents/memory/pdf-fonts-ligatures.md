@@ -9,3 +9,4 @@ description: Conventions for embedding custom TTFs in CGU PDFs and avoiding pdf-
 - **How to apply:** any new PDF generator or new font must use embedAssetFont and call `doc.registerFontkit(fontkit)` after PDFDocument.create().
 - Border conventions: themed registrar docs get thin purple border via drawPaper default; degree certificate passes `{ withBorder: false }` and draws bronze drawCertFrame.
 - Good source for TTFs: gwfh.mranftl.com API (google/fonts raw URLs often return HTML).
+- **Image-asset trap:** pymupdf `fitz.Pixmap(src, w, h, clip)` SCALES the whole image (distortion) — it does not crop. To crop a PNG, slice `samples` rows/cols into a new `Pixmap(csRGB, w, h, bytes, alpha)`. Always re-render and visually zoom the result before shipping an edited asset.
