@@ -77,6 +77,10 @@ export function absolutizeUrls(html: string, baseUrl: string): string {
 
 /** Resolve the externally reachable base URL for links/images in emails. */
 export function publicBaseUrl(): string {
+  const configured = process.env.PUBLIC_BASE_URL?.trim();
+  if (configured) {
+    return configured.replace(/\/+$/, "");
+  }
   const domains = process.env.REPLIT_DOMAINS || process.env.REPLIT_DEV_DOMAIN;
   const first = domains?.split(",")[0]?.trim();
   return first ? `https://${first}` : "";

@@ -11,23 +11,62 @@ import {
 
 const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
 
-export const objectStorageClient = new Storage({
-  credentials: {
-    audience: "replit",
-    subject_token_type: "access_token",
-    token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`,
-    type: "external_account",
-    credential_source: {
-      url: `${REPLIT_SIDECAR_ENDPOINT}/credential`,
-      format: {
-        type: "json",
-        subject_token_field_name: "access_token",
+/**
+ * Storage driver selection. Both drivers talk to Google Cloud Storage; they
+ * differ only in how they authenticate and how presigned URLs are produced.
+ *
+ * - "replit" (default): credentials come from the Replit sidecar and URL
+ *   signing goes through the sidecar's signing endpoint. Works only on Replit.
+ * - "gcs": credentials come from a Google service-account key file
+ *   (GCS_SERVICE_ACCOUNT_KEY_FILE or GOOGLE_APPLICATION_CREDENTIALS) and URL
+ *   signing uses the client library's own V4 signing. Works anywhere.
+ */
+export type StorageProvider = "replit" | "gcs";
+
+export function getStorageProvider(): StorageProvider {
+  const raw = (process.env.OBJECT_STORAGE_PROVIDER || "replit").toLowerCase();
+  if (raw !== "replit" && raw !== "gcs") {
+    throw new Error(
+      `Invalid OBJECT_STORAGE_PROVIDER "${raw}". Use "replit" or "gcs".`,
+    );
+  }
+  return raw;
+}
+
+function createStorageClient(): Storage {
+  if (getStorageProvider() === "gcs") {
+    const keyFilename =
+      process.env.GCS_SERVICE_ACCOUNT_KEY_FILE ||
+      process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    if (!keyFilename) {
+      throw new Error(
+        "OBJECT_STORAGE_PROVIDER=gcs requires GCS_SERVICE_ACCOUNT_KEY_FILE " +
+          "(or GOOGLE_APPLICATION_CREDENTIALS) pointing to a service-account JSON key file.",
+      );
+    }
+    return new Storage({ keyFilename });
+  }
+  // Replit-managed App Storage via the workspace sidecar.
+  return new Storage({
+    credentials: {
+      audience: "replit",
+      subject_token_type: "access_token",
+      token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`,
+      type: "external_account",
+      credential_source: {
+        url: `${REPLIT_SIDECAR_ENDPOINT}/credential`,
+        format: {
+          type: "json",
+          subject_token_field_name: "access_token",
+        },
       },
+      universe_domain: "googleapis.com",
     },
-    universe_domain: "googleapis.com",
-  },
-  projectId: "",
-});
+    projectId: "",
+  });
+}
+
+export const objectStorageClient = createStorageClient();
 
 export class ObjectNotFoundError extends Error {
   constructor() {
@@ -297,6 +336,22 @@ async function signObjectURL({
   method: "GET" | "PUT" | "DELETE" | "HEAD";
   ttlSec: number;
 }): Promise<string> {
+  if (getStorageProvider() === "gcs") {
+    const [url] = await objectStorageClient
+      .bucket(bucketName)
+      .file(objectName)
+      .getSignedUrl({
+        version: "v4",
+        action:
+          method === "PUT"
+            ? "write"
+            : method === "DELETE"
+              ? "delete"
+              : "read",
+        expires: Date.now() + ttlSec * 1000,
+      });
+    return url;
+  }
   const request = {
     bucket_name: bucketName,
     object_name: objectName,

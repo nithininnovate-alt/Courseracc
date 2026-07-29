@@ -693,9 +693,13 @@ router.post(
     successUrl.searchParams.set("bogPaymentId", String(payment.id));
     const failUrl = new URL(returnUrl);
     failUrl.searchParams.set("bogPaymentFailed", "1");
-    // Callback must go to OUR api — derive from the request, never from
-    // client-supplied URLs.
-    const callbackUrl = `${req.protocol}://${req.get("host")}/api/payments/bog/callback`;
+    // Callback must go to OUR api — derive from PUBLIC_BASE_URL when
+    // configured (self-hosted deployments), otherwise from the request.
+    // Never from client-supplied URLs.
+    const configuredBase = (process.env.PUBLIC_BASE_URL || "").replace(/\/+$/, "");
+    const callbackUrl = configuredBase
+      ? `${configuredBase}/api/payments/bog/callback`
+      : `${req.protocol}://${req.get("host")}/api/payments/bog/callback`;
 
     try {
       const order = await createBogOrder({
