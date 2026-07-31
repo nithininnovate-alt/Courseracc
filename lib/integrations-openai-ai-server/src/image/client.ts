@@ -2,21 +2,40 @@ import fs from "node:fs";
 import OpenAI, { toFile } from "openai";
 import { Buffer } from "node:buffer";
 
-if (!process.env.AI_INTEGRATIONS_OPENAI_BASE_URL) {
-  throw new Error(
-    "AI_INTEGRATIONS_OPENAI_BASE_URL must be set. Did you forget to provision the OpenAI AI integration?",
-  );
+// Prefer the client's own OpenAI API key when provided; otherwise fall back
+// to the Replit-managed OpenAI AI integration proxy.
+//
+// Created lazily so the server can boot without any OpenAI configuration
+// (e.g. self-hosting without AI features); errors only when actually used.
+let cached: OpenAI | undefined;
+
+function createClient(): OpenAI {
+  const ownKey = process.env.OPENAI_API_KEY;
+  if (ownKey) {
+    return new OpenAI({ apiKey: ownKey });
+  }
+  if (!process.env.AI_INTEGRATIONS_OPENAI_BASE_URL) {
+    throw new Error(
+      "AI features are not configured: set OPENAI_API_KEY, or provision the OpenAI AI integration (AI_INTEGRATIONS_OPENAI_BASE_URL missing).",
+    );
+  }
+  if (!process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
+    throw new Error(
+      "AI features are not configured: set OPENAI_API_KEY, or provision the OpenAI AI integration (AI_INTEGRATIONS_OPENAI_API_KEY missing).",
+    );
+  }
+  return new OpenAI({
+    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  });
 }
 
-if (!process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
-  throw new Error(
-    "AI_INTEGRATIONS_OPENAI_API_KEY must be set. Did you forget to provision the OpenAI AI integration?",
-  );
-}
-
-export const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+export const openai: OpenAI = new Proxy({} as OpenAI, {
+  get(_target, prop) {
+    cached ??= createClient();
+    const value = Reflect.get(cached, prop, cached);
+    return typeof value === "function" ? value.bind(cached) : value;
+  },
 });
 
 export async function generateImageBuffer(
