@@ -1,0 +1,48 @@
+set -a; source .env; set +a
+pnpm --filter @workspace/db run push-force
+PORT=3001 pnpm --filter @workspace/api-server run dev &
+PORT=5000 pnpm --filter @workspace/portal run dev
+
+[ERR_PNPM_NO_PKG_MANIFEST] No package.json found in /home/atwo_india
+[ERROR] Command failed with exit code 1: /usr/bin/node /home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/bin/pnpm.mjs install
+
+pnpm: Command failed with exit code 1: /usr/bin/node /home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/bin/pnpm.mjs install
+    at getFinalError (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:88983:14)
+    at makeError (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:91290:21)
+    at getSyncResult (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:93134:10)
+    at spawnSubprocessSync (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:93094:14)
+    at execaCoreSync (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:93024:23)
+    at callBoundExeca (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:95552:23)
+    at boundExeca (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:95529:49)
+    at sync2 (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:95688:10)
+    at runPnpmCli (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:252070:5)
+    at runDepsStatusCheck (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:253836:7)
+[1] 65500
+[ERR_PNPM_NO_PKG_MANIFEST] No package.json found in /home/atwo_india
+[ERR_PNPM_NO_PKG_MANIFEST] No package.json found in /home/atwo_india
+[ERROR] Command failed with exit code 1: /usr/bin/node /home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/bin/pnpm.mjs install
+
+pnpm: Command failed with exit code 1: /usr/bin/node /home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/bin/pnpm.mjs install
+    at getFinalError (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:88983:14)
+    at makeError (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:91290:21)
+    at getSyncResult (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:93134:10)
+    at spawnSubprocessSync (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:93094:14)
+    at execaCoreSync (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:93024:23)
+    at callBoundExeca (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:95552:23)
+    at boundExeca (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:95529:49)
+    at sync2 (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:95688:10)
+    at runPnpmCli (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:252070:5)
+    at runDepsStatusCheck (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:253836:7)
+[ERROR] Command failed with exit code 1: /usr/bin/node /home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/bin/pnpm.mjs install
+
+pnpm: Command failed with exit code 1: /usr/bin/node /home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/bin/pnpm.mjs install
+    at getFinalError (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:88983:14)
+    at makeError (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:91290:21)
+    at getSyncResult (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:93134:10)
+    at spawnSubprocessSync (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:93094:14)
+    at execaCoreSync (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:93024:23)
+    at callBoundExeca (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:95552:23)
+    at boundExeca (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:95529:49)
+    at sync2 (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:95688:10)
+    at runPnpmCli (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:252070:5)
+    at runDepsStatusCheck (file:///home/atwo_india/.cache/node/corepack/v1/pnpm/11.18.0/dist/pnpm.mjs:253836:7
