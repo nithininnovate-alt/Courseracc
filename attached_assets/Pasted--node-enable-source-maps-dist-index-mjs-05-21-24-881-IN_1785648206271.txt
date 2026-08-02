@@ -1,0 +1,97 @@
+$ node --enable-source-maps ./dist/index.mjs
+[05:21:24.881] INFO (114973): Server listening
+    port: 3001
+[05:21:24.916] ERROR (114973): Failed to ensure staff account
+    username: "superadmin"
+    err: {
+      "type": "_DrizzleQueryError",
+      "message": "Failed query: select \"id\" from \"users\" where \"users\".\"username\" = $1\nparams: superadmin: password authentication failed for user \"cgu\"",
+      "stack":
+          Error: Failed query: select "id" from "users" where "users"."username" = $1
+          params: superadmin
+              at NodePgPreparedQuery.queryWithCache (/home/atwo_india/Courseracc/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/src/pg-core/session.ts:73:11)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async <anonymous> (/home/atwo_india/Courseracc/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/src/node-postgres/session.ts:154:19)
+              at async ensureStaffAccounts (/home/atwo_india/Courseracc/artifacts/api-server/src/lib/staffAccounts.ts:52:26)
+          caused by: error: password authentication failed for user "cgu"
+              at <anonymous> (/home/atwo_india/Courseracc/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async <anonymous> (/home/atwo_india/Courseracc/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/src/node-postgres/session.ts:161:13)
+              at async NodePgPreparedQuery.queryWithCache (/home/atwo_india/Courseracc/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/src/pg-core/session.ts:71:12)
+              at async <anonymous> (/home/atwo_india/Courseracc/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/src/node-postgres/session.ts:154:19)
+              at async ensureStaffAccounts (/home/atwo_india/Courseracc/artifacts/api-server/src/lib/staffAccounts.ts:52:26)
+      "query": "select \"id\" from \"users\" where \"users\".\"username\" = $1",
+      "params": [
+        "superadmin"
+      ]
+    }
+[05:21:25.487] ERROR (114973): Data repair failed
+    err: {
+      "type": "_DrizzleQueryError",
+      "message": "Failed query: update \"study_materials\" set \"url\" = $1 where (\"study_materials\".\"type\" = $2 and \"study_materials\".\"url\" like $3)\nparams: /objects/videos/sample-lecture.mp4,video,https://storage.googleapis.com/gtv-videos-bucket%: password authentication failed for user \"cgu\"",
+      "stack":
+          Error: Failed query: update "study_materials" set "url" = $1 where ("study_materials"."type" = $2 and "study_materials"."url" like $3)
+          params: /objects/videos/sample-lecture.mp4,video,https://storage.googleapis.com/gtv-videos-bucket%
+              at NodePgPreparedQuery.queryWithCache (/home/atwo_india/Courseracc/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/src/pg-core/session.ts:73:11)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async runDataRepairs (/home/atwo_india/Courseracc/artifacts/api-server/src/lib/dataRepairs.ts:17:20)
+          caused by: error: password authentication failed for user "cgu"
+              at <anonymous> (/home/atwo_india/Courseracc/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async <anonymous> (/home/atwo_india/Courseracc/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/src/node-postgres/session.ts:149:14)
+              at async NodePgPreparedQuery.queryWithCache (/home/atwo_india/Courseracc/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/src/pg-core/session.ts:71:12)
+              at async runDataRepairs (/home/atwo_india/Courseracc/artifacts/api-server/src/lib/dataRepairs.ts:17:20)
+      "query": "update \"study_materials\" set \"url\" = $1 where (\"study_materials\".\"type\" = $2 and \"study_materials\".\"url\" like $3)",
+      "params": [
+        "/objects/videos/sample-lecture.mp4",
+        "video",
+        "https://storage.googleapis.com/gtv-videos-bucket%"
+      ]
+    }
+[05:21:25.504] ERROR (114973): Profile backfill from approved applications failed
+    err: {
+      "type": "_DrizzleQueryError",
+      "message": "Failed query: select \"id\", \"user_id\", \"program_name\", \"course_id\", \"full_name\", \"email\", \"phone\", \"date_of_birth\", \"gender\", \"father_name\", \"mother_name\", \"nationality\", \"address\", \"city\", \"country\", \"previous_qualification\", \"previous_institution\", \"graduation_year\", \"grade_percentage\", \"status\", \"review_note\", \"documents_url\", \"admission_letter_url\", \"reviewed_at\", \"submitted_at\" from \"applications\" where (\"applications\".\"status\" = $1 and \"applications\".\"user_id\" is not null)\nparams: approved: password authentication failed for user \"cgu\"",
+      "stack":
+          Error: Failed query: select "id", "user_id", "program_name", "course_id", "full_name", "email", "phone", "date_of_birth", "gender", "father_name", "mother_name", "nationality", "address", "city", "country", "previous_qualification", "previous_institution", "graduation_year", "grade_percentage", "status", "review_note", "documents_url", "admission_letter_url", "reviewed_at", "submitted_at" from "applications" where ("applications"."status" = $1 and "applications"."user_id" is not null)
+          params: approved
+              at NodePgPreparedQuery.queryWithCache (/home/atwo_india/Courseracc/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/src/pg-core/session.ts:73:11)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async <anonymous> (/home/atwo_india/Courseracc/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/src/node-postgres/session.ts:154:19)
+              at async runDataRepairs (/home/atwo_india/Courseracc/artifacts/api-server/src/lib/dataRepairs.ts:59:22)
+          caused by: error: password authentication failed for user "cgu"
+              at <anonymous> (/home/atwo_india/Courseracc/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async <anonymous> (/home/atwo_india/Courseracc/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/src/node-postgres/session.ts:161:13)
+              at async NodePgPreparedQuery.queryWithCache (/home/atwo_india/Courseracc/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/src/pg-core/session.ts:71:12)
+              at async <anonymous> (/home/atwo_india/Courseracc/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/src/node-postgres/session.ts:154:19)
+              at async runDataRepairs (/home/atwo_india/Courseracc/artifacts/api-server/src/lib/dataRepairs.ts:59:22)
+      "query": "select \"id\", \"user_id\", \"program_name\", \"course_id\", \"full_name\", \"email\", \"phone\", \"date_of_birth\", \"gender\", \"father_name\", \"mother_name\", \"nationality\", \"address\", \"city\", \"country\", \"previous_qualification\", \"previous_institution\", \"graduation_year\", \"grade_percentage\", \"status\", \"review_note\", \"documents_url\", \"admission_letter_url\", \"reviewed_at\", \"submitted_at\" from \"applications\" where (\"applications\".\"status\" = $1 and \"applications\".\"user_id\" is not null)",
+      "params": [
+        "approved"
+      ]
+    }
+[05:21:25.507] ERROR (114973): Failed to ensure staff account
+    username: "admin"
+    err: {
+      "type": "_DrizzleQueryError",
+      "message": "Failed query: select \"id\" from \"users\" where \"users\".\"username\" = $1\nparams: admin: password authentication failed for user \"cgu\"",
+      "stack":
+          Error: Failed query: select "id" from "users" where "users"."username" = $1
+          params: admin
+              at NodePgPreparedQuery.queryWithCache (/home/atwo_india/Courseracc/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/src/pg-core/session.ts:73:11)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async <anonymous> (/home/atwo_india/Courseracc/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/src/node-postgres/session.ts:154:19)
+              at async ensureStaffAccounts (/home/atwo_india/Courseracc/artifacts/api-server/src/lib/staffAccounts.ts:52:26)
+          caused by: error: password authentication failed for user "cgu"
+              at <anonymous> (/home/atwo_india/Courseracc/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async <anonymous> (/home/atwo_india/Courseracc/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/src/node-postgres/session.ts:161:13)
+              at async NodePgPreparedQuery.queryWithCache (/home/atwo_india/Courseracc/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/src/pg-core/session.ts:71:12)
+              at async <anonymous> (/home/atwo_india/Courseracc/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/src/node-postgres/session.ts:154:19)
+              at async ensureStaffAccounts (/home/atwo_india/Courseracc/artifacts/api-server/src/lib/staffAccounts.ts:52:26)
+      "query": "select \"id\" from \"users\" where \"users\".\"username\" = $1",
+      "params": [
+        "admin"
+      ]
+    }
