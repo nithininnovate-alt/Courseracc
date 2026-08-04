@@ -54,10 +54,17 @@ import AdminEmails from "@/pages/admin/Emails";
 import AdminCourier from "@/pages/admin/Courier";
 import AdminReports from "@/pages/admin/Reports";
 
-const clerkPubKey = publishableKeyFromHost(
-  window.location.hostname,
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
-);
+// On Replit-managed hosting, Clerk keys are provisioned per-domain, so the
+// key is derived from the current hostname. When self-hosting on a custom
+// domain, that derivation produces a wrong Frontend API (e.g.
+// clerk.lms.example.com when the instance lives at clerk.example.com), so we
+// use the configured key literally on non-Replit hosts.
+const REPLIT_HOST_RE = /(\.replit\.app|\.replit\.dev|\.repl\.co)$/i;
+const envClerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const clerkPubKey =
+  envClerkKey && !REPLIT_HOST_RE.test(window.location.hostname)
+    ? envClerkKey
+    : publishableKeyFromHost(window.location.hostname, envClerkKey);
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 const basePath = import.meta.env.BASE_URL || "/";
 

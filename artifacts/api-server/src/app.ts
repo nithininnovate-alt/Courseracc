@@ -52,13 +52,21 @@ app.use(
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// On Replit-managed hosting, Clerk keys are provisioned per-domain and must
+// be derived from the request host. On custom (self-hosted) domains that
+// derivation yields a wrong Frontend API, so prefer the configured key.
+const REPLIT_HOST_RE = /(\.replit\.app|\.replit\.dev|\.repl\.co)(:\d+)?$/i;
 app.use(
-  clerkMiddleware((req) => ({
-    publishableKey: publishableKeyFromHost(
-      getClerkProxyHost(req) ?? "",
-      process.env.CLERK_PUBLISHABLE_KEY,
-    ),
-  })),
+  clerkMiddleware((req) => {
+    const host = getClerkProxyHost(req) ?? "";
+    const envKey = process.env.CLERK_PUBLISHABLE_KEY;
+    return {
+      publishableKey:
+        envKey && !REPLIT_HOST_RE.test(host)
+          ? envKey
+          : publishableKeyFromHost(host, envKey),
+    };
+  }),
 );
 
 app.use("/api", router);
