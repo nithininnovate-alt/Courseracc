@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageCircle, X, Send, Sparkles, Loader2 } from "lucide-react";
+import { AiMarkdown } from "@/components/student/AiMarkdown";
 
 type ChatRole = "user" | "assistant";
 interface ChatMessage {
@@ -173,13 +174,19 @@ export function ChatWidget() {
                 className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2 text-sm ${
+                  className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm ${
                     m.role === "user"
-                      ? "bg-primary text-primary-foreground"
+                      ? "whitespace-pre-wrap bg-primary text-primary-foreground"
                       : "bg-muted text-foreground"
                   }`}
                 >
-                  {m.content || (
+                  {m.content ? (
+                    m.role === "assistant" ? (
+                      <AiMarkdown>{m.content}</AiMarkdown>
+                    ) : (
+                      m.content
+                    )
+                  ) : (
                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                   )}
                 </div>

@@ -35,6 +35,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { PageHeader, EmptyCard } from "@/components/common/PageState";
+import { AiMarkdown } from "@/components/student/AiMarkdown";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
@@ -931,12 +932,12 @@ function LessonExplainer({ material }: { material: StudyMaterial }) {
 
           <div
             ref={scrollRef}
-            className="max-h-80 overflow-y-auto whitespace-pre-wrap rounded-lg bg-background/70 p-3 text-sm text-foreground"
+            className="max-h-80 overflow-y-auto rounded-lg bg-background/70 p-3 text-sm text-foreground"
           >
             {error ? (
               <span className="text-destructive">{error}</span>
             ) : text ? (
-              text
+              <AiMarkdown>{text}</AiMarkdown>
             ) : (
               <span className="inline-flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" /> Thinking…
