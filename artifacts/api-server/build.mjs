@@ -29,6 +29,9 @@ async function buildAll() {
     // - use path traversal to read files (e.g. @google-cloud/secret-manager loads sibling .proto files)
     external: [
       "*.node",
+      // pdf-parse's ESM build breaks when bundled ("PDFParse is not a
+      // constructor" at runtime) — load it from node_modules instead.
+      "pdf-parse",
       "sharp",
       "better-sqlite3",
       "sqlite3",
