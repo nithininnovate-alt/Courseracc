@@ -155,3 +155,10 @@ id = "M-AFDR5lxY_JekS1woiNl"
 uri = "file://exports/transcript-cinzel.png"
 type = "image"
 title = "Transcript — Cinzel heading"
+
+[[outputs]]
+id = "QgeT-lmhqpJZcjcrFNlGw"
+uri = "file://deploy/copy-files.txt"
+type = "text"
+title = "Bulk file copy script (run in Cloud Shell)"
+description = "Copies all 93 uploaded files (~1 GB) from Replit storage into your gs://cgu-storage bucket. Download links inside expire in 24 hours."

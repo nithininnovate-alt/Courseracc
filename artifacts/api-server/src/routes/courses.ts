@@ -29,6 +29,10 @@ import {
   isStaff,
 } from "../lib/auth";
 import {
+  queueMaterialExtraction,
+  backfillMaterialExtractions,
+} from "../lib/materialExtraction";
+import {
   getCourseAccess,
   getUnlockedYears,
   isYearUnlocked,
@@ -353,6 +357,7 @@ router.post("/subjects/:subjectId/materials", requireStaff, async (req, res) => 
     .insert(studyMaterialsTable)
     .values({ ...parsed.data, subjectId })
     .returning();
+  queueMaterialExtraction(created.id);
   res.status(201).json(created);
 });
 
@@ -365,14 +370,48 @@ router.patch("/materials/:id", requireStaff, async (req, res) => {
   }
   const [updated] = await db
     .update(studyMaterialsTable)
-    .set(parsed.data)
+    .set(
+      // A new file invalidates any previously extracted content.
+      parsed.data.url !== undefined
+        ? {
+            ...parsed.data,
+            extractedText: null,
+            extractionStatus: null,
+            extractionError: null,
+          }
+        : parsed.data,
+    )
     .where(eq(studyMaterialsTable.id, id))
     .returning();
   if (!updated) {
     res.status(404).json({ error: "Material not found" });
     return;
   }
+  if (parsed.data.url !== undefined) {
+    queueMaterialExtraction(updated.id);
+  }
   res.json(updated);
+});
+
+// Manually (re)run content extraction for one material.
+router.post("/materials/:id/extract", requireStaff, async (req, res) => {
+  const id = Number(req.params.id);
+  const [material] = await db
+    .select()
+    .from(studyMaterialsTable)
+    .where(eq(studyMaterialsTable.id, id));
+  if (!material) {
+    res.status(404).json({ error: "Material not found" });
+    return;
+  }
+  queueMaterialExtraction(id);
+  res.json({ status: "queued" });
+});
+
+// Extract every uploaded PDF/video that hasn't been processed yet.
+router.post("/materials/extract-all", requireStaff, async (_req, res) => {
+  const result = await backfillMaterialExtractions();
+  res.json(result);
 });
 
 router.delete("/materials/:id", requireStaff, async (req, res) => {

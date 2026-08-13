@@ -80,10 +80,12 @@ async function buildStudentContext(userId: number): Promise<string> {
       const subjMaterials = materials.filter((m) => m.subjectId === subject.id);
       for (const m of subjMaterials) {
         lines.push(`- Material: ${m.title} (${m.type})`);
-        if (m.content) {
-          // Cap each material's content so the context stays within budget.
-          const snippet = m.content.slice(0, 1500);
-          lines.push(snippet);
+        // Prefer the automatically extracted content (PDF text / video
+        // transcript) over the manually entered description; cap each
+        // material so the context stays within budget.
+        const body = m.extractedText || m.content;
+        if (body) {
+          lines.push(body.slice(0, 4000));
         }
       }
     }
@@ -246,8 +248,9 @@ router.post("/ai/explain", requireUser, async (req: AuthedRequest, res) => {
   if (subject?.description) lessonLines.push(`Subject overview: ${subject.description}`);
   lessonLines.push(`Lesson title: ${material.title}`);
   lessonLines.push(`Lesson format: ${material.type}`);
-  if (material.content) {
-    lessonLines.push(`Lesson content:\n${material.content.slice(0, 12000)}`);
+  const lessonBody = material.extractedText || material.content;
+  if (lessonBody) {
+    lessonLines.push(`Lesson content:\n${lessonBody.slice(0, 12000)}`);
   } else if (material.type === "video") {
     lessonLines.push(
       "Lesson content: This is a video lesson; its transcript is not available, so rely on the title and subject/course context.",
