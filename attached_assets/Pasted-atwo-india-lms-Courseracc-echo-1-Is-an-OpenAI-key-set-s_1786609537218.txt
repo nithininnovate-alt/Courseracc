@@ -1,0 +1,36 @@
+atwo_india@lms:~/Courseracc$ echo "===== 1. Is an OpenAI key set? ====="
+sudo grep -c '^OPENAI_API_KEY=sk-' /etc/cgu/cgu.env && echo "KEY PRESENT" || echo "KEY MISSING"
+echo "===== 2. Did the new code actually install? ====="
+cd ~/Courseracc && git log --oneline -1
+ls node_modules/.pnpm | grep -c pdf-parse && echo "PACKAGES OK" || echo "PACKAGES MISSING - pnpm install did not finish"
+echo "===== 3. How many lessons have extracted content? ====="
+sudo -u postgres psql cgu -c "SELECT extraction_status, count(*) FROM study_materials GROUP BY 1;"
+echo "===== 4. Recent API errors ====="
+sudo journalctl -u cgu-api --since "30 minutes ago" | grep -iE "error|fail" | tail -20
+===== 1. Is an OpenAI key set? =====
+1
+KEY PRESENT
+===== 2. Did the new code actually install? =====
+9612d87 (HEAD -> main, origin/main, origin/HEAD) AI assistant now reads actual lesson content: auto-extract PDF text and video transcripts (serial queue, size caps, stale-result guard)
+1
+PACKAGES OK
+===== 3. How many lessons have extracted content? =====
+ extraction_status | count 
+-------------------+-------
+                   |    10
+(1 row)
+
+===== 4. Recent API errors =====
+Aug 13 08:16:50 lms pnpm[1396690]: [ELIFECYCLE] Command failed.
+Aug 13 08:16:50 lms pnpm[1396773]: [ELIFECYCLE] Command failed.
+Aug 13 08:22:02 lms pnpm[1397743]: Error: Failed query: insert into "users" ("id", "clerk_id", "username", "password_hash", "email", "first_name", "last_name", "role", "avatar_url", "phone", "date_of_birth", "gender", "nationality", "city", "address", "country", "student_id", "father_name", "mother_name", "parent_name", "parent_relationship", "parent_phone", "parent_email", "parent_occupation", "created_at") values (default, $1, default, default, $2, $3, $4, $5, $6, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default) returning "id", "clerk_id", "username", "password_hash", "email", "first_name", "last_name", "role", "avatar_url", "phone", "date_of_birth", "gender", "nationality", "city", "address", "country", "student_id", "father_name", "mother_name", "parent_name", "parent_relationship", "parent_phone", "parent_email", "parent_occupation", "created_at"
+Aug 13 08:22:02 lms pnpm[1397743]: Error: Failed query: insert into "users" ("id", "clerk_id", "username", "password_hash", "email", "first_name", "last_name", "role", "avatar_url", "phone", "date_of_birth", "gender", "nationality", "city", "address", "country", "student_id", "father_name", "mother_name", "parent_name", "parent_relationship", "parent_phone", "parent_email", "parent_occupation", "created_at") values (default, $1, default, default, $2, $3, $4, $5, $6, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default) returning "id", "clerk_id", "username", "password_hash", "email", "first_name", "last_name", "role", "avatar_url", "phone", "date_of_birth", "gender", "nationality", "city", "address", "country", "student_id", "father_name", "mother_name", "parent_name", "parent_relationship", "parent_phone", "parent_email", "parent_occupation", "created_at"
+Aug 13 08:22:02 lms pnpm[1397743]: [08:22:02.342] INFO (1397743): request errored
+Aug 13 08:22:02 lms pnpm[1397743]:       "type": "Error",
+Aug 13 08:22:02 lms pnpm[1397743]:       "message": "failed with status code 500",
+Aug 13 08:22:02 lms pnpm[1397743]:           Error: failed with status code 500
+Aug 13 08:22:02 lms pnpm[1397743]: [08:22:02.359] INFO (1397743): request errored
+Aug 13 08:22:02 lms pnpm[1397743]:       "type": "Error",
+Aug 13 08:22:02 lms pnpm[1397743]:       "message": "failed with status code 500",
+Aug 13 08:22:02 lms pnpm[1397743]:           Error: failed with status code 500
+atwo_india@lms:~/Courseracc$ 
