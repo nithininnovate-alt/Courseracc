@@ -1425,10 +1425,14 @@ export async function buildTranscriptRows(
   const rows: TranscriptRow[] = [];
   for (const subject of subjects) {
     const [codePart, ...titleParts] = subject.title.split(" — ");
-    const hasCode = titleParts.length > 0;
+    const parsedCode = titleParts.length > 0 ? codePart.trim() : null;
     const base = {
-      moduleCode: hasCode ? codePart.trim() : "—",
-      moduleTitle: hasCode ? titleParts.join(" — ").trim() : subject.title,
+      moduleCode: subject.code?.trim() || parsedCode || "—",
+      moduleTitle: subject.code
+        ? subject.title
+        : titleParts.length > 0
+          ? titleParts.join(" — ").trim()
+          : subject.title,
       credits: subject.credits ?? 7.5,
       year: subject.year,
     };

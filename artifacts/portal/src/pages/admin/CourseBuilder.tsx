@@ -73,6 +73,7 @@ function typeIcon(type: string) {
 
 interface SubjectForm {
   title: string;
+  code: string;
   description: string;
   year: string;
   semester: string;
@@ -81,6 +82,7 @@ interface SubjectForm {
 
 const emptySubject: SubjectForm = {
   title: "",
+  code: "",
   description: "",
   year: "1",
   semester: "1",
@@ -114,6 +116,7 @@ export default function AdminCourseBuilder() {
     setEditing(s);
     setForm({
       title: s.title,
+      code: s.code ?? "",
       description: s.description ?? "",
       year: String(s.year),
       semester: String(s.semester),
@@ -129,6 +132,7 @@ export default function AdminCourseBuilder() {
     }
     const data = {
       title: form.title,
+      code: form.code.trim() || undefined,
       description: form.description || undefined,
       year: Number(form.year) || 1,
       semester: Number(form.semester) || 1,
@@ -257,13 +261,24 @@ export default function AdminCourseBuilder() {
             <DialogTitle>{editing ? "Edit Subject" : "Add Subject"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="s-title">Title</Label>
-              <Input
-                id="s-title"
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-              />
+            <div className="grid grid-cols-3 gap-4">
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="s-title">Title</Label>
+                <Input
+                  id="s-title"
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="s-code">Module Code</Label>
+                <Input
+                  id="s-code"
+                  placeholder="e.g. CGU101"
+                  value={form.code}
+                  onChange={(e) => setForm({ ...form, code: e.target.value })}
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="s-desc">Description</Label>

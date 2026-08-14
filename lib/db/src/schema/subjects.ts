@@ -6,6 +6,7 @@ export const subjectsTable = pgTable("subjects", {
   id: serial("id").primaryKey(),
   courseId: integer("course_id").notNull(),
   title: text("title").notNull(),
+  code: text("code"),
   description: text("description"),
   credits: doublePrecision("credits").notNull().default(7.5),
   year: integer("year").notNull().default(1),

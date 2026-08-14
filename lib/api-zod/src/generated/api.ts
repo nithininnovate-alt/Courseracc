@@ -666,6 +666,7 @@ export const CreateSubjectParams = zod.object({
 
 export const CreateSubjectBody = zod.object({
   "title": zod.string().min(1),
+  "code": zod.string().optional(),
   "description": zod.string().optional(),
   "year": zod.number().min(1).optional(),
   "semester": zod.number().min(1).optional(),
@@ -676,6 +677,7 @@ export const CreateSubjectResponse = zod.object({
   "id": zod.number(),
   "courseId": zod.number(),
   "title": zod.string(),
+  "code": zod.string().nullish(),
   "description": zod.string().nullish(),
   "year": zod.number(),
   "semester": zod.number(),
@@ -707,6 +709,7 @@ export const ListAllSubjectsResponseItem = zod.object({
   "id": zod.number(),
   "courseId": zod.number(),
   "title": zod.string(),
+  "code": zod.string().nullish(),
   "description": zod.string().nullish(),
   "year": zod.number(),
   "semester": zod.number(),
@@ -726,6 +729,7 @@ export const GetSubjectResponse = zod.object({
   "id": zod.number(),
   "courseId": zod.number(),
   "title": zod.string(),
+  "code": zod.string().nullish(),
   "description": zod.string().nullish(),
   "year": zod.number(),
   "semester": zod.number(),
@@ -747,6 +751,7 @@ export const UpdateSubjectParams = zod.object({
 
 export const UpdateSubjectBody = zod.object({
   "title": zod.string().min(1).optional(),
+  "code": zod.string().optional(),
   "description": zod.string().optional(),
   "year": zod.number().min(1).optional(),
   "semester": zod.number().min(1).optional(),
@@ -757,6 +762,7 @@ export const UpdateSubjectResponse = zod.object({
   "id": zod.number(),
   "courseId": zod.number(),
   "title": zod.string(),
+  "code": zod.string().nullish(),
   "description": zod.string().nullish(),
   "year": zod.number(),
   "semester": zod.number(),
