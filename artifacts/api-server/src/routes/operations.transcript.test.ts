@@ -44,6 +44,8 @@ vi.mock("@workspace/db", () => {
     subjectsTable: {},
     examsTable: {},
     resultsTable: {},
+    assignmentsTable: {},
+    submissionsTable: {},
   };
 });
 
@@ -121,8 +123,41 @@ const result = (examId: number, overrides: Partial<ResultRow> = {}): ResultRow =
   ...overrides,
 });
 
-const queue = (subjects: SubjectRow[], exams: ExamRow[], results: ResultRow[]) => {
-  mocks.selectQueue.push(subjects, exams, results);
+interface AssignmentRow {
+  id: number;
+  subjectId: number;
+  maxScore: number | null;
+}
+interface SubmissionRow {
+  assignmentId: number;
+  userId: number;
+  score: number | null;
+}
+
+const assignment = (id: number, subjectId: number, maxScore: number | null = 100): AssignmentRow => ({
+  id,
+  subjectId,
+  maxScore,
+});
+const submission = (assignmentId: number, score: number | null): SubmissionRow => ({
+  assignmentId,
+  userId: 42,
+  score,
+});
+
+// buildTranscriptRows selects, in order: subjects, exams, results (only when
+// exams exist), assignments, submissions (only when assignments exist).
+const queue = (
+  subjects: SubjectRow[],
+  exams: ExamRow[],
+  results: ResultRow[],
+  assignments: AssignmentRow[] = [],
+  submissions: SubmissionRow[] = [],
+) => {
+  mocks.selectQueue.push(subjects, exams);
+  if (exams.length > 0) mocks.selectQueue.push(results);
+  mocks.selectQueue.push(assignments);
+  if (assignments.length > 0) mocks.selectQueue.push(submissions);
 };
 
 beforeEach(() => {
@@ -232,5 +267,60 @@ describe("buildTranscriptRows", () => {
     queue([subject(1)], [exam(10, 1)], [result(10, { score: 40, passed: false })]);
     const rows = await buildTranscriptRows(42, 1);
     expect(rows[0].passed).toBe(false);
+  });
+
+  it("derives a grade from the average of graded assignment scores", async () => {
+    queue(
+      [subject(1)],
+      [],
+      [],
+      [assignment(100, 1), assignment(101, 1)],
+      // 90% and 80% → 85% average → B
+      [submission(100, 90), submission(101, 80)],
+    );
+    const rows = await buildTranscriptRows(42, 1);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].grade).toBe("B");
+    expect(rows[0].passed).toBe(true);
+  });
+
+  it("ignores ungraded submissions and subjects with no graded work", async () => {
+    queue(
+      [subject(1), subject(2)],
+      [],
+      [],
+      [assignment(100, 1), assignment(200, 2)],
+      [submission(100, 70), submission(200, null)],
+    );
+    const rows = await buildTranscriptRows(42, 1);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].moduleCode).toBe("CGU101");
+  });
+
+  it("uses the best graded attempt per assignment and fails below 60%", async () => {
+    queue(
+      [subject(1)],
+      [],
+      [],
+      [assignment(100, 1)],
+      [submission(100, 40), submission(100, 55)],
+    );
+    const rows = await buildTranscriptRows(42, 1);
+    // best attempt 55% → F → not passed
+    expect(rows[0].grade).toBe("F");
+    expect(rows[0].passed).toBe(false);
+  });
+
+  it("prefers a published exam result over assignment marks for the same subject", async () => {
+    queue(
+      [subject(1)],
+      [exam(10, 1)],
+      [result(10, { score: 93 })],
+      [assignment(100, 1)],
+      [submission(100, 10)],
+    );
+    const rows = await buildTranscriptRows(42, 1);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].grade).toBe("A");
   });
 });

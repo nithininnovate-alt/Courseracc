@@ -1349,20 +1349,22 @@ export async function buildTranscriptRows(
     .select()
     .from(examsTable)
     .where(inArray(examsTable.subjectId, subjectIds));
-  if (exams.length === 0) return [];
   const examMap = new Map(exams.map((e) => [e.id, e]));
   const examIds = exams.map((e) => e.id);
 
-  const results = await db
-    .select()
-    .from(resultsTable)
-    .where(
-      and(
-        eq(resultsTable.userId, userId),
-        inArray(resultsTable.examId, examIds),
-        eq(resultsTable.published, true),
-      ),
-    );
+  const results =
+    examIds.length > 0
+      ? await db
+          .select()
+          .from(resultsTable)
+          .where(
+            and(
+              eq(resultsTable.userId, userId),
+              inArray(resultsTable.examId, examIds),
+              eq(resultsTable.published, true),
+            ),
+          )
+      : [];
 
   // Keep the best published result per subject, ordered by curriculum order.
   const bestBySubject = new Map<number, (typeof results)[number]>();
@@ -1373,23 +1375,81 @@ export async function buildTranscriptRows(
     if (!prev || r.score > prev.score) bestBySubject.set(exam.subjectId, r);
   }
 
+  // Assignment-derived marks: for subjects without a published exam result,
+  // average the student's graded assignment scores (as percentages).
+  const subjectAssignments = await db
+    .select()
+    .from(assignmentsTable)
+    .where(inArray(assignmentsTable.subjectId, subjectIds));
+  const assignmentMap = new Map(subjectAssignments.map((a) => [a.id, a]));
+  const gradedSubmissions =
+    subjectAssignments.length > 0
+      ? await db
+          .select()
+          .from(submissionsTable)
+          .where(
+            and(
+              eq(submissionsTable.userId, userId),
+              inArray(
+                submissionsTable.assignmentId,
+                subjectAssignments.map((a) => a.id),
+              ),
+            ),
+          )
+      : [];
+  // Best graded score per assignment (a student may resubmit).
+  const bestByAssignment = new Map<number, number>();
+  for (const s of gradedSubmissions) {
+    if (s.score === null || s.score === undefined) continue;
+    const a = assignmentMap.get(s.assignmentId);
+    if (!a || !a.maxScore || a.maxScore <= 0) continue;
+    const pct = (Number(s.score) / a.maxScore) * 100;
+    const prev = bestByAssignment.get(s.assignmentId);
+    if (prev === undefined || pct > prev) bestByAssignment.set(s.assignmentId, pct);
+  }
+  // Average the graded-assignment percentages per subject.
+  const assignmentPctBySubject = new Map<number, number>();
+  for (const subject of subjects) {
+    const pcts = subjectAssignments
+      .filter((a) => a.subjectId === subject.id)
+      .map((a) => bestByAssignment.get(a.id))
+      .filter((p): p is number => p !== undefined);
+    if (pcts.length > 0) {
+      assignmentPctBySubject.set(
+        subject.id,
+        pcts.reduce((sum, p) => sum + p, 0) / pcts.length,
+      );
+    }
+  }
+
   const rows: TranscriptRow[] = [];
   for (const subject of subjects) {
-    const r = bestBySubject.get(subject.id);
-    if (!r) continue;
-    const exam = examMap.get(r.examId);
-    const totalMarks = exam?.totalMarks ?? 100;
-    const pct = totalMarks > 0 ? (r.score / totalMarks) * 100 : 0;
     const [codePart, ...titleParts] = subject.title.split(" — ");
     const hasCode = titleParts.length > 0;
-    rows.push({
+    const base = {
       moduleCode: hasCode ? codePart.trim() : "—",
       moduleTitle: hasCode ? titleParts.join(" — ").trim() : subject.title,
       credits: subject.credits ?? 7.5,
       year: subject.year,
-      grade: r.grade && r.grade in GRADE_POINTS ? r.grade : letterGradeFromPercent(pct),
-      passed: r.passed,
-    });
+    };
+    const r = bestBySubject.get(subject.id);
+    if (r) {
+      // Published exam results (legacy) take precedence over assignment marks.
+      const exam = examMap.get(r.examId);
+      const totalMarks = exam?.totalMarks ?? 100;
+      const pct = totalMarks > 0 ? (r.score / totalMarks) * 100 : 0;
+      rows.push({
+        ...base,
+        grade: r.grade && r.grade in GRADE_POINTS ? r.grade : letterGradeFromPercent(pct),
+        passed: r.passed,
+      });
+      continue;
+    }
+    const assignmentPct = assignmentPctBySubject.get(subject.id);
+    if (assignmentPct !== undefined) {
+      const grade = letterGradeFromPercent(assignmentPct);
+      rows.push({ ...base, grade, passed: grade !== "F" });
+    }
   }
   return rows;
 }
