@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc, inArray } from "drizzle-orm";
+import { and, eq, desc, inArray } from "drizzle-orm";
 import {
   db,
   applicationsTable,
@@ -18,6 +18,7 @@ import {
 import { generateAdmissionLetter } from "../lib/admissionLetter";
 import { ensureStudentId } from "../lib/studentId";
 import { syncApplicationToProfile } from "../lib/profileSync";
+import { ensureEnrollment } from "../lib/access";
 import { ObjectStorageService } from "../lib/objectStorage";
 
 const router: IRouter = Router();
@@ -43,6 +44,49 @@ async function attachDocuments(
   }
   return apps.map((a) => ({ ...a, documents: byApp.get(a.id) ?? [] }));
 }
+
+// Returns the current student's effective application status for eligibility
+// purposes. Mirrors requireApprovedApplication: if ANY application is approved,
+// status is "approved" (matching checkout authorization). Otherwise returns the
+// most recent application's status so the UI can show a useful message.
+// Returns { status: "none" } when no application exists at all.
+router.get("/applications/my", async (req, res) => {
+  const user = await resolveCurrentUser(req);
+  if (!user) {
+    res.json({ status: "none", applicationId: null });
+    return;
+  }
+
+  // Mirror requireApprovedApplication: any approved application grants access.
+  const [approved] = await db
+    .select({ id: applicationsTable.id })
+    .from(applicationsTable)
+    .where(
+      and(
+        eq(applicationsTable.userId, user.id),
+        eq(applicationsTable.status, "approved"),
+      ),
+    )
+    .limit(1);
+  if (approved) {
+    res.json({ status: "approved", applicationId: approved.id });
+    return;
+  }
+
+  // No approved application — return the latest so the portal can show an
+  // actionable message (e.g. "under review" or "submit an application").
+  const [latest] = await db
+    .select({ id: applicationsTable.id, status: applicationsTable.status })
+    .from(applicationsTable)
+    .where(eq(applicationsTable.userId, user.id))
+    .orderBy(desc(applicationsTable.submittedAt))
+    .limit(1);
+  if (!latest) {
+    res.json({ status: "none", applicationId: null });
+    return;
+  }
+  res.json({ status: latest.status, applicationId: latest.id });
+});
 
 router.get("/applications", async (req, res) => {
   const user = await resolveCurrentUser(req);
@@ -202,6 +246,17 @@ router.patch("/applications/:id", requireStaff, async (req, res) => {
       await syncApplicationToProfile(existing.userId, existing);
     } catch (err) {
       req.log.error({ err }, "Failed to sync application details to profile");
+    }
+
+    // Auto-enroll the student in their applied course so it immediately
+    // appears in My Learning. Content access still requires payment for
+    // paid courses (getCourseAccess checks price <= 0 || paid).
+    if (existing.courseId) {
+      try {
+        await ensureEnrollment(existing.userId, existing.courseId);
+      } catch (err) {
+        req.log.error({ err }, "Failed to auto-enroll student on approval");
+      }
     }
   }
 

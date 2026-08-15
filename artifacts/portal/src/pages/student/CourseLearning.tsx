@@ -15,6 +15,7 @@ import {
   useCreateBogOrder,
   useCompleteBogPayment,
   useGetLessonExplanation,
+  useGetMyApplicationStatus,
   getGetLessonExplanationQueryKey,
   type Subject,
   type StudyMaterial,
@@ -89,6 +90,21 @@ export default function StudentCourseLearning() {
   const { data: plans } = useListPaymentPlans(courseId);
   const configuredPlans = (plans ?? []).slice();
   const { data: planStatus } = useGetPlanStatus(courseId);
+
+  const {
+    data: myAppStatus,
+    isLoading: appStatusLoading,
+    isError: appStatusError,
+  } = useGetMyApplicationStatus();
+  // While loading, treat as unknown (don't gate) — use null to distinguish from
+  // a resolved "none". On error, fall back to showing the checkout UI so a
+  // transient API failure doesn't lock out an approved student.
+  const appStatus: string | null = appStatusLoading
+    ? null
+    : appStatusError
+      ? "approved"
+      : (myAppStatus?.status ?? "none");
+  const canCheckout = appStatus === "approved" || appStatus === null;
 
   const createOrder = useCreatePaypalOrder();
   const captureOrder = useCapturePaypalOrder();
@@ -339,18 +355,35 @@ export default function StudentCourseLearning() {
             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
               <Lock className="w-7 h-7 text-primary" />
             </div>
-            <div>
-              <h3 className="font-serif text-2xl font-semibold">
-                Unlock this course
-              </h3>
-              <p className="text-muted-foreground mt-1">
-                {configuredPlans.length > 0
-                  ? "Choose how you would like to pay. Paying in full unlocks everything at once; installments unlock curriculum years as you go."
-                  : "Complete your tuition payment to access all lectures and study materials."}
-              </p>
-            </div>
 
-            {configuredPlans.length > 0 ? (
+            {!canCheckout ? (
+              /* Application gate — shown before the student is eligible to pay */
+              <div className="space-y-2">
+                <h3 className="font-serif text-2xl font-semibold">
+                  {appStatus === "none"
+                    ? "Application required"
+                    : "Application under review"}
+                </h3>
+                <p className="text-muted-foreground">
+                  {appStatus === "none"
+                    ? "Submit an application to enroll in this course."
+                    : "Your application is under review — payment will be available once approved."}
+                </p>
+              </div>
+            ) : (
+              <div>
+                <h3 className="font-serif text-2xl font-semibold">
+                  Unlock this course
+                </h3>
+                <p className="text-muted-foreground mt-1">
+                  {configuredPlans.length > 0
+                    ? "Choose how you would like to pay. Paying in full unlocks everything at once; installments unlock curriculum years as you go."
+                    : "Complete your tuition payment to access all lectures and study materials."}
+                </p>
+              </div>
+            )}
+
+            {canCheckout && configuredPlans.length > 0 ? (
               <>
                 <div className="w-full max-w-md space-y-3 text-left">
                   {configuredPlans.map((plan) => {
@@ -415,7 +448,7 @@ export default function StudentCourseLearning() {
                   </Button>
                 </div>
               </>
-            ) : (
+            ) : canCheckout ? (
               <>
                 <div className="text-3xl font-bold text-primary">
                   {appliedDiscount?.valid && appliedDiscount.total != null ? (
@@ -456,11 +489,14 @@ export default function StudentCourseLearning() {
                   </Button>
                 </div>
               </>
+            ) : null}
+
+            {canCheckout && (
+              <p className="text-xs text-muted-foreground">
+                You will be redirected to PayPal or Bank of Georgia to complete
+                your payment securely.
+              </p>
             )}
-            <p className="text-xs text-muted-foreground">
-              You will be redirected to PayPal or Bank of Georgia to complete
-              your payment securely.
-            </p>
           </CardContent>
         </Card>
       ) : !subjects || subjects.length === 0 ? (

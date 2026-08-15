@@ -11,7 +11,10 @@ export interface Subject {
   courseId: number;
   title: string;
   /** @nullable */
+  code?: string | null;
+  /** @nullable */
   description?: string | null;
+  credits?: number;
   year: number;
   semester: number;
   orderIndex: number;

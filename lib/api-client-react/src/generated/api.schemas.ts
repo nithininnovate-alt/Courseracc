@@ -127,6 +127,23 @@ export interface ApplicationDocumentInput {
   objectPath: string;
 }
 
+export type MyApplicationStatusStatus = typeof MyApplicationStatusStatus[keyof typeof MyApplicationStatusStatus];
+
+
+export const MyApplicationStatusStatus = {
+  none: 'none',
+  pending: 'pending',
+  under_review: 'under_review',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface MyApplicationStatus {
+  status: MyApplicationStatusStatus;
+  /** @nullable */
+  applicationId?: number | null;
+}
+
 export type ApplicationStatus = typeof ApplicationStatus[keyof typeof ApplicationStatus];
 
 
@@ -301,6 +318,7 @@ export interface Subject {
   code?: string | null;
   /** @nullable */
   description?: string | null;
+  credits?: number;
   year: number;
   semester: number;
   orderIndex: number;
@@ -311,6 +329,7 @@ export interface SubjectInput {
   title: string;
   code?: string;
   description?: string;
+  credits?: number;
   /** @minimum 1 */
   year?: number;
   /** @minimum 1 */
@@ -323,6 +342,7 @@ export interface SubjectUpdate {
   title?: string;
   code?: string;
   description?: string;
+  credits?: number;
   /** @minimum 1 */
   year?: number;
   /** @minimum 1 */

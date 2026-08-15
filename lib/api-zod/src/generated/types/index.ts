@@ -73,6 +73,8 @@ export * from './materialProgressInput';
 export * from './materialProgressInputAction';
 export * from './materialUpdate';
 export * from './materialUpdateType';
+export * from './myApplicationStatus';
+export * from './myApplicationStatusStatus';
 export * from './nameValue';
 export * from './newsletter';
 export * from './newsletterAudience';

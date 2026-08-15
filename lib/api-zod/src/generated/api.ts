@@ -219,6 +219,15 @@ export const UpdateUserRoleResponse = zod.object({
 
 
 /**
+ * @summary Get the current student's application status
+ */
+export const GetMyApplicationStatusResponse = zod.object({
+  "status": zod.enum(['none', 'pending', 'under_review', 'approved', 'rejected']),
+  "applicationId": zod.number().nullish()
+})
+
+
+/**
  * @summary List admission applications
  */
 export const ListApplicationsResponseItem = zod.object({
@@ -644,7 +653,9 @@ export const ListSubjectsResponseItem = zod.object({
   "id": zod.number(),
   "courseId": zod.number(),
   "title": zod.string(),
+  "code": zod.string().nullish(),
   "description": zod.string().nullish(),
+  "credits": zod.number().optional(),
   "year": zod.number(),
   "semester": zod.number(),
   "orderIndex": zod.number()
@@ -668,6 +679,7 @@ export const CreateSubjectBody = zod.object({
   "title": zod.string().min(1),
   "code": zod.string().optional(),
   "description": zod.string().optional(),
+  "credits": zod.number().optional(),
   "year": zod.number().min(1).optional(),
   "semester": zod.number().min(1).optional(),
   "orderIndex": zod.number().optional()
@@ -679,6 +691,7 @@ export const CreateSubjectResponse = zod.object({
   "title": zod.string(),
   "code": zod.string().nullish(),
   "description": zod.string().nullish(),
+  "credits": zod.number().optional(),
   "year": zod.number(),
   "semester": zod.number(),
   "orderIndex": zod.number()
@@ -711,6 +724,7 @@ export const ListAllSubjectsResponseItem = zod.object({
   "title": zod.string(),
   "code": zod.string().nullish(),
   "description": zod.string().nullish(),
+  "credits": zod.number().optional(),
   "year": zod.number(),
   "semester": zod.number(),
   "orderIndex": zod.number()
@@ -731,6 +745,7 @@ export const GetSubjectResponse = zod.object({
   "title": zod.string(),
   "code": zod.string().nullish(),
   "description": zod.string().nullish(),
+  "credits": zod.number().optional(),
   "year": zod.number(),
   "semester": zod.number(),
   "orderIndex": zod.number()
@@ -753,6 +768,7 @@ export const UpdateSubjectBody = zod.object({
   "title": zod.string().min(1).optional(),
   "code": zod.string().optional(),
   "description": zod.string().optional(),
+  "credits": zod.number().optional(),
   "year": zod.number().min(1).optional(),
   "semester": zod.number().min(1).optional(),
   "orderIndex": zod.number().optional()
@@ -764,6 +780,7 @@ export const UpdateSubjectResponse = zod.object({
   "title": zod.string(),
   "code": zod.string().nullish(),
   "description": zod.string().nullish(),
+  "credits": zod.number().optional(),
   "year": zod.number(),
   "semester": zod.number(),
   "orderIndex": zod.number()

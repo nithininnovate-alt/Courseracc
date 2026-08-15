@@ -161,6 +161,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/User"
 
+  /applications/my:
+    get:
+      operationId: getMyApplicationStatus
+      tags: [applications]
+      summary: Get the current student's application status
+      responses:
+        "200":
+          description: Application status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyApplicationStatus"
+
   /applications:
     get:
       operationId: listApplications
@@ -1912,6 +1925,16 @@ components:
         name: { type: string, minLength: 1 }
         type: { type: string }
         objectPath: { type: string, minLength: 1 }
+    MyApplicationStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [none, pending, under_review, approved, rejected]
+        applicationId:
+          type: ["integer", "null"]
+
     Application:
       type: object
       required: [id, userId, programName, fullName, email, status, submittedAt]
@@ -2027,7 +2050,9 @@ components:
         id: { type: integer }
         courseId: { type: integer }
         title: { type: string }
+        code: { type: ["string", "null"] }
         description: { type: ["string", "null"] }
+        credits: { type: number }
         year: { type: integer }
         semester: { type: integer }
         orderIndex: { type: integer }
@@ -2036,7 +2061,9 @@ components:
       required: [title]
       properties:
         title: { type: string, minLength: 1 }
+        code: { type: string }
         description: { type: string }
+        credits: { type: number }
         year: { type: integer, minimum: 1 }
         semester: { type: integer, minimum: 1 }
         orderIndex: { type: integer }
@@ -2044,7 +2071,9 @@ components:
       type: object
       properties:
         title: { type: string, minLength: 1 }
+        code: { type: string }
         description: { type: string }
+        credits: { type: number }
         year: { type: integer, minimum: 1 }
         semester: { type: integer, minimum: 1 }
         orderIndex: { type: integer }

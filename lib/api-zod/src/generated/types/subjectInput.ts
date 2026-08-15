@@ -9,7 +9,9 @@
 export interface SubjectInput {
   /** @minLength 1 */
   title: string;
+  code?: string;
   description?: string;
+  credits?: number;
   /** @minimum 1 */
   year?: number;
   /** @minimum 1 */
