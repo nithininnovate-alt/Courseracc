@@ -7,6 +7,7 @@ import {
   useListAssignmentSubmissions,
   useGradeSubmission,
   useListAllSubjects,
+  useListSubjects,
   useListCourses,
   type Assignment,
   type Submission,
@@ -66,6 +67,10 @@ export default function AdminAssignments() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Assignment | null>(null);
   const [form, setForm] = useState<AssignmentForm>(empty);
+  // Fetch subjects for the selected course using /api/courses/:id/subjects —
+  // this endpoint has no auth restriction and always returns the right list,
+  // unlike /api/subjects which falls back to enrolled-only for non-staff sessions.
+  const { data: formSubjects = [] } = useListSubjects(Number(form.courseId) || 0);
   const [errors, setErrors] = useState<Partial<Record<"courseId" | "subjectId" | "title" | "dueDate", boolean>>>({});
   const [gradingFor, setGradingFor] = useState<Assignment | null>(null);
   const [courseFilter, setCourseFilter] = useState<string>("all");
@@ -83,9 +88,6 @@ export default function AdminAssignments() {
     const c = courses?.find((x) => x.id === cid);
     return c ? c.title : "—";
   };
-  const formSubjects = (subjects ?? []).filter(
-    (s) => form.courseId && s.courseId === Number(form.courseId),
-  );
   const visibleAssignments = (assignments ?? []).filter(
     (a) => courseFilter === "all" || courseIdOfSubject(a.subjectId) === Number(courseFilter),
   );
