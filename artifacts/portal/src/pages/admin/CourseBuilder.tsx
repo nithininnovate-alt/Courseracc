@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, forwardRef, useImperativeHandle } from "react";
 import { useParams, Link } from "wouter";
 import {
   useListCourses,
@@ -106,6 +106,7 @@ export default function AdminCourseBuilder() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Subject | null>(null);
   const [form, setForm] = useState<SubjectForm>(emptySubject);
+  const materialManagerRefs = useRef<Map<number, { openCreate: () => void }>>(new Map());
 
   const openCreate = () => {
     setEditing(null);
@@ -216,6 +217,16 @@ export default function AdminCourseBuilder() {
                           </AccordionTrigger>
                           <div className="flex items-center gap-1">
                             <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                materialManagerRefs.current.get(s.id)?.openCreate();
+                              }}
+                            >
+                              <Plus className="w-4 h-4 mr-1" /> Add Material
+                            </Button>
+                            <Button
                               variant="ghost"
                               size="icon"
                               onClick={(e) => {
@@ -243,7 +254,13 @@ export default function AdminCourseBuilder() {
                               {s.description}
                             </p>
                           )}
-                          <MaterialsManager subjectId={s.id} />
+                          <MaterialsManager
+                            subjectId={s.id}
+                            ref={(el) => {
+                              if (el) materialManagerRefs.current.set(s.id, el);
+                              else materialManagerRefs.current.delete(s.id);
+                            }}
+                          />
                         </AccordionContent>
                       </AccordionItem>
                     ))}
@@ -651,7 +668,10 @@ const emptyMaterial: MaterialForm = {
   orderIndex: "1",
 };
 
-function MaterialsManager({ subjectId }: { subjectId: number }) {
+const MaterialsManager = forwardRef<
+  { openCreate: () => void },
+  { subjectId: number }
+>(function MaterialsManager({ subjectId }, ref) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const { data: materials, isLoading } = useListMaterials(subjectId);
@@ -674,6 +694,9 @@ function MaterialsManager({ subjectId }: { subjectId: number }) {
     });
     setOpen(true);
   };
+
+  useImperativeHandle(ref, () => ({ openCreate }));
+
   const openEdit = (m: StudyMaterial) => {
     setEditing(m);
     setForm({
@@ -748,7 +771,9 @@ function MaterialsManager({ subjectId }: { subjectId: number }) {
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading materials…</p>
       ) : sorted.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No materials yet.</p>
+        <p className="text-sm text-muted-foreground">
+          No materials yet — use <strong>Add Material</strong> above to attach a video, PDF, or text.
+        </p>
       ) : (
         <ul className="space-y-2">
           {sorted.map((m) => (
@@ -779,10 +804,6 @@ function MaterialsManager({ subjectId }: { subjectId: number }) {
           ))}
         </ul>
       )}
-
-      <Button variant="outline" size="sm" onClick={openCreate}>
-        <Plus className="w-4 h-4 mr-2" /> Add Material
-      </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
@@ -913,4 +934,4 @@ function MaterialsManager({ subjectId }: { subjectId: number }) {
       </Dialog>
     </div>
   );
-}
+});
