@@ -1,4 +1,4 @@
-import { useState, useRef, forwardRef, useImperativeHandle } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "wouter";
 import {
   useListCourses,
@@ -106,7 +106,7 @@ export default function AdminCourseBuilder() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Subject | null>(null);
   const [form, setForm] = useState<SubjectForm>(emptySubject);
-  const materialManagerRefs = useRef<Map<number, { openCreate: () => void }>>(new Map());
+  const [addingForSubjectId, setAddingForSubjectId] = useState<number | null>(null);
 
   const openCreate = () => {
     setEditing(null);
@@ -221,7 +221,7 @@ export default function AdminCourseBuilder() {
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                materialManagerRefs.current.get(s.id)?.openCreate();
+                                setAddingForSubjectId(s.id);
                               }}
                             >
                               <Plus className="w-4 h-4 mr-1" /> Add Material
@@ -256,10 +256,7 @@ export default function AdminCourseBuilder() {
                           )}
                           <MaterialsManager
                             subjectId={s.id}
-                            ref={(el) => {
-                              if (el) materialManagerRefs.current.set(s.id, el);
-                              else materialManagerRefs.current.delete(s.id);
-                            }}
+                            onAdd={() => setAddingForSubjectId(s.id)}
                           />
                         </AccordionContent>
                       </AccordionItem>
@@ -357,6 +354,12 @@ export default function AdminCourseBuilder() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AddMaterialDialog
+        subjectId={addingForSubjectId}
+        open={addingForSubjectId !== null}
+        onClose={() => setAddingForSubjectId(null)}
+      />
     </div>
   );
 }
@@ -668,14 +671,16 @@ const emptyMaterial: MaterialForm = {
   orderIndex: "1",
 };
 
-const MaterialsManager = forwardRef<
-  { openCreate: () => void },
-  { subjectId: number }
->(function MaterialsManager({ subjectId }, ref) {
+function MaterialsManager({
+  subjectId,
+  onAdd,
+}: {
+  subjectId: number;
+  onAdd: () => void;
+}) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const { data: materials, isLoading } = useListMaterials(subjectId);
-  const createMaterial = useCreateMaterial();
   const updateMaterial = useUpdateMaterial();
   const deleteMaterial = useDeleteMaterial();
   const { uploadFile, isUploading } = useUpload({
@@ -685,17 +690,6 @@ const MaterialsManager = forwardRef<
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<StudyMaterial | null>(null);
   const [form, setForm] = useState<MaterialForm>(emptyMaterial);
-
-  const openCreate = () => {
-    setEditing(null);
-    setForm({
-      ...emptyMaterial,
-      orderIndex: String((materials?.length ?? 0) + 1),
-    });
-    setOpen(true);
-  };
-
-  useImperativeHandle(ref, () => ({ openCreate }));
 
   const openEdit = (m: StudyMaterial) => {
     setEditing(m);
@@ -741,11 +735,8 @@ const MaterialsManager = forwardRef<
     const onError = () =>
       toast({ title: "Error saving material", variant: "destructive" });
 
-    if (editing) {
-      updateMaterial.mutate({ id: editing.id, data }, { onSuccess, onError });
-    } else {
-      createMaterial.mutate({ subjectId, data }, { onSuccess, onError });
-    }
+    if (!editing) return;
+    updateMaterial.mutate({ id: editing.id, data }, { onSuccess, onError });
   };
 
   const handleDelete = (m: StudyMaterial) => {
@@ -808,9 +799,7 @@ const MaterialsManager = forwardRef<
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {editing ? "Edit Material" : "Add Material"}
-            </DialogTitle>
+            <DialogTitle>Edit Material</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -921,17 +910,200 @@ const MaterialsManager = forwardRef<
             </Button>
             <Button
               onClick={handleSave}
-              disabled={
-                createMaterial.isPending ||
-                updateMaterial.isPending ||
-                isUploading
-              }
+              disabled={updateMaterial.isPending || isUploading}
             >
-              {editing ? "Save" : "Add Material"}
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
-});
+}
+
+// ---------------------------------------------------------------------------
+// Add-material dialog — lives outside the accordion so it's always mounted
+// ---------------------------------------------------------------------------
+function AddMaterialDialog({
+  subjectId,
+  open,
+  onClose,
+}: {
+  subjectId: number | null;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const { data: existingMaterials } = useListMaterials(subjectId ?? 0);
+  const createMaterial = useCreateMaterial();
+  const { uploadFile, isUploading } = useUpload({
+    onError: () => toast({ title: "Upload failed", variant: "destructive" }),
+  });
+
+  const [form, setForm] = useState<MaterialForm>(emptyMaterial);
+
+  // Reset form each time the dialog opens
+  useEffect(() => {
+    if (open) {
+      setForm({
+        ...emptyMaterial,
+        orderIndex: String((existingMaterials?.length ?? 0) + 1),
+      });
+    }
+  }, [open, subjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleUpload = async (file: File) => {
+    const res = await uploadFile(file);
+    if (res?.objectPath) {
+      setForm((f) => ({ ...f, url: res.objectPath }));
+      toast({ title: "File uploaded" });
+    }
+  };
+
+  const handleSave = () => {
+    if (!form.title.trim()) {
+      toast({ title: "Title required", variant: "destructive" });
+      return;
+    }
+    if (!subjectId) return;
+    const data = {
+      title: form.title,
+      type: form.type,
+      url: form.url || undefined,
+      content: form.content || undefined,
+      durationMinutes: form.durationMinutes ? Number(form.durationMinutes) : undefined,
+      orderIndex: Number(form.orderIndex) || 1,
+    };
+    createMaterial.mutate(
+      { subjectId, data },
+      {
+        onSuccess: () => {
+          toast({ title: "Material added" });
+          qc.invalidateQueries();
+          onClose();
+        },
+        onError: () =>
+          toast({ title: "Error saving material", variant: "destructive" }),
+      },
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add Material</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="am-title">Title</Label>
+            <Input
+              id="am-title"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Select
+                value={form.type}
+                onValueChange={(v) =>
+                  setForm({ ...form, type: v as MaterialInputType, url: "", content: "" })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MATERIAL_TYPES.map((t) => (
+                    <SelectItem key={t} value={t} className="capitalize">
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="am-order">Order</Label>
+              <Input
+                id="am-order"
+                type="number"
+                min="1"
+                value={form.orderIndex}
+                onChange={(e) => setForm({ ...form, orderIndex: e.target.value })}
+              />
+            </div>
+          </div>
+
+          {form.type === "text" ? (
+            <div className="space-y-2">
+              <Label htmlFor="am-content">Content</Label>
+              <Textarea
+                id="am-content"
+                rows={4}
+                value={form.content}
+                onChange={(e) => setForm({ ...form, content: e.target.value })}
+              />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="am-url">
+                {form.type === "link" ? "URL" : "File URL"}
+              </Label>
+              <Input
+                id="am-url"
+                value={form.url}
+                placeholder="https://…"
+                onChange={(e) => setForm({ ...form, url: e.target.value })}
+              />
+              {(form.type === "video" || form.type === "pdf") && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept={form.type === "video" ? "video/*" : "application/pdf"}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void handleUpload(file);
+                    }}
+                    disabled={isUploading}
+                  />
+                  {isUploading && (
+                    <span className="text-xs text-muted-foreground">Uploading…</span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {form.type === "video" && (
+            <div className="space-y-2">
+              <Label htmlFor="am-duration">Duration (minutes)</Label>
+              <Input
+                id="am-duration"
+                type="number"
+                min="0"
+                value={form.durationMinutes}
+                onChange={(e) =>
+                  setForm({ ...form, durationMinutes: e.target.value })
+                }
+              />
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={createMaterial.isPending || isUploading}
+          >
+            Add Material
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
