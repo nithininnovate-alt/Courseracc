@@ -173,6 +173,16 @@ export default function StudentCourseLearning() {
   }, []);
 
   const onCheckoutError = (err: unknown) => {
+    const status = (err as { status?: number })?.status;
+    if (status === 403) {
+      toast({
+        title: "Application required",
+        description:
+          "Your application must be approved before purchasing a course. Please contact the registrar office.",
+        variant: "destructive",
+      });
+      return;
+    }
     const msg = err instanceof Error ? err.message : "Could not start checkout.";
     toast({
       title: "Checkout unavailable",

@@ -15,6 +15,7 @@ import {
   submissionsTable,
   examsTable,
   resultsTable,
+  applicationsTable,
 } from "@workspace/db";
 import {
   CreatePaymentBody,
@@ -102,6 +103,30 @@ type PaymentDue =
       course: typeof coursesTable.$inferSelect;
     }
   | { ok: false; status: number; error: string };
+
+/**
+ * Returns null when the user has at least one staff-approved application,
+ * or an error message string when they do not.
+ * Used to gate student-initiated checkout flows.
+ */
+export async function requireApprovedApplication(
+  userId: number,
+): Promise<string | null> {
+  const [approved] = await db
+    .select({ id: applicationsTable.id })
+    .from(applicationsTable)
+    .where(
+      and(
+        eq(applicationsTable.userId, userId),
+        eq(applicationsTable.status, "approved"),
+      ),
+    )
+    .limit(1);
+  if (!approved) {
+    return "Your application must be approved before purchasing a course. Please contact the registrar office.";
+  }
+  return null;
+}
 
 async function derivePaymentDue(
   userId: number,
@@ -494,6 +519,11 @@ router.post(
     }
     const { courseId, planId, returnUrl, cancelUrl, discountCode } = parsed.data;
     const userId = req.currentUser!.id;
+    const applicationError = await requireApprovedApplication(userId);
+    if (applicationError) {
+      res.status(403).json({ error: applicationError });
+      return;
+    }
     const due = await derivePaymentDue(userId, courseId, planId);
     if (!due.ok) {
       res.status(due.status).json({ error: due.error });
@@ -636,6 +666,11 @@ router.post(
     }
     const { courseId, planId, returnUrl, discountCode } = parsed.data;
     const userId = req.currentUser!.id;
+    const applicationError = await requireApprovedApplication(userId);
+    if (applicationError) {
+      res.status(403).json({ error: applicationError });
+      return;
+    }
     const due = await derivePaymentDue(userId, courseId, planId);
     if (!due.ok) {
       res.status(due.status).json({ error: due.error });
