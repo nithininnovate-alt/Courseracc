@@ -1,0 +1,51 @@
+inux lms 6.12.96+deb13-cloud-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.12.96-1 (2026-07-20) x86_64
+
+The programs included with the Debian GNU/Linux system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+permitted by applicable law.
+Last login: Fri Aug 14 10:32:54 2026 from 35.235.251.10
+atwo_india@lms:~$ sudo -u postgres psql cgu << 'EOF'
+BEGIN;
+
+-- Show what will be deleted
+SELECT count(*) AS students_to_delete FROM users WHERE role = 'student';
+
+-- Delete all child records belonging to students
+DELETE FROM material_progress  WHERE user_id IN (SELECT id FROM users WHERE role='student');
+DELETE FROM lesson_explanations WHERE user_id IN (SELECT id FROM users WHERE role='student');
+DELETE FROM submissions        WHERE user_id IN (SELECT id FROM users WHERE role='student');
+DELETE FROM results            WHERE user_id IN (SELECT id FROM users WHERE role='student');
+DELETE FROM enrollments        WHERE user_id IN (SELECT id FROM users WHERE role='student');
+DELETE FROM payments           WHERE user_id IN (SELECT id FROM users WHERE role='student');
+DELETE FROM payment_plans      WHERE user_id IN (SELECT id FROM users WHERE role='student');
+DELETE FROM certificates       WHERE user_id IN (SELECT id FROM users WHERE role='student');
+DELETE FROM courier_tracking   WHERE user_id IN (SELECT id FROM users WHERE role='student');
+DELETE FROM email_logs         WHERE user_id IN (SELECT id FROM users WHERE role='student');
+DELETE FROM applications       WHERE user_id IN (SELECT id FROM users WHERE role='student');
+
+EOFMIT;count(*) AS students_remaining FROM users WHERE role = 'student';
+BEGIN
+ students_to_delete 
+--------------------
+                 15
+(1 row)
+
+DELETE 30
+DELETE 17
+DELETE 88
+DELETE 0
+DELETE 22
+DELETE 17
+ERROR:  column "user_id" does not exist
+LINE 1: DELETE FROM payment_plans      WHERE user_id IN (SELECT id F...
+                                             ^
+ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ROLLBACK

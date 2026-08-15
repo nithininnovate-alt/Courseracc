@@ -66,6 +66,7 @@ export default function AdminAssignments() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Assignment | null>(null);
   const [form, setForm] = useState<AssignmentForm>(empty);
+  const [errors, setErrors] = useState<Partial<Record<"courseId" | "subjectId" | "title" | "dueDate", boolean>>>({});
   const [gradingFor, setGradingFor] = useState<Assignment | null>(null);
   const [courseFilter, setCourseFilter] = useState<string>("all");
 
@@ -91,7 +92,9 @@ export default function AdminAssignments() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ ...empty });
+    const autoCourse = courses?.length === 1 ? String(courses[0].id) : "";
+    setForm({ ...empty, courseId: autoCourse });
+    setErrors({});
     setOpen(true);
   };
   const openEdit = (a: Assignment) => {
@@ -105,6 +108,7 @@ export default function AdminAssignments() {
       dueDate: toLocalInput(a.dueDate),
       maxScore: String(a.maxScore),
     });
+    setErrors({});
     setOpen(true);
   };
 
@@ -119,10 +123,18 @@ export default function AdminAssignments() {
   };
 
   const handleSave = () => {
-    if (!form.title.trim() || !form.subjectId || !form.dueDate) {
-      toast({ title: "Missing fields", description: "Subject, title and due date are required.", variant: "destructive" });
+    const newErrors: typeof errors = {
+      courseId: !form.courseId,
+      subjectId: !form.subjectId,
+      title: !form.title.trim(),
+      dueDate: !form.dueDate,
+    };
+    if (Object.values(newErrors).some(Boolean)) {
+      setErrors(newErrors);
+      toast({ title: "Missing fields", description: "Please fill in all highlighted fields.", variant: "destructive" });
       return;
     }
+    setErrors({});
     const data = {
       subjectId: Number(form.subjectId),
       title: form.title,
@@ -239,9 +251,17 @@ export default function AdminAssignments() {
           <DialogHeader><DialogTitle>{editing ? "Edit Assignment" : "Add Assignment"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Course</Label>
-              <Select value={form.courseId} onValueChange={(v) => setForm({ ...form, courseId: v, subjectId: "" })}>
-                <SelectTrigger><SelectValue placeholder="Select a course" /></SelectTrigger>
+              <Label>Course <span className="text-destructive">*</span></Label>
+              <Select
+                value={form.courseId}
+                onValueChange={(v) => {
+                  setForm({ ...form, courseId: v, subjectId: "" });
+                  setErrors((e) => ({ ...e, courseId: false, subjectId: false }));
+                }}
+              >
+                <SelectTrigger className={errors.courseId ? "border-destructive ring-1 ring-destructive" : ""}>
+                  <SelectValue placeholder="Select a course" />
+                </SelectTrigger>
                 <SelectContent>
                   {(courses ?? []).map((c) => (
                     <SelectItem key={c.id} value={String(c.id)}>{c.title}</SelectItem>
@@ -250,9 +270,18 @@ export default function AdminAssignments() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Subject</Label>
-              <Select value={form.subjectId} onValueChange={(v) => setForm({ ...form, subjectId: v })} disabled={!form.courseId}>
-                <SelectTrigger><SelectValue placeholder={form.courseId ? "Select a subject" : "Select a course first"} /></SelectTrigger>
+              <Label>Subject <span className="text-destructive">*</span></Label>
+              <Select
+                value={form.subjectId}
+                onValueChange={(v) => {
+                  setForm({ ...form, subjectId: v });
+                  setErrors((e) => ({ ...e, subjectId: false }));
+                }}
+                disabled={!form.courseId}
+              >
+                <SelectTrigger className={errors.subjectId ? "border-destructive ring-1 ring-destructive" : ""}>
+                  <SelectValue placeholder={form.courseId ? "Select a subject" : "Pick a course above first"} />
+                </SelectTrigger>
                 <SelectContent>
                   {formSubjects.map((s) => (
                     <SelectItem key={s.id} value={String(s.id)}>{s.title}</SelectItem>
@@ -261,8 +290,16 @@ export default function AdminAssignments() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
-              <Input id="title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+              <Label htmlFor="title">Title <span className="text-destructive">*</span></Label>
+              <Input
+                id="title"
+                value={form.title}
+                className={errors.title ? "border-destructive ring-1 ring-destructive" : ""}
+                onChange={(e) => {
+                  setForm({ ...form, title: e.target.value });
+                  if (e.target.value.trim()) setErrors((er) => ({ ...er, title: false }));
+                }}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
@@ -270,8 +307,17 @@ export default function AdminAssignments() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="dueDate">Due Date</Label>
-                <Input id="dueDate" type="datetime-local" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />
+                <Label htmlFor="dueDate">Due Date <span className="text-destructive">*</span></Label>
+                <Input
+                  id="dueDate"
+                  type="datetime-local"
+                  value={form.dueDate}
+                  className={errors.dueDate ? "border-destructive ring-1 ring-destructive" : ""}
+                  onChange={(e) => {
+                    setForm({ ...form, dueDate: e.target.value });
+                    if (e.target.value) setErrors((er) => ({ ...er, dueDate: false }));
+                  }}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="maxScore">Max Score (ECTS)</Label>

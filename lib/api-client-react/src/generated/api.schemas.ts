@@ -298,6 +298,8 @@ export interface Subject {
   courseId: number;
   title: string;
   /** @nullable */
+  code?: string | null;
+  /** @nullable */
   description?: string | null;
   year: number;
   semester: number;
@@ -307,6 +309,7 @@ export interface Subject {
 export interface SubjectInput {
   /** @minLength 1 */
   title: string;
+  code?: string;
   description?: string;
   /** @minimum 1 */
   year?: number;
@@ -318,6 +321,7 @@ export interface SubjectInput {
 export interface SubjectUpdate {
   /** @minLength 1 */
   title?: string;
+  code?: string;
   description?: string;
   /** @minimum 1 */
   year?: number;
